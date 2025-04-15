@@ -9,7 +9,7 @@ export function DashboardLayout() {
       <DashboardSidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
-        <main className="flex-1 overflow-y-auto bg-slate-50 p-4">
+        <main className="flex-1 overflow-y-auto bg-white p-6">
           <Outlet />
         </main>
       </div>

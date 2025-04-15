@@ -5,157 +5,139 @@ import {
   BarChart3, 
   FileText, 
   Users, 
-  FileCheck, 
-  Receipt, 
   Package, 
   Settings, 
   ChevronLeft,
   ChevronRight,
   LogOut,
   CreditCard,
-  Home
+  Home,
+  Clock,
+  Filter,
+  Calendar
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Logo } from "@/components/Logo";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface SidebarLinkProps {
   to: string;
   icon: React.ElementType;
   label: string;
-  isCollapsed: boolean;
   isActive?: boolean;
 }
 
-function SidebarLink({ to, icon: Icon, label, isCollapsed, isActive }: SidebarLinkProps) {
+function SidebarLink({ to, icon: Icon, label, isActive }: SidebarLinkProps) {
   return (
     <Link
       to={to}
       className={cn(
-        "flex items-center gap-3 px-3 py-2 rounded-md transition-all",
+        "flex items-center gap-3 px-3 py-2 rounded-md transition-all text-sm",
         isActive 
-          ? "bg-sidebar-accent text-sidebar-accent-foreground" 
-          : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/30"
+          ? "bg-white/10 text-white" 
+          : "text-white/70 hover:text-white hover:bg-white/5"
       )}
     >
-      <Icon size={20} />
-      {!isCollapsed && <span>{label}</span>}
+      <Icon size={18} />
+      <span>{label}</span>
     </Link>
   );
 }
 
 export function DashboardSidebar() {
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const location = useLocation();
   
   const isActive = (path: string) => location.pathname === path;
   
   return (
-    <aside 
-      className={cn(
-        "bg-sidebar h-screen transition-all duration-300 border-r flex flex-col",
-        isCollapsed ? "w-[60px]" : "w-[240px]"
-      )}
-    >
-      <div className="p-4 flex items-center justify-between border-b">
-        {!isCollapsed ? (
-          <Logo variant="white" />
-        ) : (
-          <div className="mx-auto">
-            <div className="gradient-bg p-1.5 rounded">
-              <FileText className="text-white" size={20} />
-            </div>
-          </div>
-        )}
+    <aside className="bg-[#0f1b38] h-screen w-[240px] flex flex-col border-r border-white/5">
+      <div className="p-4 flex items-center gap-2">
+        <Avatar className="h-10 w-10 bg-orange-500 text-white">
+          <AvatarFallback>D</AvatarFallback>
+        </Avatar>
+        <div className="text-white font-medium">Dundy</div>
       </div>
       
-      <div className="flex flex-col flex-1 py-4 overflow-y-auto">
-        <nav className="space-y-1 px-2">
+      <div className="p-3">
+        <Button variant="secondary" className="w-full justify-between bg-[#1e2a4a] hover:bg-[#263358] text-white border-0">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-indigo-500 rounded flex items-center justify-center">AC</div>
+            <span>ACME,INC.</span>
+          </div>
+          <ChevronRight size={16} />
+        </Button>
+      </div>
+      
+      <div className="p-3">
+        <div className="text-white/50 text-xs mb-2">Filtrer mon activité</div>
+        <div className="space-y-1">
           <SidebarLink 
             to="/dashboard" 
-            icon={Home} 
-            label="Dashboard" 
-            isCollapsed={isCollapsed}
+            icon={Calendar} 
+            label="Aujourd'hui" 
             isActive={isActive("/dashboard")}
           />
           <SidebarLink 
+            to="/dashboard/transactions" 
+            icon={Filter} 
+            label="Transactions" 
+            isActive={isActive("/dashboard/transactions")}
+          />
+        </div>
+      </div>
+      
+      <div className="p-3 border-t border-white/10">
+        <div className="text-white/50 text-xs mb-2">Se faire payer</div>
+        <div className="space-y-1">
+          <SidebarLink 
             to="/dashboard/invoices" 
             icon={FileText} 
-            label="Invoices" 
-            isCollapsed={isCollapsed}
+            label="Factures" 
             isActive={isActive("/dashboard/invoices")}
+          />
+          <SidebarLink 
+            to="/dashboard/reminders" 
+            icon={Clock} 
+            label="Relances" 
+            isActive={isActive("/dashboard/reminders")}
           />
           <SidebarLink 
             to="/dashboard/clients" 
             icon={Users} 
             label="Clients" 
-            isCollapsed={isCollapsed}
             isActive={isActive("/dashboard/clients")}
           />
-          <SidebarLink 
-            to="/dashboard/quotes" 
-            icon={FileCheck} 
-            label="Quotes" 
-            isCollapsed={isCollapsed}
-            isActive={isActive("/dashboard/quotes")}
-          />
-          <SidebarLink 
-            to="/dashboard/expenses" 
-            icon={Receipt} 
-            label="Expenses" 
-            isCollapsed={isCollapsed}
-            isActive={isActive("/dashboard/expenses")}
-          />
-          <SidebarLink 
-            to="/dashboard/products" 
-            icon={Package} 
-            label="Products" 
-            isCollapsed={isCollapsed}
-            isActive={isActive("/dashboard/products")}
-          />
-          <SidebarLink 
-            to="/dashboard/reports" 
-            icon={BarChart3} 
-            label="Reports" 
-            isCollapsed={isCollapsed}
-            isActive={isActive("/dashboard/reports")}
-          />
-          <SidebarLink 
-            to="/dashboard/payments" 
-            icon={CreditCard} 
-            label="Payments" 
-            isCollapsed={isCollapsed}
-            isActive={isActive("/dashboard/payments")}
-          />
-        </nav>
+        </div>
       </div>
       
-      <div className="p-2 border-t">
-        <nav className="space-y-1">
+      <div className="p-3">
+        <div className="text-white/50 text-xs mb-2">Gérer ma structure</div>
+        <div className="space-y-1">
+          <SidebarLink 
+            to="/dashboard/team" 
+            icon={Users} 
+            label="Équipe" 
+            isActive={isActive("/dashboard/team")}
+          />
           <SidebarLink 
             to="/dashboard/settings" 
             icon={Settings} 
-            label="Settings" 
-            isCollapsed={isCollapsed}
+            label="Paramètres" 
             isActive={isActive("/dashboard/settings")}
           />
-          <SidebarLink 
-            to="/logout" 
-            icon={LogOut} 
-            label="Logout" 
-            isCollapsed={isCollapsed}
-          />
-        </nav>
+        </div>
       </div>
       
-      <Button
-        variant="ghost"
-        size="icon"
-        className="absolute bottom-4 -right-3 h-6 w-6 rounded-full bg-primary text-primary-foreground border border-primary shadow-md"
-        onClick={() => setIsCollapsed(!isCollapsed)}
-      >
-        {isCollapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
-      </Button>
+      <div className="mt-auto p-3 border-t border-white/10">
+        <div className="space-y-1">
+          <SidebarLink 
+            to="/dashboard/account" 
+            icon={Settings} 
+            label="Mon entreprise" 
+            isActive={isActive("/dashboard/account")}
+          />
+        </div>
+      </div>
     </aside>
   );
 }

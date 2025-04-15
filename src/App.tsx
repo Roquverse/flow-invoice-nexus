@@ -15,6 +15,7 @@ import NotFound from "./pages/NotFound";
 import { DashboardLayout } from "./components/dashboard/DashboardLayout";
 import DashboardPage from "./pages/dashboard/DashboardPage";
 import InvoicesPage from "./pages/dashboard/InvoicesPage";
+import ClientDetailPage from "./pages/dashboard/ClientDetailPage";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,7 @@ const App = () => (
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<DashboardPage />} />
             <Route path="invoices" element={<InvoicesPage />} />
+            <Route path="clients/:id" element={<ClientDetailPage />} />
             {/* Add more dashboard routes here */}
           </Route>
           
