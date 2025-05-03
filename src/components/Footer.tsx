@@ -1,57 +1,137 @@
+import React from "react";
+import "../styles/footer.css";
 
-import { Logo } from "@/components/Logo";
-import { Link } from "react-router-dom";
-
-export function Footer() {
+const Footer: React.FC = () => {
   return (
-    <footer className="bg-slate-50 border-t py-12 px-4">
-      <div className="container mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div className="col-span-1 md:col-span-1">
-            <Logo />
-            <p className="mt-4 text-sm text-muted-foreground">
-              Simplifying invoicing for freelancers, small businesses and agencies.
-            </p>
-          </div>
-          
-          <div>
-            <h3 className="font-medium mb-4">Product</h3>
-            <ul className="space-y-2">
-              <li><Link to="/features" className="text-sm text-muted-foreground hover:text-foreground">Features</Link></li>
-              <li><Link to="/pricing" className="text-sm text-muted-foreground hover:text-foreground">Pricing</Link></li>
-              <li><Link to="/testimonials" className="text-sm text-muted-foreground hover:text-foreground">Testimonials</Link></li>
-            </ul>
-          </div>
-          
-          <div>
-            <h3 className="font-medium mb-4">Resources</h3>
-            <ul className="space-y-2">
-              <li><Link to="/help" className="text-sm text-muted-foreground hover:text-foreground">Help Center</Link></li>
-              <li><Link to="/blog" className="text-sm text-muted-foreground hover:text-foreground">Blog</Link></li>
-              <li><Link to="/guides" className="text-sm text-muted-foreground hover:text-foreground">Guides</Link></li>
-            </ul>
-          </div>
-          
-          <div>
-            <h3 className="font-medium mb-4">Company</h3>
-            <ul className="space-y-2">
-              <li><Link to="/about" className="text-sm text-muted-foreground hover:text-foreground">About Us</Link></li>
-              <li><Link to="/contact" className="text-sm text-muted-foreground hover:text-foreground">Contact</Link></li>
-              <li><Link to="/legal" className="text-sm text-muted-foreground hover:text-foreground">Legal</Link></li>
-            </ul>
+    <footer className="footer-section" id="footer">
+      <div className="footer-top">
+        <div className="container">
+          <div className="footer-content">
+            <div className="footer-brand">
+              <a href="/" className="footer-logo">
+                <img src="/logo.png" alt="footer-logo" width={100} />
+              </a>
+              <p>
+                Risitify is the dedicated platform for performance management
+                that helps to grow your startup quickly
+              </p>
+              <div className="footer-follow">
+                <p>Follow:</p>
+                <ul className="social-link">
+                  <li>
+                    <a href="#">
+                      <img src="/icons/facebook.svg" alt="social-icon" />
+                    </a>
+                  </li>
+                  <li>
+                    <a href="#">
+                      <img src="/icons/twitter.svg" alt="social-icon" />
+                    </a>
+                  </li>
+                  <li>
+                    <a href="#">
+                      <img src="/icons/instagram.svg" alt="social-icon" />
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div className="footer-links">
+              <div className="footer-column">
+                <h6>Products</h6>
+                <ul>
+                  <li>
+                    <a href="https://avatecinteractives.ng">HR Management</a>
+                  </li>
+                  <li>
+                    <a href="https://avatecinteractives.ng">Invoice System</a>
+                  </li>
+                  <li>
+                    <a href="https://avatecinteractives.ng">Email Marketing</a>
+                  </li>
+                  <li>
+                    <a href="https://avatecinteractives.ng">
+                      Digital Marketing
+                    </a>
+                  </li>
+                </ul>
+              </div>
+              <div className="footer-column">
+                <h6>Why choose</h6>
+                <ul>
+                  <li>
+                    <a href="#">Customers</a>
+                  </li>
+                  <li>
+                    <a href="#">Why Risitify ?</a>
+                  </li>
+                  <li>
+                    <a href="https://avatecinteractives.ng">Book a demo</a>
+                  </li>
+                </ul>
+              </div>
+              <div className="footer-column">
+                <h6>Resources</h6>
+                <ul>
+                  <li>
+                    <a href="#">Latest Blog</a>
+                  </li>
+                  <li>
+                    <a href="#">Supports</a>
+                  </li>
+                  <li>
+                    <a href="#">Knowledgebase</a>
+                  </li>
+                  <li>
+                    <a href="#">FAQs</a>
+                  </li>
+                </ul>
+              </div>
+              <div className="footer-column">
+                <h6>Company</h6>
+                <ul>
+                  <li>
+                    <a href="#">About</a>
+                  </li>
+                  <li>
+                    <a href="#">What we do</a>
+                  </li>
+                  <li>
+                    <a href="#">Contact us</a>
+                  </li>
+                  <li>
+                    <a href="#">
+                      Careers <span className="theme-badge">Hiring</span>
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
-        
-        <div className="flex flex-col md:flex-row justify-between items-center mt-12 pt-8 border-t">
-          <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} FlowInvoice. All rights reserved.
-          </p>
-          <div className="flex space-x-4 mt-4 md:mt-0">
-            <Link to="/privacy" className="text-sm text-muted-foreground hover:text-foreground">Privacy</Link>
-            <Link to="/terms" className="text-sm text-muted-foreground hover:text-foreground">Terms</Link>
+      </div>
+      <div className="footer-bottom">
+        <div className="container">
+          <div className="footer-bottom-content">
+            <div className="footer-copyright">
+              <p>{new Date().getFullYear()} Risitify. All rights reserved.</p>
+            </div>
+            <ul className="privacy-menu">
+              <li>
+                <a href="/terms">Terms and conditions</a>
+              </li>
+              <li>
+                <a href="#">Cookies</a>
+              </li>
+              <li>
+                <a href="/privacy">Privacy policy</a>
+              </li>
+            </ul>
           </div>
         </div>
       </div>
     </footer>
   );
-}
+};
+
+export default Footer;

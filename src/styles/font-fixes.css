@@ -1,0 +1,138 @@
+/* Font size fixes */
+.hero-section-index5 .index5-hero-content .v5banner-text .banner-title {
+  font-size: 48px !important;
+  line-height: 1.2 !important;
+}
+
+/* Word animation styles */
+.word-animation-wrapper {
+  display: inline-block;
+  min-width: 200px;
+  text-align: left;
+  position: relative;
+}
+
+.animated-word {
+  display: inline-block;
+  background: linear-gradient(90deg, #032539 0%, #a6bd8f 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-in forwards;
+}
+
+.fade-out {
+  animation: fadeOut 0.5s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+}
+
+/* Remove link decorations */
+a {
+  text-decoration: none !important;
+  color: inherit;
+}
+
+a:hover {
+  text-decoration: none !important;
+  color: inherit;
+}
+
+.hero-section-index5 .index5-hero-content .v5banner-text p {
+  font-size: 18px !important;
+  line-height: 1.6 !important;
+}
+
+.v5welocme-section {
+  font-size: 16px !important;
+}
+
+.index5-scroll-carousel-section ul li strong {
+  font-size: 16px !important;
+  line-height: 1.5 !important;
+}
+
+/* General text size fixes */
+body {
+  font-size: 16px !important;
+  line-height: 1.5 !important;
+}
+
+h1 {
+  font-size: 48px !important;
+  line-height: 1.2 !important;
+}
+
+h2 {
+  font-size: 36px !important;
+  line-height: 1.3 !important;
+}
+
+h3 {
+  font-size: 28px !important;
+  line-height: 1.4 !important;
+}
+
+h4 {
+  font-size: 24px !important;
+  line-height: 1.4 !important;
+}
+
+h5 {
+  font-size: 20px !important;
+  line-height: 1.4 !important;
+}
+
+h6 {
+  font-size: 16px !important;
+  line-height: 1.4 !important;
+}
+
+p {
+  font-size: 16px !important;
+  line-height: 1.6 !important;
+}
+
+button,
+.btn {
+  font-size: 16px !important;
+}
+
+input,
+textarea {
+  font-size: 16px !important;
+}
+
+/* Ensure proper width for animation container */
+.hero-section-index5
+  .index5-hero-content
+  .v5banner-text
+  .banner-title
+  .animation-text {
+  display: inline-block !important;
+  min-width: 300px !important;
+}

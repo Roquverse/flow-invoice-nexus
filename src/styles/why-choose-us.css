@@ -1,0 +1,53 @@
+.why-chose-us-section {
+  padding-top: 62px;
+  padding-bottom: 66px;
+}
+
+.why-chose-us-section .why-chose-us-content {
+  margin-top: 40px;
+}
+
+.why-chose-us-section .why-chose-us-cards {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  flex-wrap: nowrap;
+}
+
+.why-chose-us-section .why-chose-us-card {
+  flex: 0 0 350px;
+  padding: 20px 15px;
+  text-align: center;
+  border-radius: 15px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.why-chose-us-section .why-chose-us-card.active {
+  background: var(--primary-light);
+}
+
+.why-chose-us-section .why-chose-us-card h5 {
+  margin-bottom: 10px;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.why-chose-us-section .why-chose-us-card p {
+  max-width: 320px;
+  width: 100%;
+  margin: auto;
+  margin-bottom: 20px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.why-chose-us-section .why-chose-us-img {
+  max-width: 180px;
+  margin: 0 auto;
+}
+
+.why-chose-us-section .why-chose-us-img img {
+  width: 100%;
+  height: auto;
+}

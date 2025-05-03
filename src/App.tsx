@@ -1,50 +1,99 @@
+import React, { useEffect } from "react";
+import { Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./contexts/AuthContext";
+import SignIn from "./pages/auth/LoginPage";
+import SignUp from "./pages/auth/SignupPage";
+import Header from "./components/Header";
+import Hero from "./components/Hero";
+import WhyChooseUs from "./components/WhyChooseUs";
+import Counter from "./components/Counter";
+import PowerfulTemplate from "./components/PowerfulTemplate";
+import Footer from "./components/Footer";
+import { Toaster } from "sonner";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+// Import styles
+import "bootstrap/dist/css/bootstrap.min.css";
+import "./styles/variables.css";
+import "./styles/icons.css";
+import "./styles/auth.css";
+import "./styles/global.css";
+import "./styles/app.min.css";
+import "./styles/vendor.min.css";
+import "./styles/style.css";
+import "./styles/risitify.css";
+import "./styles/why-choose-us.css";
+import "./styles/footer.css";
+import "./styles/powerfulTemplate.css";
+import "./styles/responsive.css";
+import "./styles/animate.css";
+import "./styles/slick.css";
+import "./styles/slick-theme.css";
+import "./styles/header.css";
 
-// Landing and Auth Pages
-import LandingPage from "./pages/LandingPage";
-import LoginPage from "./pages/auth/LoginPage";
-import SignupPage from "./pages/auth/SignupPage";
-import NotFound from "./pages/NotFound";
+const HomePage: React.FC = () => {
+  return (
+    <>
+      <Header />
+      <main>
+        <Hero />
+        <WhyChooseUs />
+        <Counter />
+        <PowerfulTemplate />
+      </main>
+      <Footer />
+    </>
+  );
+};
 
-// Dashboard Layout and Pages
-import { DashboardLayout } from "./components/dashboard/DashboardLayout";
-import DashboardPage from "./pages/dashboard/DashboardPage";
-import InvoicesPage from "./pages/dashboard/InvoicesPage";
-import ClientDetailPage from "./pages/dashboard/ClientDetailPage";
+const App: React.FC = () => {
+  useEffect(() => {
+    // Load JavaScript files from public
+    const vendorScript = document.createElement("script");
+    vendorScript.src = "/js/vendor.min.js";
+    vendorScript.async = true;
 
-const queryClient = new QueryClient();
+    const appScript = document.createElement("script");
+    appScript.src = "/js/app.js";
+    appScript.async = true;
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
+    // Ensure vendor.min.js loads before app.js
+    document.body.appendChild(vendorScript);
+    vendorScript.onload = () => {
+      document.body.appendChild(appScript);
+    };
+
+    return () => {
+      // Clean up scripts when component unmounts
+      if (document.body.contains(vendorScript)) {
+        document.body.removeChild(vendorScript);
+      }
+      if (document.body.contains(appScript)) {
+        document.body.removeChild(appScript);
+      }
+    };
+  }, []);
+
+  return (
+    <AuthProvider>
+      <div>
+        <Toaster position="top-right" richColors />
         <Routes>
           {/* Public Routes */}
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
-          
-          {/* Dashboard Routes */}
-          <Route path="/dashboard" element={<DashboardLayout />}>
-            <Route index element={<DashboardPage />} />
-            <Route path="invoices" element={<InvoicesPage />} />
-            <Route path="clients/:id" element={<ClientDetailPage />} />
-            {/* Add more dashboard routes here */}
-          </Route>
-          
-          {/* Catch-all route for 404 */}
-          <Route path="*" element={<NotFound />} />
+          <Route path="/" element={<HomePage />} />
+          <Route path="/sign-in" element={<SignIn />} />
+          <Route path="/sign-up" element={<SignUp />} />
+
+          {/* Protected Routes */}
+          {/* <Route
+            path="/dashboard/*"
+            element={
+                <Dashboard />
+            }
+          /> */}
         </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+      </div>
+    </AuthProvider>
+  );
+};
 
 export default App;

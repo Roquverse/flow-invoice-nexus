@@ -1,0 +1,206 @@
+.footer-section {
+  background: #f8f9fa;
+  padding-top: 5px;
+}
+
+.footer-top {
+  padding-bottom: 60px;
+}
+
+.footer-content {
+  display: flex;
+  justify-content: space-between;
+  gap: 40px;
+}
+
+.footer-brand {
+  flex: 0 0 300px;
+}
+
+.footer-logo {
+  display: inline-block;
+  margin-bottom: 20px;
+}
+
+.footer-brand p {
+  color: #666;
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 25px;
+}
+
+.footer-follow {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.footer-follow p {
+  margin: 0;
+  color: #333;
+  font-weight: 500;
+}
+
+.social-link {
+  display: flex;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.social-link li a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: #00a832;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.social-link li a:hover {
+  background: var(--primary-color);
+}
+
+.social-link li a img {
+  width: 16px;
+  height: 16px;
+  color: var(--primary-color);
+}
+
+.footer-links {
+  display: flex;
+  gap: 40px;
+  flex: 1;
+}
+
+.footer-column {
+  flex: 1;
+}
+
+.footer-column h6 {
+  color: #333;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 20px 0;
+}
+
+.footer-column ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.footer-column ul li {
+  margin-bottom: 12px;
+}
+
+.footer-column ul li:last-child {
+  margin-bottom: 0;
+}
+
+.footer-column ul li a {
+  color: #666;
+  font-size: 14px;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.footer-column ul li a:hover {
+  color: var(--primary-color);
+}
+
+.theme-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--primary-color);
+  color: #fff;
+  font-size: 11px;
+  border-radius: 12px;
+  margin-left: 5px;
+}
+
+.footer-bottom {
+  padding: 20px 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.footer-bottom-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.footer-copyright p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.privacy-menu {
+  display: flex;
+  gap: 25px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.privacy-menu li a {
+  color: #666;
+  font-size: 14px;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.privacy-menu li a:hover {
+  color: var(--primary-color);
+}
+
+@media (max-width: 991px) {
+  .footer-section {
+    padding-top: 60px;
+  }
+
+  .footer-top {
+    padding-bottom: 40px;
+  }
+
+  .footer-content {
+    flex-direction: column;
+    gap: 30px;
+  }
+
+  .footer-brand {
+    flex: none;
+    max-width: 100%;
+  }
+
+  .footer-links {
+    flex-wrap: wrap;
+    gap: 30px;
+  }
+
+  .footer-column {
+    flex: 0 0 calc(50% - 15px);
+  }
+}
+
+@media (max-width: 767px) {
+  .footer-bottom-content {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+
+  .privacy-menu {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+
+  .footer-column {
+    flex: 0 0 100%;
+  }
+}

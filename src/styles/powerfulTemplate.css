@@ -1,0 +1,152 @@
+.powerfull-template-section {
+  padding: 20px 0;
+  position: relative;
+  overflow: hidden;
+  background-color: #f8f9fa;
+}
+
+.powerfull-template-content {
+  position: relative;
+  padding: 0;
+  margin-top: 20px;
+}
+
+.timeline-innerline {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 90%;
+  background: #e0e0e0;
+  top: 40px;
+}
+
+.timeline-progress {
+  position: absolute;
+  width: 100%;
+  height: 0;
+  background: #2196f3;
+  transition: height 0.3s ease-out;
+  top: 0;
+}
+
+.powerfull-template-row {
+  position: relative;
+  margin-bottom: 30px;
+  padding: 10px 0;
+}
+
+.powerfull-template-row:last-child {
+  margin-bottom: 20px;
+}
+
+.powerfull-template-number {
+  width: 40px;
+  height: 40px;
+  background: #2196f3;
+  border-radius: 50%;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+}
+
+.powerfull-template-img {
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.powerfull-template-img img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.powerfull-template-text {
+  padding: 15px;
+}
+
+.powerfull-template-text h4 {
+  color: #333;
+  margin-bottom: 12px;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.powerfull-template-text h6 {
+  color: #666;
+  margin-bottom: 12px;
+  font-size: 18px;
+}
+
+.powerfull-template-text p {
+  color: #666;
+  margin-bottom: 15px;
+  line-height: 1.6;
+}
+
+.powerfull-template-text ul,
+.powerfull-template-text ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.powerfull-template-text li {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  color: #666;
+}
+
+.powerfull-template-text li:last-child {
+  margin-bottom: 0;
+}
+
+.powerfull-template-text li span {
+  margin-right: 10px;
+  display: flex;
+  align-items: center;
+}
+
+.powerfull-template-text li img {
+  width: 24px;
+  height: 24px;
+}
+
+.iconify[data-icon="bi:check-lg"] {
+  color: #2196f3;
+  font-size: 20px;
+}
+
+@media (max-width: 768px) {
+  .timeline-innerline {
+    left: 30px;
+  }
+
+  .powerfull-template-number {
+    left: 30px;
+  }
+
+  .powerfull-template-text {
+    padding: 15px 0;
+  }
+
+  .powerfull-template-row .row {
+    margin-left: 45px;
+  }
+
+  .powerfull-template-content {
+    padding: 30px 0;
+  }
+
+  .powerfull-template-row {
+    margin-bottom: 40px;
+  }
+}

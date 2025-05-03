@@ -1,0 +1,33 @@
+:root {
+  /* Colors */
+  --ct-primary: #3874ff;
+  --ct-primary-hover: #2e5fd9;
+  --ct-primary-soft: rgba(56, 116, 255, 0.1);
+
+  --ct-success: #0ab39c;
+  --ct-success-soft: rgba(10, 179, 156, 0.1);
+
+  --ct-danger: #f06548;
+  --ct-danger-soft: rgba(240, 101, 72, 0.1);
+
+  --ct-info: #299cdb;
+  --ct-info-soft: rgba(41, 156, 219, 0.1);
+
+  /* Text Colors */
+  --ct-text-muted: #878a99;
+
+  /* Background Colors */
+  --ct-body-bg: #f3f3f9;
+  --ct-card-bg: #ffffff;
+
+  /* Form Colors */
+  --ct-input-bg: #ffffff;
+  --ct-input-border-color: #e9ebec;
+  --ct-input-color: #212529;
+  --ct-input-focus-border-color: #3874ff;
+  --ct-input-focus-box-shadow: rgba(56, 116, 255, 0.25);
+  --ct-form-label-color: #212529;
+
+  /* Shadows */
+  --ct-box-shadow: 0 0 35px 0 rgba(154, 161, 171, 0.15);
+}

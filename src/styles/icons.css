@@ -1,0 +1,42 @@
+@import "bootstrap-icons/font/bootstrap-icons.css";
+
+/* Social Media Icons */
+.ti {
+  font-family: "tabler-icons";
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.ti-brand-google-filled::before {
+  content: "\ea6c";
+}
+
+.ti-brand-apple::before {
+  content: "\ea84";
+}
+
+.ti-brand-facebook::before {
+  content: "\ea91";
+}
+
+.ti-brand-linkedin::before {
+  content: "\eac4";
+}
+
+/* Import Tabler Icons Font */
+@font-face {
+  font-family: "tabler-icons";
+  src: url("/assets/fonts/tabler-icons.eot");
+  src: url("/assets/fonts/tabler-icons.eot?#iefix") format("embedded-opentype"),
+    url("/assets/fonts/tabler-icons.woff2") format("woff2"),
+    url("/assets/fonts/tabler-icons.woff") format("woff"),
+    url("/assets/fonts/tabler-icons.ttf") format("truetype"),
+    url("/assets/fonts/tabler-icons.svg#tabler-icons") format("svg");
+  font-weight: normal;
+  font-style: normal;
+}
