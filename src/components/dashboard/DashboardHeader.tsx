@@ -9,7 +9,7 @@ export function DashboardHeader() {
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="sm" className="text-gray-500">
           <ArrowLeft size={18} />
-          <span className="ml-2">Retour</span>
+          <span className="ml-2">Back</span>
         </Button>
       </div>
       
@@ -20,7 +20,7 @@ export function DashboardHeader() {
         
         <Avatar className="h-8 w-8">
           <AvatarImage src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80" alt="User" />
-          <AvatarFallback>JP</AvatarFallback>
+          <AvatarFallback className="bg-[#253F8F] text-white">JP</AvatarFallback>
         </Avatar>
       </div>
     </header>

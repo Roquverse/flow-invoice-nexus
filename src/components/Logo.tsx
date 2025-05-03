@@ -16,13 +16,17 @@ export function Logo({ size = 'md', variant = 'default' }: LogoProps) {
   const colorClasses = {
     default: 'text-foreground',
     white: 'text-white',
-    orange: 'text-orange-500'
+    orange: 'text-[#9DC8FF]'
   };
   
   return (
     <div className="flex items-center gap-2">
-      <div className="bg-orange-500 p-1.5 rounded">
-        <FileText className="text-white" size={size === 'sm' ? 16 : size === 'md' ? 20 : 24} />
+      <div className="bg-[#253F8F] p-1.5 rounded">
+        <img 
+          src="/lovable-uploads/5d896be1-da6e-431d-aa1e-2d81a240e995.png" 
+          alt="Logo" 
+          className="h-5 w-5"
+        />
       </div>
       <span className={`font-bold ${sizeClasses[size]} ${colorClasses[variant]}`}>
         Invoicing
