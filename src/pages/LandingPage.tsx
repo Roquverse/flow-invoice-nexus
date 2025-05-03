@@ -1,22 +1,42 @@
-
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle, FileText, Clock, BarChart3, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Logo } from "@/components/Logo";
+import { supabase } from "@/integrations/supabase/client";
+import { User } from "@supabase/supabase-js";
 
 export default function LandingPage() {
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    // Check for existing session
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user || null);
+    };
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user || null);
+      }
+    );
+
+    checkSession();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col bg-[#010217]">
       {/* Header/Navbar */}
       <header className="py-6 px-4 md:px-8">
         <div className="container mx-auto flex justify-between items-center">
-          <div className="flex items-center">
-            <div className="bg-orange-500 p-1.5 rounded mr-2">
-              <FileText className="text-white" size={24} />
-            </div>
-            <span className="font-bold text-2xl text-white">Invoicing</span>
-          </div>
+          <Logo size="lg" variant="white" />
           
           <nav className="hidden md:flex items-center space-x-8">
             <Link to="#features" className="text-white/80 hover:text-white transition">Features</Link>
@@ -26,12 +46,20 @@ export default function LandingPage() {
           </nav>
 
           <div className="flex items-center space-x-4">
-            <Link to="/login">
-              <Button variant="ghost" className="text-white">Log in</Button>
-            </Link>
-            <Link to="/signup">
-              <Button className="bg-orange-500 hover:bg-orange-600 text-white">Sign up for free</Button>
-            </Link>
+            {user ? (
+              <Link to="/dashboard">
+                <Button className="bg-[#253F8F] hover:bg-[#1c2f6b] text-white">Dashboard</Button>
+              </Link>
+            ) : (
+              <>
+                <Link to="/login">
+                  <Button variant="ghost" className="text-white">Log in</Button>
+                </Link>
+                <Link to="/signup">
+                  <Button className="bg-[#253F8F] hover:bg-[#1c2f6b] text-white">Sign up for free</Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -42,7 +70,7 @@ export default function LandingPage() {
           <div className="flex-1 mb-12 md:mb-0 md:pr-8">
             <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
               Solving all<br />
-              your <span className="text-orange-500">Invoicing</span><br />
+              your <span className="text-[#9DC8FF]">Invoicing</span><br />
               problems here
             </h1>
             <p className="text-white/80 text-lg mb-8 max-w-lg">
@@ -53,7 +81,7 @@ export default function LandingPage() {
             
             <div className="flex flex-col sm:flex-row gap-4">
               <Link to="/signup">
-                <Button className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-6 h-auto text-lg">
+                <Button className="bg-[#253F8F] hover:bg-[#1c2f6b] text-white px-8 py-6 h-auto text-lg">
                   Sign up for free
                 </Button>
               </Link>
@@ -71,11 +99,11 @@ export default function LandingPage() {
               <div className="flex justify-between items-start mb-6">
                 <div>
                   <h3 className="text-xl font-semibold">Invoice from figma</h3>
-                  <div className="text-3xl font-bold text-orange-500 mt-1">$189.89</div>
+                  <div className="text-3xl font-bold text-[#253F8F] mt-1">$189.89</div>
                   <p className="text-sm text-gray-500 mt-1">Due on Feb 23, 2023</p>
                 </div>
-                <div className="text-gray-400">
-                  <FileText size={40} />
+                <div className="text-[#253F8F]">
+                  <CreditCard size={40} />
                 </div>
               </div>
               
@@ -130,7 +158,7 @@ export default function LandingPage() {
                 Enjoy a fully-featured suite customizable business reports and dashboards so you always know where business stands.
               </p>
               <Link to="/signup">
-                <Button className="bg-emerald-500 hover:bg-emerald-600 text-white">
+                <Button className="bg-[#253F8F] hover:bg-[#1c2f6b] text-white">
                   Get started for free
                 </Button>
               </Link>
@@ -159,8 +187,8 @@ export default function LandingPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 max-w-5xl mx-auto">
           <Card className="border border-gray-200">
             <CardContent className="pt-6 flex flex-col items-center text-center">
-              <div className="bg-indigo-100 p-3 rounded-lg mb-4">
-                <FileText className="text-indigo-600" size={24} />
+              <div className="bg-[#e8f0ff] p-3 rounded-lg mb-4">
+                <CreditCard className="text-[#253F8F]" size={24} />
               </div>
               <h3 className="text-lg font-semibold mb-2">Beautiful Invoices</h3>
               <p className="text-gray-500 text-sm">Customize and send professional invoices in seconds</p>
@@ -259,11 +287,8 @@ export default function LandingPage() {
         <div className="container mx-auto max-w-7xl">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             <div>
-              <div className="flex items-center mb-6">
-                <div className="bg-orange-500 p-1 rounded mr-2">
-                  <FileText className="text-white" size={20} />
-                </div>
-                <span className="font-bold text-xl">Invoicing</span>
+              <div className="mb-6">
+                <Logo variant="white" />
               </div>
               <p className="text-sm text-white/60 mb-4">
                 With an invoicing website, users can easily generate professional invoicing invoices, track payments, and send reminders to keep on top of your clients.
