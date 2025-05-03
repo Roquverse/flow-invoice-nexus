@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,8 @@ import { Logo } from "@/components/Logo";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, CheckCircle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
@@ -18,6 +20,7 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -29,17 +32,35 @@ export default function SignupPage() {
     setIsLoading(true);
     setError(null);
     
-    // Simulate API call
-    setTimeout(() => {
-      // In a real app, you'd make an API call to your auth service
-      if (formData.email && formData.password && formData.name) {
-        setSuccess(true);
-        // In production you'd redirect to onboarding or dashboard
-      } else {
-        setError("Please fill out all fields");
-        setIsLoading(false);
+    try {
+      // Sign up with Supabase
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            name: formData.name
+          }
+        }
+      });
+      
+      if (error) {
+        setError(error.message);
+        return;
       }
-    }, 1000);
+      
+      if (data?.user) {
+        toast.success("Account created successfully!");
+        setSuccess(true);
+        // In production, you'll navigate right to dashboard if email verification is disabled
+        // navigate("/dashboard");
+      }
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (success) {
@@ -171,15 +192,15 @@ export default function SignupPage() {
       </div>
       
       {/* Right side - Benefits */}
-      <div className="hidden sm:flex flex-1 gradient-bg items-center justify-center p-8">
+      <div className="hidden sm:flex flex-1 bg-[#171f38] items-center justify-center p-8">
         <div className="max-w-md text-white">
           <h2 className="text-2xl font-bold mb-6">Everything you need to run your business</h2>
           
           <ul className="space-y-4">
             <li className="flex gap-3">
               <div className="flex-shrink-0">
-                <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
-                  <CheckCircle className="h-4 w-4 text-white" />
+                <div className="w-6 h-6 rounded-full bg-orange-500/20 flex items-center justify-center">
+                  <CheckCircle className="h-4 w-4 text-orange-400" />
                 </div>
               </div>
               <div>
@@ -189,8 +210,8 @@ export default function SignupPage() {
             </li>
             <li className="flex gap-3">
               <div className="flex-shrink-0">
-                <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
-                  <CheckCircle className="h-4 w-4 text-white" />
+                <div className="w-6 h-6 rounded-full bg-orange-500/20 flex items-center justify-center">
+                  <CheckCircle className="h-4 w-4 text-orange-400" />
                 </div>
               </div>
               <div>
@@ -200,8 +221,8 @@ export default function SignupPage() {
             </li>
             <li className="flex gap-3">
               <div className="flex-shrink-0">
-                <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
-                  <CheckCircle className="h-4 w-4 text-white" />
+                <div className="w-6 h-6 rounded-full bg-orange-500/20 flex items-center justify-center">
+                  <CheckCircle className="h-4 w-4 text-orange-400" />
                 </div>
               </div>
               <div>
@@ -211,8 +232,8 @@ export default function SignupPage() {
             </li>
             <li className="flex gap-3">
               <div className="flex-shrink-0">
-                <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
-                  <CheckCircle className="h-4 w-4 text-white" />
+                <div className="w-6 h-6 rounded-full bg-orange-500/20 flex items-center justify-center">
+                  <CheckCircle className="h-4 w-4 text-orange-400" />
                 </div>
               </div>
               <div>

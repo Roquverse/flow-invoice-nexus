@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,28 +9,43 @@ import { Logo } from "@/components/Logo";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
     
-    // Simulate API call
-    setTimeout(() => {
-      // Mock login logic
-      if (email === "demo@example.com" && password === "password") {
-        window.location.href = "/dashboard";
-      } else {
-        setError("Invalid email or password. Try demo@example.com / password");
-        setIsLoading(false);
+    try {
+      // Using Supabase for login
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (error) {
+        setError(error.message);
+        return;
       }
-    }, 1000);
+      
+      if (data?.user) {
+        toast.success("Successfully logged in!");
+        navigate("/dashboard");
+      }
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -129,11 +144,11 @@ export default function LoginPage() {
       </div>
       
       {/* Right side - Image */}
-      <div className="hidden sm:block flex-1 bg-muted">
+      <div className="hidden sm:block flex-1 bg-[#171f38]">
         <div className="h-full flex items-center justify-center p-8">
-          <div className="max-w-md">
+          <div className="max-w-md text-white">
             <div className="text-center sm:text-left mb-4">
-              <div className="inline-block bg-primary/10 py-1 px-3 rounded-full text-primary text-sm font-medium mb-2">TESTIMONIAL</div>
+              <div className="inline-block bg-orange-500/20 py-1 px-3 rounded-full text-orange-400 text-sm font-medium mb-2">TESTIMONIAL</div>
               <h2 className="text-2xl font-bold">Streamlined my entire invoicing process</h2>
             </div>
             <blockquote className="text-lg italic mb-4">
@@ -141,13 +156,13 @@ export default function LoginPage() {
             </blockquote>
             <div className="flex items-center">
               <div className="mr-3">
-                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                  <span className="font-medium text-primary">JS</span>
+                <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center">
+                  <span className="font-medium text-orange-400">JS</span>
                 </div>
               </div>
               <div>
                 <p className="font-medium">Jamie Smith</p>
-                <p className="text-sm text-muted-foreground">Freelance Designer</p>
+                <p className="text-sm text-white/60">Freelance Designer</p>
               </div>
             </div>
           </div>
