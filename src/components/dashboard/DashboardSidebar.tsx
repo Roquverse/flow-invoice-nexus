@@ -1,23 +1,20 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
-  BarChart3,
+  LayoutDashboard,
   FileText,
   Users,
-  Package,
   Settings,
-  ChevronLeft,
   ChevronRight,
-  LogOut,
+  Receipt,
+  ClipboardCheck,
+  FolderKanban,
   CreditCard,
-  Home,
-  Clock,
-  Filter,
-  Calendar,
+  PieChart,
+  Briefcase,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import "@/styles/dashboard.css";
 
 interface SidebarLinkProps {
@@ -45,15 +42,12 @@ export function DashboardSidebar() {
     <aside className="dashboard-sidebar">
       <div className="sidebar-header">
         <div className="logo-container">
-          <Avatar className="h-10 w-10 bg-orange-500 text-white">
-            <AvatarFallback>D</AvatarFallback>
-          </Avatar>
-          <div className="text-white font-medium">Dundy</div>
+          <img src="/logo.png" alt="Logo" className="logo" />
         </div>
       </div>
 
       <div className="nav-section">
-        <Button variant="secondary" className="organization-switcher">
+        <Button className="organization-switcher">
           <div className="flex items-center gap-2">
             <div className="organization-badge">AC</div>
             <span>ACME,INC.</span>
@@ -63,72 +57,75 @@ export function DashboardSidebar() {
       </div>
 
       <div className="nav-section">
-        <div className="nav-section-title">Filtrer mon activité</div>
+        <div className="nav-section-title">Overview</div>
         <div className="nav-links">
           <SidebarLink
             to="/dashboard"
-            icon={Calendar}
-            label="Aujourd'hui"
+            icon={LayoutDashboard}
+            label="Dashboard"
             isActive={isActive("/dashboard")}
           />
           <SidebarLink
-            to="/dashboard/transactions"
-            icon={Filter}
-            label="Transactions"
-            isActive={isActive("/dashboard/transactions")}
+            to="/dashboard/analytics"
+            icon={PieChart}
+            label="Analytics"
+            isActive={isActive("/dashboard/analytics")}
           />
         </div>
-      </div>
 
-      <div className="nav-section">
-        <div className="nav-section-title">Se faire payer</div>
+        <div className="nav-section-title">Documents</div>
         <div className="nav-links">
           <SidebarLink
             to="/dashboard/invoices"
             icon={FileText}
-            label="Factures"
+            label="Invoices"
             isActive={isActive("/dashboard/invoices")}
           />
           <SidebarLink
-            to="/dashboard/reminders"
-            icon={Clock}
-            label="Relances"
-            isActive={isActive("/dashboard/reminders")}
+            to="/dashboard/quotes"
+            icon={ClipboardCheck}
+            label="Quotes"
+            isActive={isActive("/dashboard/quotes")}
           />
+          <SidebarLink
+            to="/dashboard/receipts"
+            icon={Receipt}
+            label="Receipts"
+            isActive={isActive("/dashboard/receipts")}
+          />
+        </div>
+
+        <div className="nav-section-title">Management</div>
+        <div className="nav-links">
           <SidebarLink
             to="/dashboard/clients"
             icon={Users}
             label="Clients"
             isActive={isActive("/dashboard/clients")}
           />
-        </div>
-      </div>
-
-      <div className="nav-section">
-        <div className="nav-section-title">Gérer ma structure</div>
-        <div className="nav-links">
           <SidebarLink
-            to="/dashboard/team"
-            icon={Users}
-            label="Équipe"
-            isActive={isActive("/dashboard/team")}
+            to="/dashboard/projects"
+            icon={FolderKanban}
+            label="Projects"
+            isActive={isActive("/dashboard/projects")}
           />
           <SidebarLink
-            to="/dashboard/settings"
-            icon={Settings}
-            label="Paramètres"
-            isActive={isActive("/dashboard/settings")}
+            to="/dashboard/payments"
+            icon={CreditCard}
+            label="Payments"
+            isActive={isActive("/dashboard/payments")}
           />
         </div>
       </div>
 
       <div className="nav-section mt-auto">
+        <div className="nav-section-title">Account</div>
         <div className="nav-links">
           <SidebarLink
-            to="/dashboard/account"
+            to="/dashboard/settings"
             icon={Settings}
-            label="Mon entreprise"
-            isActive={isActive("/dashboard/account")}
+            label="Settings"
+            isActive={isActive("/dashboard/settings")}
           />
         </div>
       </div>
