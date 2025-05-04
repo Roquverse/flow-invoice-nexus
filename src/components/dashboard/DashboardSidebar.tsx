@@ -27,8 +27,10 @@ interface SidebarLinkProps {
 function SidebarLink({ to, icon: Icon, label, isActive }: SidebarLinkProps) {
   return (
     <Link to={to} className={cn("nav-link", isActive && "active")}>
-      <Icon className="nav-icon" />
-      <span>{label}</span>
+      <span className="nav-link-content">
+        <Icon className="nav-icon" />
+        <span className="nav-label">{label}</span>
+      </span>
     </Link>
   );
 }
