@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Logo } from "@/components/Logo";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Eye, EyeOff } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +17,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,7 +50,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col sm:flex-row">
+    <div className="min-h-screen flex flex-col sm:flex-row bg-[#f8f9fc]">
       {/* Left side - Form */}
       <div className="flex-1 flex flex-col justify-center p-6 sm:p-12">
         <div className="mx-auto w-full max-w-md">
@@ -66,7 +67,7 @@ export default function LoginPage() {
             </div>
             
             {error && (
-              <Alert variant="destructive">
+              <Alert variant="destructive" className="animate-fade-in">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
@@ -82,6 +83,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  className="bg-white"
                 />
               </div>
               
@@ -95,14 +97,25 @@ export default function LoginPage() {
                     Forgot password?
                   </Link>
                 </div>
-                <Input 
-                  id="password" 
-                  type="password" 
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
+                <div className="relative">
+                  <Input 
+                    id="password" 
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="bg-white pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
               
               <div className="flex items-center space-x-2">
@@ -113,7 +126,15 @@ export default function LoginPage() {
               </div>
               
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Signing in..." : "Sign In"}
+                {isLoading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Signing in...
+                  </>
+                ) : "Sign In"}
               </Button>
             </form>
             
@@ -122,18 +143,18 @@ export default function LoginPage() {
                 <Separator />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
+                <span className="bg-[#f8f9fc] px-2 text-muted-foreground">
                   Or continue with
                 </span>
               </div>
             </div>
             
             <div className="grid grid-cols-2 gap-4">
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full bg-white">
                 <span className="ti ti-brand-google-filled mr-2"></span>
                 Google
               </Button>
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full bg-white">
                 <span className="ti ti-brand-apple mr-2"></span>
                 Apple
               </Button>
@@ -141,7 +162,7 @@ export default function LoginPage() {
             
             <p className="text-center text-sm text-muted-foreground">
               Don't have an account?{" "}
-              <Link to="/sign-up" className="text-primary hover:underline">
+              <Link to="/sign-up" className="text-primary hover:underline font-medium">
                 Sign up
               </Link>
             </p>
@@ -150,25 +171,25 @@ export default function LoginPage() {
       </div>
       
       {/* Right side - Image */}
-      <div className="hidden sm:block flex-1 bg-[#171f38]">
+      <div className="hidden sm:block flex-1 bg-gradient-to-br from-[#171f38] to-[#253F8F]">
         <div className="h-full flex items-center justify-center p-8">
-          <div className="max-w-md text-white">
+          <div className="max-w-lg text-white">
             <div className="text-center sm:text-left mb-4">
               <div className="inline-block bg-orange-500/20 py-1 px-3 rounded-full text-orange-400 text-sm font-medium mb-2">TESTIMONIAL</div>
-              <h2 className="text-2xl font-bold">Streamlined my entire invoicing process</h2>
+              <h2 className="text-3xl font-bold">Streamlined my entire invoicing process</h2>
             </div>
-            <blockquote className="text-lg italic mb-4">
-              "Risitify has completely transformed how I manage my freelance business. Creating invoices is now quick and painless, and I get paid faster than ever before."
+            <blockquote className="text-lg italic mb-6 opacity-90">
+              "Risitify has completely transformed how I manage my freelance business. Creating invoices is now quick and painless, and I get paid faster than ever before. The dashboard analytics help me understand my cash flow at a glance."
             </blockquote>
             <div className="flex items-center">
               <div className="mr-3">
-                <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center">
-                  <span className="font-medium text-orange-400">JS</span>
+                <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center">
+                  <span className="font-bold text-orange-400">JS</span>
                 </div>
               </div>
               <div>
                 <p className="font-medium">Jamie Smith</p>
-                <p className="text-sm text-white/60">Freelance Designer</p>
+                <p className="text-sm text-white/70">Freelance Designer</p>
               </div>
             </div>
           </div>

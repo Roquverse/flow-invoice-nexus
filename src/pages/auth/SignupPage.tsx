@@ -1,55 +1,46 @@
 
 import { useState } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Logo } from "@/components/Logo";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, CheckCircle } from "lucide-react";
+import { AlertCircle, Eye, EyeOff } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function SignupPage() {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-  });
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
-
-  // Parse email from URL if coming from homepage
-  useState(() => {
-    const params = new URLSearchParams(location.search);
-    const emailParam = params.get('email');
-    if (emailParam) {
-      setFormData(prev => ({ ...prev, email: emailParam }));
-    }
-  });
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
-    setFormData(prev => ({ ...prev, [id]: value }));
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!agreedToTerms) {
+      setError("You must agree to the terms and conditions");
+      return;
+    }
+    
     setIsLoading(true);
     setError(null);
     
     try {
-      // Sign up with Supabase
+      // Using Supabase for signup
       const { data, error } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
+        email,
+        password,
         options: {
           data: {
-            name: formData.name
+            full_name: fullName,
           }
         }
       });
@@ -60,9 +51,8 @@ export default function SignupPage() {
       }
       
       if (data?.user) {
-        toast.success("Account created successfully!");
-        // Direct redirect to dashboard (since confirmation is optional)
-        navigate("/dashboard");
+        toast.success("Account created successfully! Please check your email to verify your account.");
+        navigate("/sign-in");
       }
     } catch (err) {
       setError("An unexpected error occurred. Please try again.");
@@ -72,31 +62,8 @@ export default function SignupPage() {
     }
   };
 
-  if (success) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="w-full max-w-md">
-          <div className="text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-              <CheckCircle className="h-6 w-6 text-green-600" />
-            </div>
-            <h1 className="mt-3 text-2xl font-bold">Account created!</h1>
-            <p className="mt-2 text-muted-foreground">
-              Your account has been successfully created. You can now log in.
-            </p>
-            <div className="mt-6">
-              <Link to="/sign-in">
-                <Button className="w-full">Continue to Login</Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen flex flex-col sm:flex-row">
+    <div className="min-h-screen flex flex-col sm:flex-row bg-[#f8f9fc]">
       {/* Left side - Form */}
       <div className="flex-1 flex flex-col justify-center p-6 sm:p-12">
         <div className="mx-auto w-full max-w-md">
@@ -108,12 +75,12 @@ export default function SignupPage() {
             <div>
               <h1 className="text-3xl font-bold">Create an account</h1>
               <p className="text-muted-foreground mt-1">
-                Start your 14-day free trial, no credit card required
+                Enter your information to get started
               </p>
             </div>
             
             {error && (
-              <Alert variant="destructive">
+              <Alert variant="destructive" className="animate-fade-in">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
@@ -121,13 +88,15 @@ export default function SignupPage() {
             
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
+                <Label htmlFor="fullName">Full Name</Label>
                 <Input 
-                  id="name" 
-                  placeholder="John Doe"
-                  value={formData.name}
-                  onChange={handleChange}
+                  id="fullName" 
+                  type="text" 
+                  placeholder="John Smith"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
                   required
+                  className="bg-white"
                 />
               </div>
               
@@ -137,41 +106,62 @@ export default function SignupPage() {
                   id="email" 
                   type="email" 
                   placeholder="name@example.com"
-                  value={formData.email}
-                  onChange={handleChange}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
+                  className="bg-white"
                 />
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input 
-                  id="password" 
-                  type="password" 
-                  placeholder="Create a secure password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  Must be at least 8 characters long
+                <div className="relative">
+                  <Input 
+                    id="password" 
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="bg-white pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Password must be at least 8 characters long
                 </p>
               </div>
               
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Creating account..." : "Create Account"}
-              </Button>
+              <div className="flex items-start space-x-2 mt-4">
+                <Checkbox 
+                  id="terms" 
+                  checked={agreedToTerms}
+                  onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)}
+                  className="mt-1"
+                />
+                <Label htmlFor="terms" className="text-sm font-normal">
+                  I agree to the <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link> and <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>
+                </Label>
+              </div>
               
-              <p className="text-xs text-center text-muted-foreground">
-                By creating an account, you agree to our{" "}
-                <Link to="/terms" className="text-primary hover:underline">
-                  Terms of Service
-                </Link>{" "}
-                and{" "}
-                <Link to="/privacy" className="text-primary hover:underline">
-                  Privacy Policy
-                </Link>
-              </p>
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Creating account...
+                  </>
+                ) : "Create Account"}
+              </Button>
             </form>
             
             <div className="relative">
@@ -179,18 +169,18 @@ export default function SignupPage() {
                 <Separator />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
+                <span className="bg-[#f8f9fc] px-2 text-muted-foreground">
                   Or continue with
                 </span>
               </div>
             </div>
             
             <div className="grid grid-cols-2 gap-4">
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full bg-white">
                 <span className="ti ti-brand-google-filled mr-2"></span>
                 Google
               </Button>
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full bg-white">
                 <span className="ti ti-brand-apple mr-2"></span>
                 Apple
               </Button>
@@ -198,7 +188,7 @@ export default function SignupPage() {
             
             <p className="text-center text-sm text-muted-foreground">
               Already have an account?{" "}
-              <Link to="/sign-in" className="text-primary hover:underline">
+              <Link to="/sign-in" className="text-primary hover:underline font-medium">
                 Sign in
               </Link>
             </p>
@@ -206,57 +196,49 @@ export default function SignupPage() {
         </div>
       </div>
       
-      {/* Right side - Benefits */}
-      <div className="hidden sm:flex flex-1 bg-[#171f38] items-center justify-center p-8">
-        <div className="max-w-md text-white">
-          <h2 className="text-2xl font-bold mb-6">Everything you need to run your business</h2>
-          
-          <ul className="space-y-4">
-            <li className="flex gap-3">
-              <div className="flex-shrink-0">
-                <div className="w-6 h-6 rounded-full bg-orange-500/20 flex items-center justify-center">
-                  <CheckCircle className="h-4 w-4 text-orange-400" />
+      {/* Right side - Image */}
+      <div className="hidden sm:block flex-1 bg-gradient-to-br from-[#171f38] to-[#253F8F]">
+        <div className="h-full flex items-center justify-center p-8">
+          <div className="max-w-lg text-white">
+            <div className="text-center sm:text-left mb-4">
+              <div className="inline-block bg-blue-500/20 py-1 px-3 rounded-full text-blue-300 text-sm font-medium mb-2">FEATURES</div>
+              <h2 className="text-3xl font-bold">Everything you need to manage your business</h2>
+            </div>
+            <ul className="space-y-4 mt-6">
+              <li className="flex items-start">
+                <div className="bg-blue-500/20 rounded-full p-1 mr-3 mt-0.5">
+                  <svg className="h-4 w-4 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
                 </div>
-              </div>
-              <div>
-                <p className="font-medium">Professional Invoices</p>
-                <p className="text-white/70 text-sm">Create and send branded invoices in seconds</p>
-              </div>
-            </li>
-            <li className="flex gap-3">
-              <div className="flex-shrink-0">
-                <div className="w-6 h-6 rounded-full bg-orange-500/20 flex items-center justify-center">
-                  <CheckCircle className="h-4 w-4 text-orange-400" />
+                <span>Professional invoice creation and management</span>
+              </li>
+              <li className="flex items-start">
+                <div className="bg-blue-500/20 rounded-full p-1 mr-3 mt-0.5">
+                  <svg className="h-4 w-4 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
                 </div>
-              </div>
-              <div>
-                <p className="font-medium">Online Payments</p>
-                <p className="text-white/70 text-sm">Get paid faster with credit cards and bank transfers</p>
-              </div>
-            </li>
-            <li className="flex gap-3">
-              <div className="flex-shrink-0">
-                <div className="w-6 h-6 rounded-full bg-orange-500/20 flex items-center justify-center">
-                  <CheckCircle className="h-4 w-4 text-orange-400" />
+                <span>Client portal for easier communication</span>
+              </li>
+              <li className="flex items-start">
+                <div className="bg-blue-500/20 rounded-full p-1 mr-3 mt-0.5">
+                  <svg className="h-4 w-4 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
                 </div>
-              </div>
-              <div>
-                <p className="font-medium">Expense Tracking</p>
-                <p className="text-white/70 text-sm">Keep track of all your business expenses in one place</p>
-              </div>
-            </li>
-            <li className="flex gap-3">
-              <div className="flex-shrink-0">
-                <div className="w-6 h-6 rounded-full bg-orange-500/20 flex items-center justify-center">
-                  <CheckCircle className="h-4 w-4 text-orange-400" />
+                <span>Financial analytics and reporting tools</span>
+              </li>
+              <li className="flex items-start">
+                <div className="bg-blue-500/20 rounded-full p-1 mr-3 mt-0.5">
+                  <svg className="h-4 w-4 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
                 </div>
-              </div>
-              <div>
-                <p className="font-medium">Detailed Reporting</p>
-                <p className="text-white/70 text-sm">Get insights into your business with powerful reports</p>
-              </div>
-            </li>
-          </ul>
+                <span>Secure payment processing integration</span>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
