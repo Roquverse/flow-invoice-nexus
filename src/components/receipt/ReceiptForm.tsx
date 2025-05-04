@@ -207,13 +207,25 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
         throw new Error("Amount must be greater than zero");
       }
 
+      let receiptId = "";
+
       if (isEditing && receipt) {
-        await updateReceipt(receipt.id, formData as Receipt);
+        const updatedReceipt = await updateReceipt(
+          receipt.id,
+          formData as Receipt
+        );
+        receiptId = receipt.id;
       } else {
-        await addReceipt(formData as Receipt);
+        const newReceipt = await addReceipt(formData as Receipt);
+        receiptId = newReceipt?.id;
       }
 
-      navigate("/dashboard/receipts");
+      // Redirect to the preview page with the receipt ID
+      if (receiptId) {
+        navigate(`/dashboard/receipts/preview/${receiptId}`);
+      } else {
+        navigate("/dashboard/receipts");
+      }
     } catch (error) {
       setError(error instanceof Error ? error.message : "An error occurred");
     } finally {
@@ -460,36 +472,36 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
             </CardContent>
           </Card>
         </div>
-      </form>
 
-      <div className="flex justify-end gap-4">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => navigate("/dashboard/receipts")}
-        >
-          Cancel
-        </Button>
-        {formData.client_id && (
+        <div className="flex justify-end gap-4">
           <Button
             type="button"
             variant="outline"
-            onClick={handlePreview}
-            className="border-blue-500 text-blue-500 hover:bg-blue-50"
+            onClick={() => navigate("/dashboard/receipts")}
           >
-            <FileText className="mr-2 h-4 w-4" />
-            Preview
+            Cancel
           </Button>
-        )}
-        <Button
-          type="submit"
-          disabled={loading}
-          className="bg-green-600 hover:bg-green-700 text-white"
-        >
-          <Save className="mr-2 h-4 w-4" />
-          {isEditing ? "Update Receipt" : "Create Receipt"}
-        </Button>
-      </div>
+          {formData.client_id && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handlePreview}
+              className="border-blue-500 text-blue-500 hover:bg-blue-50"
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              Preview
+            </Button>
+          )}
+          <Button
+            type="submit"
+            disabled={loading}
+            className="bg-green-600 hover:bg-green-700 text-white"
+          >
+            <Save className="mr-2 h-4 w-4" />
+            {isEditing ? "Update Receipt" : "Create Receipt"}
+          </Button>
+        </div>
+      </form>
     </div>
   );
 };

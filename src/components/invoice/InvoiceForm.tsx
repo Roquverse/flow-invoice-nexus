@@ -43,12 +43,12 @@ interface InvoiceFormProps {
   isEditing?: boolean;
 }
 
-const DEFAULT_INVOICE_ITEM: InvoiceItem = {
+const DEFAULT_INVOICE_ITEM: Partial<InvoiceItem> = {
   id: "",
   description: "",
   quantity: 1,
   unit_price: 0,
-  total: 0,
+  amount: 0,
 };
 
 const CURRENCIES = [
@@ -285,13 +285,22 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
         throw new Error("Invoice number is required");
       }
 
+      let invoiceId = "";
+
       if (isEditing && invoice) {
-        await updateInvoice(invoice.id, formData as Invoice);
+        const updatedInvoice = await updateInvoice(invoice.id, formData as any);
+        invoiceId = invoice.id;
       } else {
-        await addInvoice(formData as Invoice);
+        const newInvoice = await addInvoice(formData as any);
+        invoiceId = newInvoice?.id;
       }
 
-      navigate("/dashboard/invoices");
+      // Redirect to a preview page with the invoice ID
+      if (invoiceId) {
+        navigate(`/dashboard/invoices/preview/${invoiceId}`);
+      } else {
+        navigate("/dashboard/invoices");
+      }
     } catch (error) {
       setError(error instanceof Error ? error.message : "An error occurred");
     } finally {

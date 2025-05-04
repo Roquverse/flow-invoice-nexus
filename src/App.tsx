@@ -21,6 +21,9 @@ import ReceiptsPage from "./pages/dashboard/ReceiptsPage";
 import InvoiceForm from "./components/invoice/InvoiceForm";
 import QuoteForm from "./components/quote/QuoteForm";
 import ReceiptForm from "./components/receipt/ReceiptForm";
+import InvoicePreviewPage from "./pages/dashboard/InvoicePreviewPage";
+import QuotePreviewPage from "./pages/dashboard/QuotePreviewPage";
+import ReceiptPreviewPage from "./pages/dashboard/ReceiptPreviewPage";
 
 // Import styles
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -87,12 +90,17 @@ const App: React.FC = () => {
               path="invoices/:id/edit"
               element={<InvoiceForm isEditing />}
             />
+            <Route
+              path="invoices/preview/:id"
+              element={<InvoicePreviewPage />}
+            />
 
             {/* Quote Routes */}
             <Route path="quotes" element={<QuotesPage />} />
             <Route path="quotes/new" element={<QuoteForm />} />
             <Route path="quotes/:id" element={<QuotesPage />} />
             <Route path="quotes/:id/edit" element={<QuoteForm isEditing />} />
+            <Route path="quotes/preview/:id" element={<QuotePreviewPage />} />
 
             {/* Receipt Routes */}
             <Route path="receipts" element={<ReceiptsPage />} />
@@ -101,6 +109,10 @@ const App: React.FC = () => {
             <Route
               path="receipts/:id/edit"
               element={<ReceiptForm isEditing />}
+            />
+            <Route
+              path="receipts/preview/:id"
+              element={<ReceiptPreviewPage />}
             />
 
             <Route path="clients" element={<ClientsPage />} />

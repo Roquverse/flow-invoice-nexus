@@ -278,13 +278,22 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ quote, isEditing = false }) => {
         throw new Error("Quote number is required");
       }
 
+      let quoteId = "";
+
       if (isEditing && quote) {
-        await updateQuote(quote.id, formData as Quote);
+        const updatedQuote = await updateQuote(quote.id, formData as any);
+        quoteId = quote.id;
       } else {
-        await addQuote(formData as Quote);
+        const newQuote = await addQuote(formData as any);
+        quoteId = newQuote?.id;
       }
 
-      navigate("/dashboard/quotes");
+      // Redirect to the preview page with the quote ID
+      if (quoteId) {
+        navigate(`/dashboard/quotes/preview/${quoteId}`);
+      } else {
+        navigate("/dashboard/quotes");
+      }
     } catch (error) {
       setError(error instanceof Error ? error.message : "An error occurred");
     } finally {
@@ -621,36 +630,36 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ quote, isEditing = false }) => {
             </CardContent>
           </Card>
         </div>
-      </form>
 
-      <div className="flex justify-end gap-4">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => navigate("/dashboard/quotes")}
-        >
-          Cancel
-        </Button>
-        {formData.client_id && (
+        <div className="flex justify-end gap-4">
           <Button
             type="button"
             variant="outline"
-            onClick={handlePreview}
-            className="border-blue-500 text-blue-500 hover:bg-blue-50"
+            onClick={() => navigate("/dashboard/quotes")}
           >
-            <FileText className="mr-2 h-4 w-4" />
-            Preview
+            Cancel
           </Button>
-        )}
-        <Button
-          type="submit"
-          disabled={loading}
-          className="bg-green-600 hover:bg-green-700 text-white"
-        >
-          <Save className="mr-2 h-4 w-4" />
-          {isEditing ? "Update Quote" : "Create Quote"}
-        </Button>
-      </div>
+          {formData.client_id && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handlePreview}
+              className="border-blue-500 text-blue-500 hover:bg-blue-50"
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              Preview
+            </Button>
+          )}
+          <Button
+            type="submit"
+            disabled={loading}
+            className="bg-green-600 hover:bg-green-700 text-white"
+          >
+            <Save className="mr-2 h-4 w-4" />
+            {isEditing ? "Update Quote" : "Create Quote"}
+          </Button>
+        </div>
+      </form>
     </div>
   );
 };
