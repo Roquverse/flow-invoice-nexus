@@ -1,3 +1,4 @@
+
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.tsx";
@@ -13,21 +14,11 @@ import "./styles/font-fixes.css";
 import "./styles/pricing.css";
 import "./styles/powerfulTemplate.css";
 
-// Import jQuery and Bootstrap types
-import $ from "jquery";
-import { Tooltip, Popover } from "bootstrap";
-
 // Import custom scripts initialization
 import { initCustomScripts } from "./js";
 
-declare global {
-  interface Window {
-    jQuery: typeof $;
-    $: typeof $;
-  }
-}
-
-window.jQuery = window.$ = $;
+// Import jQuery and Bootstrap components (modified to avoid global assignment issues)
+import * as bootstrap from "bootstrap";
 
 // Initialize all scripts
 const initializeAll = async () => {
@@ -35,21 +26,17 @@ const initializeAll = async () => {
   await initCustomScripts();
 
   // Initialize Bootstrap components after custom scripts are loaded
-  $(document).ready(function () {
+  document.addEventListener("DOMContentLoaded", function() {
     // Initialize Bootstrap tooltips
-    const tooltipTriggerList = document.querySelectorAll(
-      '[data-bs-toggle="tooltip"]'
-    );
-    const tooltipList = [...tooltipTriggerList].map(
-      (tooltipTriggerEl) => new Tooltip(tooltipTriggerEl)
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    [...tooltipTriggerList].map(tooltipTriggerEl => 
+      new bootstrap.Tooltip(tooltipTriggerEl)
     );
 
     // Initialize Bootstrap popovers
-    const popoverTriggerList = document.querySelectorAll(
-      '[data-bs-toggle="popover"]'
-    );
-    const popoverList = [...popoverTriggerList].map(
-      (popoverTriggerEl) => new Popover(popoverTriggerEl)
+    const popoverTriggerList = document.querySelectorAll('[data-bs-toggle="popover"]');
+    [...popoverTriggerList].map(popoverTriggerEl => 
+      new bootstrap.Popover(popoverTriggerEl)
     );
   });
 };

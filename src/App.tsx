@@ -12,6 +12,7 @@ import PowerfulTemplate from "./components/PowerfulTemplate";
 import Footer from "./components/Footer";
 import { Toaster } from "sonner";
 import { DashboardLayout } from "./components/dashboard/DashboardLayout";
+import DashboardPage from "./pages/dashboard/DashboardPage";
 
 // Import styles
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -31,6 +32,7 @@ import "./styles/animate.css";
 import "./styles/slick.css";
 import "./styles/slick-theme.css";
 import "./styles/header.css";
+import "./styles/custom.css";
 
 const HomePage: React.FC = () => {
   return (
@@ -88,7 +90,7 @@ const App: React.FC = () => {
           {/* Protected Routes */}
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<Navigate to="/dashboard/overview" replace />} />
-            <Route path="overview" element={<div className="p-6">Dashboard Overview Content</div>} />
+            <Route path="overview" element={<DashboardPage />} />
             <Route path="invoices" element={<div className="p-6">Invoices Content</div>} />
             <Route path="clients" element={<div className="p-6">Clients Content</div>} />
             <Route path="reports" element={<div className="p-6">Reports Content</div>} />
