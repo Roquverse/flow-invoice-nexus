@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -7,10 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Logo } from "@/components/Logo";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Eye, EyeOff } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
+import { AlertCircle, Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import "../../styles/auth-pages.css";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -18,25 +17,26 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
-    
+
     try {
       // Using Supabase for login
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        password
+        password,
       });
-      
+
       if (error) {
         setError(error.message);
         return;
       }
-      
+
       if (data?.user) {
         toast.success("Successfully logged in!");
         navigate("/dashboard");
@@ -50,147 +50,202 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col sm:flex-row bg-[#f8f9fc]">
+    <div className="auth-container">
       {/* Left side - Form */}
-      <div className="flex-1 flex flex-col justify-center p-6 sm:p-12">
-        <div className="mx-auto w-full max-w-md">
-          <div className="flex flex-col space-y-6">
-            <Link to="/" className="flex items-center justify-center sm:justify-start mb-6">
-              <Logo size="lg" />
-            </Link>
-            
-            <div>
-              <h1 className="text-3xl font-bold">Welcome back</h1>
-              <p className="text-muted-foreground mt-1">
-                Sign in to your account to continue
-              </p>
+      <div className="auth-form-side">
+        <div className="auth-form-container">
+          <div className="auth-logo">
+            <Logo />
+          </div>
+
+          <div className="auth-heading">
+            <h1>Welcome back</h1>
+            <p>Sign in to your account to continue</p>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-md border border-gray-100">
+            <Button
+              variant="outline"
+              className="w-full bg-white flex items-center justify-center border border-gray-200 hover:bg-gray-50 h-[45px]"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5 mr-2"
+                viewBox="0 0 24 24"
+                fill="#4285F4"
+              >
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                <path
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  fill="#34A853"
+                />
+                <path
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                  fill="#FBBC05"
+                />
+                <path
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                  fill="#EA4335"
+                />
+              </svg>
+              Sign in with Google
+            </Button>
+
+            <div className="auth-separator my-4">
+              <span>Or sign in with email</span>
             </div>
-            
+
             {error && (
-              <Alert variant="destructive" className="animate-fade-in">
+              <Alert variant="destructive" className="mb-4">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="name@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="bg-white"
-                />
+
+            <form onSubmit={handleSubmit} className="auth-form">
+              <div className="form-group">
+                <Label
+                  htmlFor="email"
+                  className="text-gray-700 text-sm font-medium"
+                >
+                  Email
+                </Label>
+                <div className="input-with-icon">
+                  <Mail className="input-icon" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="name@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="input-field"
+                  />
+                </div>
               </div>
-              
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
-                  <Link 
+
+              <div className="form-group">
+                <div className="flex items-center justify-between mb-1">
+                  <Label
+                    htmlFor="password"
+                    className="text-gray-700 text-sm font-medium"
+                  >
+                    Password
+                  </Label>
+                  <Link
                     to="/forgot-password"
-                    className="text-sm text-primary hover:underline"
+                    className="text-xs text-[#4CAF50] hover:underline font-medium"
                   >
                     Forgot password?
                   </Link>
                 </div>
-                <div className="relative">
-                  <Input 
-                    id="password" 
+                <div className="input-with-icon">
+                  <Lock className="input-icon" />
+                  <Input
+                    id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="bg-white pr-10"
+                    className="input-field"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    className="password-toggle"
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
                   >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
               </div>
-              
-              <div className="flex items-center space-x-2">
-                <Checkbox id="remember" />
-                <Label htmlFor="remember" className="text-sm font-normal">
+
+              <div className="form-checkbox">
+                <Checkbox
+                  id="remember"
+                  className="text-[#4CAF50] border-gray-300"
+                  checked={rememberMe}
+                  onCheckedChange={(checked) =>
+                    setRememberMe(checked as boolean)
+                  }
+                />
+                <Label
+                  htmlFor="remember"
+                  className="text-xs font-normal ml-2 text-gray-600"
+                >
                   Remember me for 30 days
                 </Label>
               </div>
-              
-              <Button type="submit" className="w-full" disabled={isLoading}>
+
+              <Button
+                type="submit"
+                className="w-full btn-auth-risitify"
+                disabled={isLoading}
+              >
                 {isLoading ? (
                   <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
                     </svg>
                     Signing in...
                   </>
-                ) : "Sign In"}
+                ) : (
+                  "Sign In"
+                )}
               </Button>
             </form>
-            
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <Separator />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-[#f8f9fc] px-2 text-muted-foreground">
-                  Or continue with
-                </span>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <Button variant="outline" className="w-full bg-white">
-                <span className="ti ti-brand-google-filled mr-2"></span>
-                Google
-              </Button>
-              <Button variant="outline" className="w-full bg-white">
-                <span className="ti ti-brand-apple mr-2"></span>
-                Apple
-              </Button>
-            </div>
-            
-            <p className="text-center text-sm text-muted-foreground">
-              Don't have an account?{" "}
-              <Link to="/sign-up" className="text-primary hover:underline font-medium">
-                Sign up
-              </Link>
-            </p>
+          </div>
+
+          <div className="auth-footer">
+            Don't have an account?{" "}
+            <Link
+              to="/sign-up"
+              className="text-[#4CAF50] hover:underline font-medium"
+            >
+              Sign up
+            </Link>
           </div>
         </div>
       </div>
-      
-      {/* Right side - Image */}
-      <div className="hidden sm:block flex-1 bg-gradient-to-br from-[#171f38] to-[#253F8F]">
-        <div className="h-full flex items-center justify-center p-8">
-          <div className="max-w-lg text-white">
-            <div className="text-center sm:text-left mb-4">
-              <div className="inline-block bg-orange-500/20 py-1 px-3 rounded-full text-orange-400 text-sm font-medium mb-2">TESTIMONIAL</div>
-              <h2 className="text-3xl font-bold">Streamlined my entire invoicing process</h2>
-            </div>
-            <blockquote className="text-lg italic mb-6 opacity-90">
-              "Risitify has completely transformed how I manage my freelance business. Creating invoices is now quick and painless, and I get paid faster than ever before. The dashboard analytics help me understand my cash flow at a glance."
-            </blockquote>
-            <div className="flex items-center">
-              <div className="mr-3">
-                <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center">
-                  <span className="font-bold text-orange-400">JS</span>
-                </div>
-              </div>
-              <div>
-                <p className="font-medium">Jamie Smith</p>
-                <p className="text-sm text-white/70">Freelance Designer</p>
-              </div>
+
+      {/* Right side - Content */}
+      <div className="auth-content-side">
+        <div className="testimonial-container">
+          <div className="testimonial-badge">TESTIMONIAL</div>
+          <h2 className="testimonial-heading">
+            Streamlined my entire invoicing process
+          </h2>
+          <p className="testimonial-quote">
+            "Risitify has completely transformed how I manage my freelance
+            business. Creating invoices is now quick and painless, and I get
+            paid faster than ever before. The dashboard analytics help me
+            understand my cash flow at a glance."
+          </p>
+          <div className="testimonial-author">
+            <div className="author-avatar">JS</div>
+            <div className="author-info">
+              <h4>Jamie Smith</h4>
+              <p>Freelance Designer</p>
             </div>
           </div>
         </div>
