@@ -17,7 +17,7 @@ import "./styles/powerfulTemplate.css";
 // Import custom scripts initialization
 import { initCustomScripts } from "./js";
 
-// Import jQuery and Bootstrap components (modified to avoid global assignment issues)
+// Import jQuery and Bootstrap components (using standard approach)
 import * as bootstrap from "bootstrap";
 
 // Initialize all scripts

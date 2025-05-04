@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import SignIn from "./pages/auth/LoginPage";
@@ -50,32 +50,8 @@ const HomePage: React.FC = () => {
 };
 
 const App: React.FC = () => {
-  useEffect(() => {
-    // Load JavaScript files from public
-    const vendorScript = document.createElement("script");
-    vendorScript.src = "/js/vendor.min.js";
-    vendorScript.async = true;
-
-    const appScript = document.createElement("script");
-    appScript.src = "/js/app.js";
-    appScript.async = true;
-
-    // Ensure vendor.min.js loads before app.js
-    document.body.appendChild(vendorScript);
-    vendorScript.onload = () => {
-      document.body.appendChild(appScript);
-    };
-
-    return () => {
-      // Clean up scripts when component unmounts
-      if (document.body.contains(vendorScript)) {
-        document.body.removeChild(vendorScript);
-      }
-      if (document.body.contains(appScript)) {
-        document.body.removeChild(appScript);
-      }
-    };
-  }, []);
+  // We're removing the script loading code that was causing conflicts
+  // and relying on the bootstrap initialization in main.tsx instead
 
   return (
     <AuthProvider>
