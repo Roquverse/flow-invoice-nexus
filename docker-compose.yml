@@ -1,0 +1,41 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: risitify_postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: risitify
+      POSTGRES_PASSWORD: risitify_password
+      POSTGRES_DB: risitify_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - risitify_network
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: risitify_pgadmin
+    restart: always
+    ports:
+      - "8080:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@risitify.com
+      PGADMIN_DEFAULT_PASSWORD: admin_password
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - risitify_network
+    depends_on:
+      - postgres
+
+networks:
+  risitify_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  pgadmin_data:

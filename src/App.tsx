@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -13,6 +12,9 @@ import Footer from "./components/Footer";
 import { Toaster } from "sonner";
 import { DashboardLayout } from "./components/dashboard/DashboardLayout";
 import DashboardPage from "./pages/dashboard/DashboardPage";
+import ClientsPage from "./pages/dashboard/ClientsPage";
+import ProjectsPage from "./pages/dashboard/ProjectsPage";
+import SettingsPage from "./pages/dashboard/SettingsPage";
 
 // Import styles
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -65,12 +67,18 @@ const App: React.FC = () => {
 
           {/* Protected Routes */}
           <Route path="/dashboard" element={<DashboardLayout />}>
-            <Route index element={<Navigate to="/dashboard/overview" replace />} />
+            <Route
+              index
+              element={<Navigate to="/dashboard/overview" replace />}
+            />
             <Route path="overview" element={<DashboardPage />} />
-            <Route path="invoices" element={<div className="p-6">Invoices Content</div>} />
-            <Route path="clients" element={<div className="p-6">Clients Content</div>} />
-            <Route path="reports" element={<div className="p-6">Reports Content</div>} />
-            <Route path="settings" element={<div className="p-6">Settings Content</div>} />
+            <Route
+              path="invoices"
+              element={<div className="p-6">Invoices Content</div>}
+            />
+            <Route path="clients" element={<ClientsPage />} />
+            <Route path="projects" element={<ProjectsPage />} />
+            <Route path="settings" element={<SettingsPage />} />
           </Route>
         </Routes>
       </div>
