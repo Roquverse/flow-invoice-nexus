@@ -21,7 +21,7 @@ services:
     container_name: risitify_pgadmin
     restart: always
     ports:
-      - "8080:80"
+      - "8888:80"
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@risitify.com
       PGADMIN_DEFAULT_PASSWORD: admin_password
