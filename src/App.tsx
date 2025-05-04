@@ -15,6 +15,12 @@ import DashboardPage from "./pages/dashboard/DashboardPage";
 import ClientsPage from "./pages/dashboard/ClientsPage";
 import ProjectsPage from "./pages/dashboard/ProjectsPage";
 import SettingsPage from "./pages/dashboard/SettingsPage";
+import InvoicesPage from "./pages/dashboard/InvoicesPage";
+import QuotesPage from "./pages/dashboard/QuotesPage";
+import ReceiptsPage from "./pages/dashboard/ReceiptsPage";
+import InvoiceForm from "./components/invoice/InvoiceForm";
+import QuoteForm from "./components/quote/QuoteForm";
+import ReceiptForm from "./components/receipt/ReceiptForm";
 
 // Import styles
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -72,10 +78,31 @@ const App: React.FC = () => {
               element={<Navigate to="/dashboard/overview" replace />}
             />
             <Route path="overview" element={<DashboardPage />} />
+
+            {/* Invoice Routes */}
+            <Route path="invoices" element={<InvoicesPage />} />
+            <Route path="invoices/new" element={<InvoiceForm />} />
+            <Route path="invoices/:id" element={<InvoicesPage />} />
             <Route
-              path="invoices"
-              element={<div className="p-6">Invoices Content</div>}
+              path="invoices/:id/edit"
+              element={<InvoiceForm isEditing />}
             />
+
+            {/* Quote Routes */}
+            <Route path="quotes" element={<QuotesPage />} />
+            <Route path="quotes/new" element={<QuoteForm />} />
+            <Route path="quotes/:id" element={<QuotesPage />} />
+            <Route path="quotes/:id/edit" element={<QuoteForm isEditing />} />
+
+            {/* Receipt Routes */}
+            <Route path="receipts" element={<ReceiptsPage />} />
+            <Route path="receipts/new" element={<ReceiptForm />} />
+            <Route path="receipts/:id" element={<ReceiptsPage />} />
+            <Route
+              path="receipts/:id/edit"
+              element={<ReceiptForm isEditing />}
+            />
+
             <Route path="clients" element={<ClientsPage />} />
             <Route path="projects" element={<ProjectsPage />} />
             <Route path="settings" element={<SettingsPage />} />
