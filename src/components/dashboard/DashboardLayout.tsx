@@ -1,20 +1,27 @@
-
 import { Outlet, Navigate } from "react-router-dom";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
+import "@/styles/dashboard.css";
 
 export function DashboardLayout() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const toggleMenu = () => {
+    setMenuOpen(!menuOpen);
+  };
 
   useEffect(() => {
     // Check for existing session
     const checkSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         setUser(session?.user || null);
       } catch (error) {
         console.error("Error checking session:", error);
@@ -24,11 +31,11 @@ export function DashboardLayout() {
     };
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user || null);
-      }
-    );
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+    });
 
     checkSession();
 
@@ -55,11 +62,18 @@ export function DashboardLayout() {
     <div className="flex h-screen">
       <DashboardSidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <DashboardHeader />
-        <main className="flex-1 overflow-y-auto bg-[#f8f9fc] p-6">
-          <Outlet />
+        <DashboardHeader onMenuToggle={toggleMenu} />
+        <main className="dashboard-main">
+          <div className="dashboard-content">
+            <Outlet />
+          </div>
         </main>
       </div>
+      {/* Mobile menu overlay */}
+      <div
+        className={`menu-overlay ${menuOpen ? "open" : ""}`}
+        onClick={toggleMenu}
+      ></div>
     </div>
   );
 }

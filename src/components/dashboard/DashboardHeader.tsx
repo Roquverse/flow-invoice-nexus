@@ -1,20 +1,20 @@
-
-import { useState } from 'react';
-import { Bell, Menu, Search } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { SignOutButton } from '@/components/SignOutButton';
-import { 
+import { useState, useEffect } from "react";
+import { Bell, Menu, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { SignOutButton } from "@/components/SignOutButton";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+} from "@/components/ui/dropdown-menu";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import "@/styles/dashboard.css";
 
 interface DashboardHeaderProps {
   onMenuToggle?: () => void;
@@ -25,7 +25,7 @@ export function DashboardHeader({ onMenuToggle }: DashboardHeaderProps) {
   const navigate = useNavigate();
 
   // Get user on component mount
-  useState(() => {
+  useEffect(() => {
     const getUser = async () => {
       const { data } = await supabase.auth.getUser();
       if (data?.user) {
@@ -33,23 +33,23 @@ export function DashboardHeader({ onMenuToggle }: DashboardHeaderProps) {
       }
     };
     getUser();
-  });
+  }, []);
 
   // Get user initials for avatar fallback
   const getUserInitials = () => {
-    if (!user?.user_metadata?.full_name) return 'U';
+    if (!user?.user_metadata?.full_name) return "U";
     return user.user_metadata.full_name
-      .split(' ')
+      .split(" ")
       .map((n: string) => n[0])
-      .join('')
+      .join("")
       .toUpperCase()
       .substring(0, 2);
   };
 
   return (
-    <header className="bg-white border-b shadow-sm px-4 py-3">
-      <div className="flex items-center justify-between">
-        <div className="flex gap-3 items-center">
+    <header className="dashboard-header">
+      <div className="dashboard-header-content">
+        <div className="flex items-center gap-3">
           <Button
             variant="ghost"
             size="icon"
@@ -58,32 +58,37 @@ export function DashboardHeader({ onMenuToggle }: DashboardHeaderProps) {
           >
             <Menu size={20} />
           </Button>
-          <div className="relative hidden md:flex w-72">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground/60 h-4 w-4" />
+          <div className="search-bar hidden md:block">
+            <Search className="search-icon" />
             <Input
               placeholder="Search..."
-              className="pl-10 bg-transparent border-muted/30"
+              className="bg-transparent border-muted/30"
             />
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="user-menu">
           <div className="hidden md:block">
             <SignOutButton />
           </div>
 
-          <Button variant="ghost" size="icon" className="relative">
+          <Button variant="ghost" size="icon" className="notification-button">
             <Bell size={20} />
-            <span className="absolute top-1 right-1.5 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
-              3
-            </span>
+            <span className="notification-badge">3</span>
           </Button>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-8 w-8 rounded-full" size="icon">
+              <Button
+                variant="ghost"
+                className="relative h-8 w-8 rounded-full"
+                size="icon"
+              >
                 <Avatar className="h-9 w-9">
-                  <AvatarImage src={user?.user_metadata?.avatar_url || ""} alt="User avatar" />
+                  <AvatarImage
+                    src={user?.user_metadata?.avatar_url || ""}
+                    alt="User avatar"
+                  />
                   <AvatarFallback className="bg-primary text-primary-foreground">
                     {getUserInitials()}
                   </AvatarFallback>
@@ -93,7 +98,9 @@ export function DashboardHeader({ onMenuToggle }: DashboardHeaderProps) {
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">{user?.user_metadata?.full_name || "User"}</p>
+                  <p className="text-sm font-medium leading-none">
+                    {user?.user_metadata?.full_name || "User"}
+                  </p>
                   <p className="text-xs leading-none text-muted-foreground">
                     {user?.email || ""}
                   </p>

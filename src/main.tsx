@@ -1,4 +1,3 @@
-
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.tsx";
@@ -13,6 +12,9 @@ import "./styles/responsive.css";
 import "./styles/font-fixes.css";
 import "./styles/pricing.css";
 import "./styles/powerfulTemplate.css";
+import "./styles/auth-pages.css";
+import "./index.css";
+import "./styles/dashboard.css";
 
 // Import custom scripts initialization
 import { initCustomScripts } from "./js";
@@ -26,17 +28,21 @@ const initializeAll = async () => {
   await initCustomScripts();
 
   // Initialize Bootstrap components after custom scripts are loaded
-  document.addEventListener("DOMContentLoaded", function() {
+  document.addEventListener("DOMContentLoaded", function () {
     // Initialize Bootstrap tooltips
-    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-    [...tooltipTriggerList].map(tooltipTriggerEl => 
-      new bootstrap.Tooltip(tooltipTriggerEl)
+    const tooltipTriggerList = document.querySelectorAll(
+      '[data-bs-toggle="tooltip"]'
+    );
+    [...tooltipTriggerList].map(
+      (tooltipTriggerEl) => new bootstrap.Tooltip(tooltipTriggerEl)
     );
 
     // Initialize Bootstrap popovers
-    const popoverTriggerList = document.querySelectorAll('[data-bs-toggle="popover"]');
-    [...popoverTriggerList].map(popoverTriggerEl => 
-      new bootstrap.Popover(popoverTriggerEl)
+    const popoverTriggerList = document.querySelectorAll(
+      '[data-bs-toggle="popover"]'
+    );
+    [...popoverTriggerList].map(
+      (popoverTriggerEl) => new bootstrap.Popover(popoverTriggerEl)
     );
   });
 };
