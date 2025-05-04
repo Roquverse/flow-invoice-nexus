@@ -1,167 +1,105 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
 
 const Header: React.FC = () => {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [scrollActive, setScrollActive] = useState(false);
-
-  // Handle mobile menu toggle
-  const toggleMobileMenu = () => {
-    setMobileMenuOpen(!mobileMenuOpen);
-    document.body.classList.toggle("canvas-open");
-  };
-
-  // Close mobile menu when clicking on a link
-  const closeMobileMenu = () => {
-    setMobileMenuOpen(false);
-    document.body.classList.remove("canvas-open");
-  };
-
   const scrollToSection = (sectionId: string) => {
-    closeMobileMenu();
     const element = document.getElementById(sectionId);
     if (element) {
       element.scrollIntoView({ behavior: "smooth" });
     }
   };
 
-  // Add scroll event listener to change header background on scroll
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 50) {
-        setScrollActive(true);
-      } else {
-        setScrollActive(false);
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  // Close mobile menu when window is resized to desktop size
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth > 991 && mobileMenuOpen) {
-        closeMobileMenu();
-      }
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [mobileMenuOpen]);
-
-  // Add event listener for when the mobile menu expander is clicked
-  useEffect(() => {
-    const navExpander = document.getElementById("nav-expander");
-
-    if (navExpander) {
-      navExpander.addEventListener("click", toggleMobileMenu);
-    }
-
-    return () => {
-      if (navExpander) {
-        navExpander.removeEventListener("click", toggleMobileMenu);
-      }
-    };
-  }, []);
-
   return (
     <>
-      <header
-        className={`header-section ${scrollActive ? "header-sticky" : ""}`}
-      >
+      <div className="Risitify-overly-bg"></div>
+      {/* Header section start */}
+      <header className="header-section v2 v5">
         <div className="container">
-          <nav className="navbar navbar-expand-lg">
-            <div className="header-navbar-container">
-              <Link className="navbar-brand header-logo" to="/">
-                <img src="/logo.png" alt="Risitify" width="138" />
-              </Link>
-
-              <button
-                id="nav-expander"
-                className={`nav-expander bar ${mobileMenuOpen ? "active" : ""}`}
-                aria-label="Toggle navigation"
-              >
-                <img
-                  src="/icons/menu.svg"
-                  alt="menu"
-                  className={!mobileMenuOpen ? "visible" : "hidden"}
-                />
-                <img
-                  src="/icons/menu-close.svg"
-                  alt="close menu"
-                  className={mobileMenuOpen ? "visible" : "hidden"}
-                />
-              </button>
-
-              <div
-                className="collapse navbar-collapse header-navbar-content"
-                id="navbarSupportedContent"
-              >
-                <ul className="navbar-nav main-menu">
-                  <li className="nav-item">
-                    <Link className="nav-link" to="/">
-                      Home
-                    </Link>
-                  </li>
-                  <li className="nav-item">
-                    <Link
-                      className="nav-link"
-                      to="/"
-                      onClick={() => scrollToSection("why-choose-us")}
-                    >
-                      About
-                    </Link>
-                  </li>
-                  <li className="nav-item">
-                    <Link
-                      className="nav-link"
-                      to="/"
-                      onClick={() => scrollToSection("powerful-template")}
-                    >
-                      Services
-                    </Link>
-                  </li>
-                  <li className="nav-item">
-                    <Link className="nav-link" to="/pricing">
-                      Pricing
-                    </Link>
-                  </li>
-                  <li className="nav-item">
-                    <Link
-                      className="nav-link"
-                      to="/"
-                      onClick={() => scrollToSection("footer")}
-                    >
-                      Contact
-                    </Link>
-                  </li>
-                </ul>
-                <div className="header-buttons">
-                  <Link to="/sign-in" className="sign-in-link">
-                    Sign in
+          <div className="row">
+            <div className="col-md-12">
+              <nav className="navbar navbar-expand-lg">
+                <div className="container header-navbar-container">
+                  <Link className="navbar-brand header-logo" to="/">
+                    <img src="/logo.png" alt="header-logo" width="138" />
                   </Link>
-                  <Link to="/contact" className="lets-talk-btn">
-                    Let's Talk
-                  </Link>
+
+                  <button id="nav-expander" className="nav-expander bar">
+                    <img src="/icons/menu.svg" alt="menu" />
+                    <img src="/icons/menu-close.svg" alt="menu" />
+                  </button>
+
+                  <div
+                    className="collapse navbar-collapse header-navbar-content"
+                    id="navbarSupportedContent"
+                  >
+                    <ul className="navbar-nav main-menu">
+                      <li className="nav-item home-nav">
+                        <Link
+                          className="nav-link"
+                          to="/"
+                          onClick={() => scrollToSection("hero")}
+                        >
+                          Home
+                        </Link>
+                      </li>
+                      <li className="nav-item">
+                        <Link
+                          className="nav-link"
+                          to="/"
+                          onClick={() => scrollToSection("why-choose-us")}
+                        >
+                          About
+                        </Link>
+                      </li>
+                      <li className="nav-item">
+                        <Link
+                          className="nav-link"
+                          to="/"
+                          onClick={() => scrollToSection("powerful-template")}
+                        >
+                          Services
+                        </Link>
+                      </li>
+                      <li className="nav-item">
+                        <Link
+                          className="nav-link"
+                          to="/"
+                          onClick={() => scrollToSection("footer")}
+                        >
+                          Contact
+                        </Link>
+                      </li>
+                    </ul>
+                    <ul className="header-extra">
+                      <li>
+                        <Link to="/sign-in">Sign in</Link>
+                      </li>
+                      <li>
+                        <Link to="/sign-up" className="bg-pink-btn">
+                          <span className="btn-inner">
+                            <span className="btn-normal-text">Sign Up</span>
+                            <span className="btn-hover-text">Sign Up</span>
+                          </span>
+                        </Link>
+                      </li>
+                    </ul>
+                  </div>
                 </div>
-              </div>
+              </nav>
             </div>
-          </nav>
+          </div>
         </div>
       </header>
+      {/* <!-- Header section end -->
 
-      {/* <!-- Canvas Mobile Menu start --> */}
+    <!-- Canvas Mobile Menu start --> */}
       <nav
-        className={`right_menu_togle mobile-navbar-menu header-3-canva ${
-          mobileMenuOpen ? "canvas-open" : ""
-        }`}
+        className="right_menu_togle mobile-navbar-menu header-3-canva"
         id="mobile-navbar-menu"
       >
         <ul className="nav-menu">
           <li className="current-menu-item">
-            <Link to="/" onClick={closeMobileMenu}>
+            <Link to="/" onClick={() => scrollToSection("hero")}>
               Home
             </Link>
           </li>
@@ -176,32 +114,34 @@ const Header: React.FC = () => {
             </Link>
           </li>
           <li>
-            <Link to="/pricing" onClick={closeMobileMenu}>
-              Pricing
-            </Link>
-          </li>
-          <li>
             <Link to="/" onClick={() => scrollToSection("footer")}>
               Contact
             </Link>
           </li>
         </ul>
-        <div className="mobile-button-group">
-          <Link
-            to="/sign-in"
-            className="mobile-button"
-            onClick={closeMobileMenu}
-          >
-            Sign in
-          </Link>
-          <Link
-            to="/contact"
-            className="mobile-button primary"
-            onClick={closeMobileMenu}
-          >
-            Let's Talk
-          </Link>
-        </div>
+        <ul className="nav-buttons">
+          <li>
+            <Link
+              to="/"
+              onClick={() => scrollToSection("footer")}
+              className="bg-blue-btn"
+            >
+              <span className="btn-inner">
+                <span className="btn-normal-text">Let's talk</span>
+                <span className="btn-hover-text">Let's talk</span>
+              </span>
+            </Link>
+          </li>
+
+          <li>
+            <Link to="/sign-in" className="bg-blue-btn sign-in-btn">
+              <span className="btn-inner">
+                <span className="btn-normal-text">Sign in</span>
+                <span className="btn-hover-text">Sign in</span>
+              </span>
+            </Link>
+          </li>
+        </ul>
       </nav>
       {/* Canvas Menu end */}
     </>

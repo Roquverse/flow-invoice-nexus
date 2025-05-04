@@ -62,7 +62,7 @@ const Hero: React.FC = () => {
   return (
     <section className="hero-section-index5" id="hero">
       <div className="container">
-        <div className="row align-items-center">
+        <div className="row align-items-center v5-hero-row">
           <div className="col-md-6">
             <div className="v5welocme-section">
               <img src="/icons/hands.png" alt="icons" /> Welcome to Risitify
