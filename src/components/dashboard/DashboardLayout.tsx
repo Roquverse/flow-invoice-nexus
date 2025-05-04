@@ -40,15 +40,15 @@ export function DashboardLayout() {
   // Show loading state
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-[#253F8F]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#9DC8FF]"></div>
+      <div className="h-screen flex items-center justify-center bg-[#f8f9fc]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   // Redirect if not logged in
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/sign-in" replace />;
   }
 
   return (
@@ -56,7 +56,7 @@ export function DashboardLayout() {
       <DashboardSidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
-        <main className="flex-1 overflow-y-auto bg-white p-6">
+        <main className="flex-1 overflow-y-auto bg-[#f8f9fc] p-6">
           <Outlet />
         </main>
       </div>

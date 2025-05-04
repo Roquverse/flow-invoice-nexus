@@ -1,5 +1,6 @@
+
 import React, { useEffect } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import SignIn from "./pages/auth/LoginPage";
 import SignUp from "./pages/auth/SignupPage";
@@ -10,6 +11,7 @@ import Counter from "./components/Counter";
 import PowerfulTemplate from "./components/PowerfulTemplate";
 import Footer from "./components/Footer";
 import { Toaster } from "sonner";
+import { DashboardLayout } from "./components/dashboard/DashboardLayout";
 
 // Import styles
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -84,12 +86,14 @@ const App: React.FC = () => {
           <Route path="/sign-up" element={<SignUp />} />
 
           {/* Protected Routes */}
-          {/* <Route
-            path="/dashboard/*"
-            element={
-                <Dashboard />
-            }
-          /> */}
+          <Route path="/dashboard" element={<DashboardLayout />}>
+            <Route index element={<Navigate to="/dashboard/overview" replace />} />
+            <Route path="overview" element={<div className="p-6">Dashboard Overview Content</div>} />
+            <Route path="invoices" element={<div className="p-6">Invoices Content</div>} />
+            <Route path="clients" element={<div className="p-6">Clients Content</div>} />
+            <Route path="reports" element={<div className="p-6">Reports Content</div>} />
+            <Route path="settings" element={<div className="p-6">Settings Content</div>} />
+          </Route>
         </Routes>
       </div>
     </AuthProvider>

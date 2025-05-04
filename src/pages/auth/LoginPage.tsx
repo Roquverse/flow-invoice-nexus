@@ -129,13 +129,19 @@ export default function LoginPage() {
             </div>
             
             <div className="grid grid-cols-2 gap-4">
-              <Button variant="outline" className="w-full">Google</Button>
-              <Button variant="outline" className="w-full">Apple</Button>
+              <Button variant="outline" className="w-full">
+                <span className="ti ti-brand-google-filled mr-2"></span>
+                Google
+              </Button>
+              <Button variant="outline" className="w-full">
+                <span className="ti ti-brand-apple mr-2"></span>
+                Apple
+              </Button>
             </div>
             
             <p className="text-center text-sm text-muted-foreground">
               Don't have an account?{" "}
-              <Link to="/signup" className="text-primary hover:underline">
+              <Link to="/sign-up" className="text-primary hover:underline">
                 Sign up
               </Link>
             </p>
@@ -152,7 +158,7 @@ export default function LoginPage() {
               <h2 className="text-2xl font-bold">Streamlined my entire invoicing process</h2>
             </div>
             <blockquote className="text-lg italic mb-4">
-              "FlowInvoice has completely transformed how I manage my freelance business. Creating invoices is now quick and painless, and I get paid faster than ever before."
+              "Risitify has completely transformed how I manage my freelance business. Creating invoices is now quick and painless, and I get paid faster than ever before."
             </blockquote>
             <div className="flex items-center">
               <div className="mr-3">

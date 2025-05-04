@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +21,16 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Parse email from URL if coming from homepage
+  useState(() => {
+    const params = new URLSearchParams(location.search);
+    const emailParam = params.get('email');
+    if (emailParam) {
+      setFormData(prev => ({ ...prev, email: emailParam }));
+    }
+  });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -51,9 +61,8 @@ export default function SignupPage() {
       
       if (data?.user) {
         toast.success("Account created successfully!");
-        setSuccess(true);
-        // In production, you'll navigate right to dashboard if email verification is disabled
-        // navigate("/dashboard");
+        // Direct redirect to dashboard (since confirmation is optional)
+        navigate("/dashboard");
       }
     } catch (err) {
       setError("An unexpected error occurred. Please try again.");
@@ -76,7 +85,7 @@ export default function SignupPage() {
               Your account has been successfully created. You can now log in.
             </p>
             <div className="mt-6">
-              <Link to="/login">
+              <Link to="/sign-in">
                 <Button className="w-full">Continue to Login</Button>
               </Link>
             </div>
@@ -177,13 +186,19 @@ export default function SignupPage() {
             </div>
             
             <div className="grid grid-cols-2 gap-4">
-              <Button variant="outline" className="w-full">Google</Button>
-              <Button variant="outline" className="w-full">Apple</Button>
+              <Button variant="outline" className="w-full">
+                <span className="ti ti-brand-google-filled mr-2"></span>
+                Google
+              </Button>
+              <Button variant="outline" className="w-full">
+                <span className="ti ti-brand-apple mr-2"></span>
+                Apple
+              </Button>
             </div>
             
             <p className="text-center text-sm text-muted-foreground">
               Already have an account?{" "}
-              <Link to="/login" className="text-primary hover:underline">
+              <Link to="/sign-in" className="text-primary hover:underline">
                 Sign in
               </Link>
             </p>

@@ -1,0 +1,65 @@
+
+/* Custom styles for the app */
+
+/* Auth pages */
+.auth-form-container {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.auth-form {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  padding: 2rem;
+}
+
+.auth-logo {
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: center;
+}
+
+/* Dashboard styles */
+.dashboard-container {
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  min-height: 100vh;
+}
+
+.dashboard-main {
+  background-color: #f8f9fc;
+  padding: 1.5rem;
+}
+
+.dashboard-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  padding: 1.5rem;
+}
+
+/* Custom button styles */
+.btn-primary-gradient {
+  background: linear-gradient(45deg, #7c3aed, #6d28d9);
+  color: white;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.btn-primary-gradient:hover {
+  background: linear-gradient(45deg, #6d28d9, #5b21b6);
+  transform: translateY(-1px);
+}
+
+/* More responsive styles for mobile */
+@media (max-width: 768px) {
+  .dashboard-container {
+    grid-template-columns: 1fr;
+  }
+  
+  .dashboard-sidebar {
+    display: none;
+  }
+}
