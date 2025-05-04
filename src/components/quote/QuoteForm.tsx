@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AlertCircle, Plus, Trash2, Save, ArrowLeft } from "lucide-react";
+import {
+  AlertCircle,
+  Plus,
+  Trash2,
+  Save,
+  ArrowLeft,
+  FileText,
+} from "lucide-react";
 import {
   Card,
   CardContent,
@@ -24,8 +31,12 @@ import { useQuotes } from "@/hooks/useQuotes";
 import { useClients } from "@/hooks/useClients";
 import { useProjects } from "@/hooks/useProjects";
 import { Quote, QuoteItem } from "@/types/quotes";
+import { Client } from "@/types/clients";
 import { formatCurrency } from "@/utils/formatters";
 import { DatePicker } from "@/components/ui/date-picker";
+import { getClientById } from "@/services/clientService";
+import QuotePreview from "./QuotePreview";
+import { downloadPDF } from "@/utils/pdf";
 
 interface QuoteFormProps {
   quote?: Quote;
@@ -76,6 +87,11 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ quote, isEditing = false }) => {
     items: [{ ...DEFAULT_QUOTE_ITEM, id: crypto.randomUUID() }],
   });
 
+  // Preview state
+  const [showPreview, setShowPreview] = useState(false);
+  const [currentClient, setCurrentClient] = useState<Client | null>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const fetchData = async () => {
       if (isEditing && quote) {
@@ -89,6 +105,18 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ quote, isEditing = false }) => {
 
     fetchData();
   }, [isEditing, quote, generateQuoteNumber]);
+
+  // Fetch client data when client_id changes
+  useEffect(() => {
+    const fetchClientData = async () => {
+      if (formData.client_id) {
+        const client = await getClientById(formData.client_id);
+        setCurrentClient(client);
+      }
+    };
+
+    fetchClientData();
+  }, [formData.client_id]);
 
   const calculateTotals = (updatedItems: QuoteItem[]) => {
     const subtotal = updatedItems.reduce((sum, item) => sum + item.total, 0);
@@ -215,6 +243,27 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ quote, isEditing = false }) => {
     });
   };
 
+  // Preview and PDF handlers
+  const handlePreview = () => {
+    setShowPreview(true);
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!currentClient) return;
+
+    try {
+      await downloadPDF(
+        previewRef,
+        currentClient.business_name.replace(/\s+/g, "-").toLowerCase(),
+        "quote",
+        formData.quote_number || "draft"
+      );
+    } catch (error) {
+      console.error("Error downloading PDF:", error);
+      setError("Failed to download PDF");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -266,6 +315,35 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ quote, isEditing = false }) => {
         </div>
       )}
 
+      {showPreview && currentClient && (
+        <div className="mb-8">
+          <div className="flex justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-800">
+              Quote Preview
+            </h2>
+            <div className="flex space-x-2">
+              <Button variant="outline" onClick={() => setShowPreview(false)}>
+                Close Preview
+              </Button>
+              <Button
+                onClick={handleDownloadPDF}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Download PDF
+              </Button>
+            </div>
+          </div>
+          <div className="border rounded-lg p-4 bg-gray-50">
+            <QuotePreview
+              ref={previewRef}
+              quote={formData as Quote}
+              items={formData.items || []}
+              client={currentClient}
+            />
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} style={{ maxWidth: "100%" }}>
         <div className="grid grid-cols-1 gap-6 mb-8 w-full">
           <Card className="w-full" style={{ width: "100%" }}>
@@ -300,7 +378,7 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ quote, isEditing = false }) => {
                   <SelectContent>
                     {clients.map((client) => (
                       <SelectItem key={client.id} value={client.id}>
-                        {client.name}
+                        {client.business_name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -543,25 +621,36 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ quote, isEditing = false }) => {
             </CardContent>
           </Card>
         </div>
+      </form>
 
-        <div className="flex justify-end gap-4">
+      <div className="flex justify-end gap-4">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => navigate("/dashboard/quotes")}
+        >
+          Cancel
+        </Button>
+        {formData.client_id && (
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate("/dashboard/quotes")}
+            onClick={handlePreview}
+            className="border-blue-500 text-blue-500 hover:bg-blue-50"
           >
-            Cancel
+            <FileText className="mr-2 h-4 w-4" />
+            Preview
           </Button>
-          <Button
-            type="submit"
-            disabled={loading}
-            className="bg-green-600 hover:bg-green-700 text-white"
-          >
-            <Save className="mr-2 h-4 w-4" />
-            {isEditing ? "Update Quote" : "Create Quote"}
-          </Button>
-        </div>
-      </form>
+        )}
+        <Button
+          type="submit"
+          disabled={loading}
+          className="bg-green-600 hover:bg-green-700 text-white"
+        >
+          <Save className="mr-2 h-4 w-4" />
+          {isEditing ? "Update Quote" : "Create Quote"}
+        </Button>
+      </div>
     </div>
   );
 };

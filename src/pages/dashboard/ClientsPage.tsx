@@ -10,250 +10,705 @@ import {
   Phone,
   Edit,
   Trash,
+  Plus,
+  MoreVertical,
+  Trash2,
+  Building,
+  Loader2,
 } from "lucide-react";
-
-// Sample client data
-const initialClients = [
-  {
-    id: "1",
-    name: "Acme Corporation",
-    email: "contact@acmecorp.com",
-    phone: "+1 (555) 123-4567",
-    status: "Active",
-    totalInvoices: 12,
-    totalPaid: "$24,500.00",
-    outstanding: "$3,200.00",
-  },
-  {
-    id: "2",
-    name: "Globex Industries",
-    email: "info@globex.com",
-    phone: "+1 (555) 987-6543",
-    status: "Active",
-    totalInvoices: 8,
-    totalPaid: "$16,750.00",
-    outstanding: "$0.00",
-  },
-  {
-    id: "3",
-    name: "Umbrella Corporation",
-    email: "business@umbrellacorp.com",
-    phone: "+1 (555) 456-7890",
-    status: "Inactive",
-    totalInvoices: 5,
-    totalPaid: "$8,300.00",
-    outstanding: "$1,500.00",
-  },
-  {
-    id: "4",
-    name: "Stark Industries",
-    email: "sales@stark.com",
-    phone: "+1 (555) 789-0123",
-    status: "Active",
-    totalInvoices: 15,
-    totalPaid: "$32,100.00",
-    outstanding: "$4,800.00",
-  },
-  {
-    id: "5",
-    name: "Wayne Enterprises",
-    email: "contact@wayne.com",
-    phone: "+1 (555) 234-5678",
-    status: "Active",
-    totalInvoices: 10,
-    totalPaid: "$19,850.00",
-    outstanding: "$2,100.00",
-  },
-];
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dropdown,
+  DropdownTrigger,
+  DropdownMenu,
+  DropdownItem,
+} from "@/components/ui/dropdown";
+import { useClients } from "@/hooks/useClients";
+import { ClientFormData, Client } from "@/types/clients";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 const ClientsPage: React.FC = () => {
-  const [clients, setClients] = useState(initialClients);
-  const [searchQuery, setSearchQuery] = useState("");
+  const { clients, loading, addClient, updateClient, removeClient } =
+    useClients();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
 
-  // Filter clients based on search query
+  const [formData, setFormData] = useState<ClientFormData>({
+    business_name: "",
+    contact_name: "",
+    email: "",
+    phone: "",
+    address: "",
+    city: "",
+    postal_code: "",
+    country: "",
+    tax_id: "",
+    notes: "",
+    status: "active",
+  });
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { id, value } = e.target;
+    setFormData((prev) => ({ ...prev, [id]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (isEditDialogOpen && selectedClient) {
+      await updateClient(selectedClient.id, formData);
+      setIsEditDialogOpen(false);
+    } else {
+      await addClient(formData);
+      setIsAddDialogOpen(false);
+    }
+
+    resetForm();
+  };
+
+  const handleEditClick = (client: Client) => {
+    setSelectedClient(client);
+    setFormData({
+      business_name: client.business_name,
+      contact_name: client.contact_name || "",
+      email: client.email || "",
+      phone: client.phone || "",
+      address: client.address || "",
+      city: client.city || "",
+      postal_code: client.postal_code || "",
+      country: client.country || "",
+      tax_id: client.tax_id || "",
+      notes: client.notes || "",
+      status: client.status as "active" | "inactive" | "archived",
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleDeleteClick = (client: Client) => {
+    setSelectedClient(client);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (selectedClient) {
+      await removeClient(selectedClient.id);
+      setIsDeleteDialogOpen(false);
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      business_name: "",
+      contact_name: "",
+      email: "",
+      phone: "",
+      address: "",
+      city: "",
+      postal_code: "",
+      country: "",
+      tax_id: "",
+      notes: "",
+      status: "active",
+    });
+    setSelectedClient(null);
+  };
+
   const filteredClients = clients.filter(
     (client) =>
-      client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      client.email.toLowerCase().includes(searchQuery.toLowerCase())
+      client.business_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (client.contact_name &&
+        client.contact_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (client.email &&
+        client.email.toLowerCase().includes(searchTerm.toLowerCase()))
   );
-
-  // Delete client handler
-  const handleDeleteClient = (id: string) => {
-    setClients(clients.filter((client) => client.id !== id));
-  };
 
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Clients</h1>
-          <p className="text-gray-500">Manage your client relationships</p>
+          <p className="text-gray-500">Manage your client information</p>
         </div>
-        <Link to="/dashboard/clients/new">
-          <Button className="bg-green-600 hover:bg-green-700 text-white">
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Add Client
-          </Button>
-        </Link>
+        <Button
+          onClick={() => setIsAddDialogOpen(true)}
+          className="bg-green-600 hover:bg-green-700 text-white"
+        >
+          <Plus className="mr-2 h-4 w-4" /> Add New Client
+        </Button>
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex justify-between items-center">
-            <div className="relative w-64">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                type="text"
-                placeholder="Search clients..."
-                className="pl-10"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <div className="flex space-x-2">
-              <Button variant="outline" size="sm">
-                Export
-              </Button>
-              <Button variant="outline" size="sm">
-                Filter
-              </Button>
-            </div>
-          </div>
-        </div>
+      <div className="mb-6">
+        <Input
+          placeholder="Search clients..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-md"
+        />
+      </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Contact
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Total Invoices
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Total Paid
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Outstanding
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredClients.map((client) => (
-                <tr key={client.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                        <span className="text-gray-600 font-medium">
-                          {client.name.substring(0, 2).toUpperCase()}
-                        </span>
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">
-                          <Link
-                            to={`/dashboard/clients/${client.id}`}
-                            className="hover:text-green-600"
-                          >
-                            {client.name}
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900 flex flex-col">
-                      <div className="flex items-center">
-                        <Mail className="h-4 w-4 text-gray-400 mr-1" />
-                        <a
-                          href={`mailto:${client.email}`}
-                          className="hover:text-green-600"
-                        >
-                          {client.email}
-                        </a>
-                      </div>
-                      <div className="flex items-center mt-1">
-                        <Phone className="h-4 w-4 text-gray-400 mr-1" />
-                        <a
-                          href={`tel:${client.phone}`}
-                          className="hover:text-green-600"
-                        >
-                          {client.phone}
-                        </a>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        client.status === "Active"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-gray-100 text-gray-800"
-                      }`}
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+        </div>
+      ) : filteredClients.length === 0 ? (
+        <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+          <Building className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-1">
+            No clients found
+          </h3>
+          <p className="text-gray-500 mb-4">
+            {searchTerm
+              ? "No clients match your search"
+              : "You haven't added any clients yet"}
+          </p>
+          {searchTerm ? (
+            <Button variant="outline" onClick={() => setSearchTerm("")}>
+              Clear Search
+            </Button>
+          ) : (
+            <Button
+              className="bg-green-600 hover:bg-green-700 text-white"
+              onClick={() => setIsAddDialogOpen(true)}
+            >
+              <Plus className="mr-2 h-4 w-4" /> Add Your First Client
+            </Button>
+          )}
+        </div>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Business Name</TableHead>
+              <TableHead>Contact Name</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Phone</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="w-[80px]">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredClients.map((client) => (
+              <TableRow key={client.id}>
+                <TableCell className="font-medium">
+                  {client.business_name}
+                </TableCell>
+                <TableCell>{client.contact_name || "-"}</TableCell>
+                <TableCell>{client.email || "-"}</TableCell>
+                <TableCell>{client.phone || "-"}</TableCell>
+                <TableCell>
+                  <span
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      client.status === "active"
+                        ? "bg-green-100 text-green-800"
+                        : client.status === "inactive"
+                        ? "bg-gray-100 text-gray-800"
+                        : "bg-red-100 text-red-800"
+                    }`}
+                  >
+                    {client.status.charAt(0).toUpperCase() +
+                      client.status.slice(1)}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <div className="flex space-x-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEditClick(client)}
                     >
-                      {client.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {client.totalInvoices}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {client.totalPaid}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {client.outstanding}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex justify-end space-x-2">
-                      <Link to={`/dashboard/clients/${client.id}/edit`}>
-                        <Button variant="ghost" size="sm">
-                          <Edit className="h-4 w-4 text-gray-500" />
-                        </Button>
-                      </Link>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteClient(client.id)}
-                      >
-                        <Trash className="h-4 w-4 text-red-500" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteClick(client)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
 
-        <div className="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-700">
-              Showing{" "}
-              <span className="font-medium">{filteredClients.length}</span> of{" "}
-              <span className="font-medium">{clients.length}</span> clients
-            </div>
-            <div className="flex-1 flex justify-end">
-              <div className="flex space-x-2">
-                <Button variant="outline" size="sm" disabled>
-                  Previous
-                </Button>
-                <Button variant="outline" size="sm" disabled>
-                  Next
-                </Button>
+      {/* Add Client Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="sm:max-w-[540px] p-0 overflow-hidden">
+          <ErrorBoundary>
+            <DialogHeader className="px-6 pt-6 pb-2">
+              <DialogTitle className="text-xl font-semibold">
+                Add New Client
+              </DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit}>
+              <div className="px-6 py-4 space-y-4">
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="business_name"
+                    className="text-sm font-medium required"
+                  >
+                    Business Name
+                  </Label>
+                  <Input
+                    id="business_name"
+                    value={formData.business_name}
+                    onChange={handleInputChange}
+                    required
+                    className="h-10 bg-white"
+                    placeholder="Enter business name"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="contact_name"
+                      className="text-sm font-medium"
+                    >
+                      Contact Name
+                    </Label>
+                    <Input
+                      id="contact_name"
+                      value={formData.contact_name}
+                      onChange={handleInputChange}
+                      className="h-10 bg-white"
+                      placeholder="Enter contact name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-sm font-medium">
+                      Email
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      className="h-10 bg-white"
+                      placeholder="Enter email address"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="phone" className="text-sm font-medium">
+                      Phone
+                    </Label>
+                    <Input
+                      id="phone"
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      className="h-10 bg-white"
+                      placeholder="Enter phone number"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="tax_id" className="text-sm font-medium">
+                      Tax ID / VAT Number
+                    </Label>
+                    <Input
+                      id="tax_id"
+                      value={formData.tax_id}
+                      onChange={handleInputChange}
+                      className="h-10 bg-white"
+                      placeholder="Enter tax ID"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="address" className="text-sm font-medium">
+                    Address
+                  </Label>
+                  <Input
+                    id="address"
+                    value={formData.address}
+                    onChange={handleInputChange}
+                    className="h-10 bg-white"
+                    placeholder="Enter street address"
+                  />
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="city" className="text-sm font-medium">
+                      City
+                    </Label>
+                    <Input
+                      id="city"
+                      value={formData.city}
+                      onChange={handleInputChange}
+                      className="h-10 bg-white"
+                      placeholder="Enter city"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="postal_code"
+                      className="text-sm font-medium"
+                    >
+                      Postal Code
+                    </Label>
+                    <Input
+                      id="postal_code"
+                      value={formData.postal_code}
+                      onChange={handleInputChange}
+                      className="h-10 bg-white"
+                      placeholder="Enter postal code"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="country" className="text-sm font-medium">
+                      Country
+                    </Label>
+                    <Input
+                      id="country"
+                      value={formData.country}
+                      onChange={handleInputChange}
+                      className="h-10 bg-white"
+                      placeholder="Enter country"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="status"
+                    className="text-sm font-medium block mb-2"
+                  >
+                    Status
+                  </Label>
+                  <Select
+                    value={formData.status}
+                    onValueChange={(value) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        status: value as "active" | "inactive" | "archived",
+                      }))
+                    }
+                  >
+                    <SelectTrigger id="status" className="h-10 w-full bg-white">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                      <SelectItem value="archived">Archived</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="notes" className="text-sm font-medium">
+                    Notes
+                  </Label>
+                  <textarea
+                    id="notes"
+                    className="flex min-h-[80px] w-full rounded-md border border-input bg-white px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    value={formData.notes}
+                    onChange={handleInputChange}
+                    placeholder="Additional notes about this client"
+                  />
+                </div>
               </div>
-            </div>
+              <DialogFooter className="px-6 py-4 bg-gray-50 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    resetForm();
+                    setIsAddDialogOpen(false);
+                  }}
+                  type="button"
+                  className="mr-2"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  Add Client
+                </Button>
+              </DialogFooter>
+            </form>
+          </ErrorBoundary>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Client Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[540px] p-0 overflow-hidden">
+          <ErrorBoundary>
+            <DialogHeader className="px-6 pt-6 pb-2">
+              <DialogTitle className="text-xl font-semibold">
+                Edit Client
+              </DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit}>
+              <div className="px-6 py-4 space-y-4">
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="business_name"
+                    className="text-sm font-medium required"
+                  >
+                    Business Name
+                  </Label>
+                  <Input
+                    id="business_name"
+                    value={formData.business_name}
+                    onChange={handleInputChange}
+                    required
+                    className="h-10 bg-white"
+                    placeholder="Enter business name"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="contact_name"
+                      className="text-sm font-medium"
+                    >
+                      Contact Name
+                    </Label>
+                    <Input
+                      id="contact_name"
+                      value={formData.contact_name}
+                      onChange={handleInputChange}
+                      className="h-10 bg-white"
+                      placeholder="Enter contact name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-sm font-medium">
+                      Email
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      className="h-10 bg-white"
+                      placeholder="Enter email address"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="phone" className="text-sm font-medium">
+                      Phone
+                    </Label>
+                    <Input
+                      id="phone"
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      className="h-10 bg-white"
+                      placeholder="Enter phone number"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="tax_id" className="text-sm font-medium">
+                      Tax ID / VAT Number
+                    </Label>
+                    <Input
+                      id="tax_id"
+                      value={formData.tax_id}
+                      onChange={handleInputChange}
+                      className="h-10 bg-white"
+                      placeholder="Enter tax ID"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="address" className="text-sm font-medium">
+                    Address
+                  </Label>
+                  <Input
+                    id="address"
+                    value={formData.address}
+                    onChange={handleInputChange}
+                    className="h-10 bg-white"
+                    placeholder="Enter street address"
+                  />
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="city" className="text-sm font-medium">
+                      City
+                    </Label>
+                    <Input
+                      id="city"
+                      value={formData.city}
+                      onChange={handleInputChange}
+                      className="h-10 bg-white"
+                      placeholder="Enter city"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="postal_code"
+                      className="text-sm font-medium"
+                    >
+                      Postal Code
+                    </Label>
+                    <Input
+                      id="postal_code"
+                      value={formData.postal_code}
+                      onChange={handleInputChange}
+                      className="h-10 bg-white"
+                      placeholder="Enter postal code"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="country" className="text-sm font-medium">
+                      Country
+                    </Label>
+                    <Input
+                      id="country"
+                      value={formData.country}
+                      onChange={handleInputChange}
+                      className="h-10 bg-white"
+                      placeholder="Enter country"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="status"
+                    className="text-sm font-medium block mb-2"
+                  >
+                    Status
+                  </Label>
+                  <Select
+                    value={formData.status}
+                    onValueChange={(value) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        status: value as "active" | "inactive" | "archived",
+                      }))
+                    }
+                  >
+                    <SelectTrigger id="status" className="h-10 w-full bg-white">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                      <SelectItem value="archived">Archived</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="notes" className="text-sm font-medium">
+                    Notes
+                  </Label>
+                  <textarea
+                    id="notes"
+                    className="flex min-h-[80px] w-full rounded-md border border-input bg-white px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    value={formData.notes}
+                    onChange={handleInputChange}
+                    placeholder="Additional notes about this client"
+                  />
+                </div>
+              </div>
+              <DialogFooter className="px-6 py-4 bg-gray-50 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    resetForm();
+                    setIsEditDialogOpen(false);
+                  }}
+                  type="button"
+                  className="mr-2"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  Update Client
+                </Button>
+              </DialogFooter>
+            </form>
+          </ErrorBoundary>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Delete Client</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p>
+              Are you sure you want to delete{" "}
+              <span className="font-semibold">
+                {selectedClient?.business_name}
+              </span>
+              ?
+            </p>
+            <p className="text-sm text-gray-500 mt-2">
+              This action cannot be undone.
+            </p>
           </div>
-        </div>
-      </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsDeleteDialogOpen(false);
+                setSelectedClient(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

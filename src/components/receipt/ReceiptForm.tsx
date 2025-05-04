@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AlertCircle, Save, ArrowLeft } from "lucide-react";
+import { AlertCircle, Save, ArrowLeft, FileText } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -23,12 +23,18 @@ import {
 import { useReceipts } from "@/hooks/useReceipts";
 import { useClients } from "@/hooks/useClients";
 import { useInvoices } from "@/hooks/useInvoices";
-import { Receipt as ReceiptType } from "@/types/receipts";
+import { Receipt } from "@/types/receipts";
+import { Invoice } from "@/types/invoices";
+import { Client } from "@/types/clients";
 import { formatCurrency } from "@/utils/formatters";
 import { DatePicker } from "@/components/ui/date-picker";
+import { getClientById } from "@/services/clientService";
+import { getInvoiceById } from "@/services/invoiceService";
+import ReceiptPreview from "./ReceiptPreview";
+import { downloadPDF } from "@/utils/pdf";
 
 interface ReceiptFormProps {
-  receipt?: ReceiptType;
+  receipt?: Receipt;
   isEditing?: boolean;
 }
 
@@ -60,7 +66,7 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
   const { addReceipt, updateReceipt, generateReceiptNumber } = useReceipts();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [formData, setFormData] = useState<Partial<ReceiptType>>({
+  const [formData, setFormData] = useState<Partial<Receipt>>({
     id: "",
     receipt_number: "",
     client_id: "",
@@ -72,6 +78,12 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
     payment_reference: "",
     notes: "",
   });
+
+  // Preview state
+  const [showPreview, setShowPreview] = useState(false);
+  const [currentClient, setCurrentClient] = useState<Client | null>(null);
+  const [currentInvoice, setCurrentInvoice] = useState<Invoice | null>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
 
   // Filter invoices to show only those belonging to the selected client
   const clientInvoices = invoices.filter(
@@ -94,6 +106,32 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
 
     fetchData();
   }, [isEditing, receipt, generateReceiptNumber]);
+
+  // Fetch client data when client_id changes
+  useEffect(() => {
+    const fetchClientData = async () => {
+      if (formData.client_id) {
+        const client = await getClientById(formData.client_id);
+        setCurrentClient(client);
+      }
+    };
+
+    fetchClientData();
+  }, [formData.client_id]);
+
+  // Fetch invoice data when invoice_id changes
+  useEffect(() => {
+    const fetchInvoiceData = async () => {
+      if (formData.invoice_id) {
+        const { invoice } = await getInvoiceById(formData.invoice_id);
+        setCurrentInvoice(invoice);
+      } else {
+        setCurrentInvoice(null);
+      }
+    };
+
+    fetchInvoiceData();
+  }, [formData.invoice_id]);
 
   // Autofill amount and currency when selecting an invoice
   useEffect(() => {
@@ -170,9 +208,9 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
       }
 
       if (isEditing && receipt) {
-        await updateReceipt(receipt.id, formData as ReceiptType);
+        await updateReceipt(receipt.id, formData as Receipt);
       } else {
-        await addReceipt(formData as ReceiptType);
+        await addReceipt(formData as Receipt);
       }
 
       navigate("/dashboard/receipts");
@@ -180,6 +218,27 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
       setError(error instanceof Error ? error.message : "An error occurred");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Preview and PDF handlers
+  const handlePreview = () => {
+    setShowPreview(true);
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!currentClient) return;
+
+    try {
+      await downloadPDF(
+        previewRef,
+        currentClient.business_name.replace(/\s+/g, "-").toLowerCase(),
+        "receipt",
+        formData.receipt_number || "draft"
+      );
+    } catch (error) {
+      console.error("Error downloading PDF:", error);
+      setError("Failed to download PDF");
     }
   };
 
@@ -206,7 +265,36 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
         </div>
       )}
 
-      <form onSubmit={handleSubmit} style={{ maxWidth: "100%" }}>
+      {showPreview && currentClient && (
+        <div className="mb-8">
+          <div className="flex justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-800">
+              Receipt Preview
+            </h2>
+            <div className="flex space-x-2">
+              <Button variant="outline" onClick={() => setShowPreview(false)}>
+                Close Preview
+              </Button>
+              <Button
+                onClick={handleDownloadPDF}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Download PDF
+              </Button>
+            </div>
+          </div>
+          <div className="border rounded-lg p-4 bg-gray-50">
+            <ReceiptPreview
+              ref={previewRef}
+              receipt={formData as Receipt}
+              client={currentClient}
+              invoice={currentInvoice}
+            />
+          </div>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="w-full">
         <div className="grid grid-cols-1 gap-6 mb-8 w-full">
           <Card className="w-full" style={{ width: "100%" }}>
             <CardHeader>
@@ -240,7 +328,7 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
                   <SelectContent>
                     {clients.map((client) => (
                       <SelectItem key={client.id} value={client.id}>
-                        {client.name}
+                        {client.business_name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -372,25 +460,36 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
             </CardContent>
           </Card>
         </div>
+      </form>
 
-        <div className="flex justify-end gap-4">
+      <div className="flex justify-end gap-4">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => navigate("/dashboard/receipts")}
+        >
+          Cancel
+        </Button>
+        {formData.client_id && (
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate("/dashboard/receipts")}
+            onClick={handlePreview}
+            className="border-blue-500 text-blue-500 hover:bg-blue-50"
           >
-            Cancel
+            <FileText className="mr-2 h-4 w-4" />
+            Preview
           </Button>
-          <Button
-            type="submit"
-            disabled={loading}
-            className="bg-green-600 hover:bg-green-700 text-white"
-          >
-            <Save className="mr-2 h-4 w-4" />
-            {isEditing ? "Update Receipt" : "Create Receipt"}
-          </Button>
-        </div>
-      </form>
+        )}
+        <Button
+          type="submit"
+          disabled={loading}
+          className="bg-green-600 hover:bg-green-700 text-white"
+        >
+          <Save className="mr-2 h-4 w-4" />
+          {isEditing ? "Update Receipt" : "Create Receipt"}
+        </Button>
+      </div>
     </div>
   );
 };

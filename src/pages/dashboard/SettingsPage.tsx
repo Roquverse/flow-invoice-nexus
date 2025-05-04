@@ -5,9 +5,266 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { User, Building, CreditCard, Bell, Shield, LogOut } from "lucide-react";
+import { useSettings } from "@/hooks/useSettings";
+import {
+  ProfileFormData,
+  CompanyFormData,
+  BillingFormData,
+  NotificationFormData,
+  SecurityFormData,
+} from "@/types/settings";
+import { toast } from "sonner";
 
 const SettingsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState("profile");
+  const settings = useSettings();
+
+  // Profile state
+  const [profileForm, setProfileForm] = useState<ProfileFormData>({
+    first_name: "",
+    last_name: "",
+    email: "",
+    phone: "",
+  });
+
+  // Company state
+  const [companyForm, setCompanyForm] = useState<CompanyFormData>({
+    company_name: "",
+    industry: "",
+    address: "",
+    city: "",
+    postal_code: "",
+    country: "",
+    tax_id: "",
+  });
+
+  // Notification state
+  const [notificationForm, setNotificationForm] =
+    useState<NotificationFormData>({
+      invoice_notifications: true,
+      client_activity: true,
+      project_updates: false,
+      marketing_tips: false,
+      email_frequency: "immediate",
+    });
+
+  // Security state
+  const [securityForm, setSecurityForm] = useState<SecurityFormData>({
+    two_factor_enabled: false,
+  });
+
+  // Password fields
+  const [passwordFields, setPasswordFields] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+
+  // Billing state
+  const [billingForm, setBillingForm] = useState<BillingFormData>({
+    billing_name: "",
+    billing_email: "",
+  });
+
+  // Effect to update forms when data is loaded
+  React.useEffect(() => {
+    if (settings.profile.profile) {
+      setProfileForm({
+        first_name: settings.profile.profile.first_name || "",
+        last_name: settings.profile.profile.last_name || "",
+        email: settings.profile.profile.email,
+        phone: settings.profile.profile.phone || "",
+      });
+    }
+
+    if (settings.company.companySettings) {
+      setCompanyForm({
+        company_name: settings.company.companySettings.company_name || "",
+        industry: settings.company.companySettings.industry || "",
+        address: settings.company.companySettings.address || "",
+        city: settings.company.companySettings.city || "",
+        postal_code: settings.company.companySettings.postal_code || "",
+        country: settings.company.companySettings.country || "",
+        tax_id: settings.company.companySettings.tax_id || "",
+      });
+    }
+
+    if (settings.notifications.notificationPreferences) {
+      setNotificationForm({
+        invoice_notifications:
+          settings.notifications.notificationPreferences.invoice_notifications,
+        client_activity:
+          settings.notifications.notificationPreferences.client_activity,
+        project_updates:
+          settings.notifications.notificationPreferences.project_updates,
+        marketing_tips:
+          settings.notifications.notificationPreferences.marketing_tips,
+        email_frequency:
+          settings.notifications.notificationPreferences.email_frequency,
+      });
+    }
+
+    if (settings.security.securitySettings) {
+      setSecurityForm({
+        two_factor_enabled:
+          settings.security.securitySettings.two_factor_enabled,
+      });
+    }
+
+    if (settings.billing.billingSettings) {
+      setBillingForm({
+        billing_name: settings.billing.billingSettings.billing_name || "",
+        billing_email: settings.billing.billingSettings.billing_email || "",
+      });
+    }
+  }, [
+    settings.profile.profile,
+    settings.company.companySettings,
+    settings.notifications.notificationPreferences,
+    settings.security.securitySettings,
+    settings.billing.billingSettings,
+  ]);
+
+  // Form handlers
+  const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setProfileForm((prev) => ({ ...prev, [id]: value }));
+  };
+
+  const handleCompanyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setCompanyForm((prev) => ({ ...prev, [id]: value }));
+  };
+
+  const handleBillingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setBillingForm((prev) => ({ ...prev, [id]: value }));
+  };
+
+  const handleNotificationToggle = (field: keyof NotificationFormData) => {
+    if (typeof notificationForm[field] === "boolean") {
+      setNotificationForm((prev) => ({
+        ...prev,
+        [field]: !prev[field],
+      }));
+    }
+  };
+
+  const handleFrequencyChange = (value: "immediate" | "daily" | "weekly") => {
+    setNotificationForm((prev) => ({ ...prev, email_frequency: value }));
+  };
+
+  const handleSecurityToggle = () => {
+    setSecurityForm((prev) => ({
+      ...prev,
+      two_factor_enabled: !prev.two_factor_enabled,
+    }));
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setPasswordFields((prev) => ({ ...prev, [id]: value }));
+  };
+
+  // Save handlers
+  const saveProfile = async () => {
+    try {
+      const success = await settings.profile.updateProfile(profileForm);
+      if (success) {
+        toast.success("Profile updated successfully");
+      }
+    } catch (error) {
+      toast.error("Failed to update profile");
+      console.error(error);
+    }
+  };
+
+  const saveCompanySettings = async () => {
+    try {
+      const success = await settings.company.updateCompanySettings(companyForm);
+      if (success) {
+        toast.success("Company settings updated successfully");
+      }
+    } catch (error) {
+      toast.error("Failed to update company settings");
+      console.error(error);
+    }
+  };
+
+  const saveBillingSettings = async () => {
+    try {
+      const success = await settings.billing.updateBillingSettings(billingForm);
+      if (success) {
+        toast.success("Billing settings updated successfully");
+      }
+    } catch (error) {
+      toast.error("Failed to update billing settings");
+      console.error(error);
+    }
+  };
+
+  const saveNotificationSettings = async () => {
+    try {
+      const success =
+        await settings.notifications.updateNotificationPreferences(
+          notificationForm
+        );
+      if (success) {
+        toast.success("Notification preferences updated successfully");
+      }
+    } catch (error) {
+      toast.error("Failed to update notification preferences");
+      console.error(error);
+    }
+  };
+
+  const saveSecuritySettings = async () => {
+    try {
+      const success = await settings.security.updateSecuritySettings(
+        securityForm
+      );
+      if (success) {
+        toast.success("Security settings updated successfully");
+      }
+    } catch (error) {
+      toast.error("Failed to update security settings");
+      console.error(error);
+    }
+  };
+
+  const updatePassword = async () => {
+    if (passwordFields.newPassword !== passwordFields.confirmPassword) {
+      toast.error("New passwords do not match");
+      return;
+    }
+
+    if (passwordFields.newPassword.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+
+    try {
+      const success = await settings.security.updatePassword(
+        passwordFields.currentPassword,
+        passwordFields.newPassword
+      );
+      if (success) {
+        toast.success("Password updated successfully");
+        setPasswordFields({
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        });
+      }
+    } catch (error) {
+      toast.error("Failed to update password");
+      console.error(error);
+    }
+  };
+
+  if (settings.loading) {
+    return <div className="p-6 text-center">Loading settings...</div>;
+  }
 
   return (
     <div className="p-6">
@@ -73,52 +330,48 @@ const SettingsPage: React.FC = () => {
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="firstName">First Name</Label>
-                      <Input id="firstName" defaultValue="John" />
+                      <Label htmlFor="first_name">First Name</Label>
+                      <Input
+                        id="first_name"
+                        value={profileForm.first_name}
+                        onChange={handleProfileChange}
+                      />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="lastName">Last Name</Label>
-                      <Input id="lastName" defaultValue="Doe" />
+                      <Label htmlFor="last_name">Last Name</Label>
+                      <Input
+                        id="last_name"
+                        value={profileForm.last_name}
+                        onChange={handleProfileChange}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="email">Email Address</Label>
                       <Input
                         id="email"
                         type="email"
-                        defaultValue="john.doe@example.com"
+                        value={profileForm.email}
+                        onChange={handleProfileChange}
                       />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="phone">Phone Number</Label>
-                      <Input id="phone" defaultValue="+1 (555) 123-4567" />
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-medium mb-4">Change Password</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="currentPassword">Current Password</Label>
-                      <Input id="currentPassword" type="password" />
-                    </div>
-                    <div></div>
-                    <div className="space-y-2">
-                      <Label htmlFor="newPassword">New Password</Label>
-                      <Input id="newPassword" type="password" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="confirmPassword">
-                        Confirm New Password
-                      </Label>
-                      <Input id="confirmPassword" type="password" />
+                      <Input
+                        id="phone"
+                        value={profileForm.phone}
+                        onChange={handleProfileChange}
+                      />
                     </div>
                   </div>
                 </div>
 
                 <div className="flex justify-end space-x-2">
                   <Button variant="outline">Cancel</Button>
-                  <Button className="bg-green-600 hover:bg-green-700 text-white">
+                  <Button
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                    onClick={saveProfile}
+                    disabled={settings.profile.loading}
+                  >
                     Save Changes
                   </Button>
                 </div>
@@ -133,39 +386,71 @@ const SettingsPage: React.FC = () => {
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="companyName">Company Name</Label>
-                      <Input id="companyName" defaultValue="Acme Inc." />
+                      <Label htmlFor="company_name">Company Name</Label>
+                      <Input
+                        id="company_name"
+                        value={companyForm.company_name}
+                        onChange={handleCompanyChange}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="industry">Industry</Label>
-                      <Input id="industry" defaultValue="Technology" />
+                      <Input
+                        id="industry"
+                        value={companyForm.industry}
+                        onChange={handleCompanyChange}
+                      />
                     </div>
                     <div className="space-y-2 col-span-2">
                       <Label htmlFor="address">Address</Label>
-                      <Input id="address" defaultValue="123 Business Street" />
+                      <Input
+                        id="address"
+                        value={companyForm.address}
+                        onChange={handleCompanyChange}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="city">City</Label>
-                      <Input id="city" defaultValue="San Francisco" />
+                      <Input
+                        id="city"
+                        value={companyForm.city}
+                        onChange={handleCompanyChange}
+                      />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="postalCode">Postal Code</Label>
-                      <Input id="postalCode" defaultValue="94103" />
+                      <Label htmlFor="postal_code">Postal Code</Label>
+                      <Input
+                        id="postal_code"
+                        value={companyForm.postal_code}
+                        onChange={handleCompanyChange}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="country">Country</Label>
-                      <Input id="country" defaultValue="United States" />
+                      <Input
+                        id="country"
+                        value={companyForm.country}
+                        onChange={handleCompanyChange}
+                      />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="taxId">Tax ID / VAT Number</Label>
-                      <Input id="taxId" defaultValue="US123456789" />
+                      <Label htmlFor="tax_id">Tax ID / VAT Number</Label>
+                      <Input
+                        id="tax_id"
+                        value={companyForm.tax_id}
+                        onChange={handleCompanyChange}
+                      />
                     </div>
                   </div>
                 </div>
 
                 <div className="flex justify-end space-x-2">
                   <Button variant="outline">Cancel</Button>
-                  <Button className="bg-green-600 hover:bg-green-700 text-white">
+                  <Button
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                    onClick={saveCompanySettings}
+                    disabled={settings.company.loading}
+                  >
                     Save Changes
                   </Button>
                 </div>
@@ -176,31 +461,54 @@ const SettingsPage: React.FC = () => {
               <div className="space-y-6">
                 <div className="border-b pb-6">
                   <h3 className="text-lg font-medium mb-4">Payment Methods</h3>
-                  <div className="p-4 border rounded-lg mb-4 flex justify-between items-center">
-                    <div className="flex items-center">
-                      <div className="bg-blue-500 text-white p-2 rounded mr-3">
-                        <CreditCard className="h-6 w-6" />
-                      </div>
-                      <div>
-                        <div className="font-medium">Visa ending in 4242</div>
-                        <div className="text-sm text-gray-500">
-                          Expires 12/2025
+                  {settings.billing.paymentMethods.length > 0 ? (
+                    settings.billing.paymentMethods.map((method) => (
+                      <div
+                        key={method.id}
+                        className="p-4 border rounded-lg mb-4 flex justify-between items-center"
+                      >
+                        <div className="flex items-center">
+                          <div className="bg-blue-500 text-white p-2 rounded mr-3">
+                            <CreditCard className="h-6 w-6" />
+                          </div>
+                          <div>
+                            <div className="font-medium">
+                              {method.provider} ending in {method.last_four}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {method.expiry_date
+                                ? `Expires ${new Date(
+                                    method.expiry_date
+                                  ).toLocaleDateString("en-US", {
+                                    month: "2-digit",
+                                    year: "numeric",
+                                  })}`
+                                : "No expiry date"}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="space-x-2">
+                          <Button variant="outline" size="sm">
+                            Edit
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-500 hover:text-red-700"
+                            onClick={() =>
+                              settings.billing.deletePaymentMethod(method.id)
+                            }
+                          >
+                            Remove
+                          </Button>
                         </div>
                       </div>
+                    ))
+                  ) : (
+                    <div className="text-gray-500 mb-4">
+                      No payment methods added yet.
                     </div>
-                    <div className="space-x-2">
-                      <Button variant="outline" size="sm">
-                        Edit
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  </div>
+                  )}
                   <Button variant="outline">
                     <CreditCard className="mr-2 h-4 w-4" />
                     Add Payment Method
@@ -213,14 +521,19 @@ const SettingsPage: React.FC = () => {
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="billingName">Name on Invoice</Label>
-                      <Input id="billingName" defaultValue="Acme Inc." />
+                      <Label htmlFor="billing_name">Name on Invoice</Label>
+                      <Input
+                        id="billing_name"
+                        value={billingForm.billing_name}
+                        onChange={handleBillingChange}
+                      />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="billingEmail">Billing Email</Label>
+                      <Label htmlFor="billing_email">Billing Email</Label>
                       <Input
-                        id="billingEmail"
-                        defaultValue="billing@acme.com"
+                        id="billing_email"
+                        value={billingForm.billing_email}
+                        onChange={handleBillingChange}
                       />
                     </div>
                   </div>
@@ -232,13 +545,25 @@ const SettingsPage: React.FC = () => {
                   </h3>
                   <div className="bg-gray-50 p-4 rounded-lg mb-4">
                     <div className="flex justify-between items-center mb-2">
-                      <div className="font-semibold">Current Plan: Pro</div>
+                      <div className="font-semibold">
+                        Current Plan:{" "}
+                        {settings.billing.billingSettings?.subscription_plan ||
+                          "Free"}
+                      </div>
                       <div className="text-green-600 font-medium">
-                        $29.99/month
+                        {settings.billing.billingSettings?.subscription_plan ===
+                        "free"
+                          ? "Free"
+                          : "$29.99/month"}
                       </div>
                     </div>
                     <div className="text-sm text-gray-500 mb-4">
-                      Your plan renews on November 15, 2023
+                      {settings.billing.billingSettings
+                        ?.subscription_renewal_date
+                        ? `Your plan renews on ${new Date(
+                            settings.billing.billingSettings.subscription_renewal_date
+                          ).toLocaleDateString()}`
+                        : "No renewal date set"}
                     </div>
                     <div className="space-x-2">
                       <Button variant="outline" size="sm">
@@ -257,7 +582,11 @@ const SettingsPage: React.FC = () => {
 
                 <div className="flex justify-end space-x-2">
                   <Button variant="outline">Cancel</Button>
-                  <Button className="bg-green-600 hover:bg-green-700 text-white">
+                  <Button
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                    onClick={saveBillingSettings}
+                    disabled={settings.billing.loading}
+                  >
                     Save Changes
                   </Button>
                 </div>
@@ -279,7 +608,12 @@ const SettingsPage: React.FC = () => {
                         or expire
                       </div>
                     </div>
-                    <Switch defaultChecked />
+                    <Switch
+                      checked={notificationForm.invoice_notifications}
+                      onCheckedChange={() =>
+                        handleNotificationToggle("invoice_notifications")
+                      }
+                    />
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -290,7 +624,12 @@ const SettingsPage: React.FC = () => {
                         documents
                       </div>
                     </div>
-                    <Switch defaultChecked />
+                    <Switch
+                      checked={notificationForm.client_activity}
+                      onCheckedChange={() =>
+                        handleNotificationToggle("client_activity")
+                      }
+                    />
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -301,7 +640,12 @@ const SettingsPage: React.FC = () => {
                         deadlines
                       </div>
                     </div>
-                    <Switch />
+                    <Switch
+                      checked={notificationForm.project_updates}
+                      onCheckedChange={() =>
+                        handleNotificationToggle("project_updates")
+                      }
+                    />
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -312,7 +656,12 @@ const SettingsPage: React.FC = () => {
                         communications
                       </div>
                     </div>
-                    <Switch />
+                    <Switch
+                      checked={notificationForm.marketing_tips}
+                      onCheckedChange={() =>
+                        handleNotificationToggle("marketing_tips")
+                      }
+                    />
                   </div>
                 </div>
 
@@ -327,16 +676,31 @@ const SettingsPage: React.FC = () => {
                         type="radio"
                         id="immediate"
                         name="frequency"
-                        defaultChecked
+                        checked={
+                          notificationForm.email_frequency === "immediate"
+                        }
+                        onChange={() => handleFrequencyChange("immediate")}
                       />
                       <Label htmlFor="immediate">Immediately</Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <input type="radio" id="daily" name="frequency" />
+                      <input
+                        type="radio"
+                        id="daily"
+                        name="frequency"
+                        checked={notificationForm.email_frequency === "daily"}
+                        onChange={() => handleFrequencyChange("daily")}
+                      />
                       <Label htmlFor="daily">Daily digest</Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <input type="radio" id="weekly" name="frequency" />
+                      <input
+                        type="radio"
+                        id="weekly"
+                        name="frequency"
+                        checked={notificationForm.email_frequency === "weekly"}
+                        onChange={() => handleFrequencyChange("weekly")}
+                      />
                       <Label htmlFor="weekly">Weekly digest</Label>
                     </div>
                   </div>
@@ -344,7 +708,11 @@ const SettingsPage: React.FC = () => {
 
                 <div className="flex justify-end space-x-2">
                   <Button variant="outline">Cancel</Button>
-                  <Button className="bg-green-600 hover:bg-green-700 text-white">
+                  <Button
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                    onClick={saveNotificationSettings}
+                    disabled={settings.notifications.loading}
+                  >
                     Save Changes
                   </Button>
                 </div>
@@ -366,33 +734,103 @@ const SettingsPage: React.FC = () => {
                         Add an extra layer of security to your account
                       </div>
                     </div>
-                    <Switch />
+                    <Switch
+                      checked={securityForm.two_factor_enabled}
+                      onCheckedChange={handleSecurityToggle}
+                    />
+                  </div>
+                </div>
+
+                <div className="border-b pb-6">
+                  <h3 className="text-lg font-medium mb-4">Change Password</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="currentPassword">Current Password</Label>
+                      <Input
+                        id="currentPassword"
+                        type="password"
+                        value={passwordFields.currentPassword}
+                        onChange={handlePasswordChange}
+                      />
+                    </div>
+                    <div></div>
+                    <div className="space-y-2">
+                      <Label htmlFor="newPassword">New Password</Label>
+                      <Input
+                        id="newPassword"
+                        type="password"
+                        value={passwordFields.newPassword}
+                        onChange={handlePasswordChange}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword">
+                        Confirm New Password
+                      </Label>
+                      <Input
+                        id="confirmPassword"
+                        type="password"
+                        value={passwordFields.confirmPassword}
+                        onChange={handlePasswordChange}
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <Button
+                      onClick={updatePassword}
+                      disabled={
+                        !passwordFields.currentPassword ||
+                        !passwordFields.newPassword ||
+                        !passwordFields.confirmPassword ||
+                        passwordFields.newPassword !==
+                          passwordFields.confirmPassword
+                      }
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      Update Password
+                    </Button>
                   </div>
                 </div>
 
                 <div className="border-b pb-6">
                   <h3 className="text-lg font-medium mb-4">Sessions</h3>
                   <div className="space-y-4">
-                    <div className="p-4 border rounded-lg flex justify-between items-center">
-                      <div>
-                        <div className="font-medium">Current Session</div>
-                        <div className="text-sm text-gray-500">
-                          Mac OS • Chrome • San Francisco, CA
+                    {settings.security.sessionHistory.length > 0 ? (
+                      settings.security.sessionHistory.map((session, index) => (
+                        <div
+                          key={session.id}
+                          className="p-4 border rounded-lg flex justify-between items-center"
+                        >
+                          <div>
+                            <div className="font-medium">
+                              {index === 0
+                                ? "Current Session"
+                                : "Previous Session"}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {session.os || "Unknown OS"} •{" "}
+                              {session.browser || "Unknown Browser"} •{" "}
+                              {session.location || "Unknown Location"}
+                            </div>
+                          </div>
+                          <div
+                            className={`text-sm ${
+                              index === 0
+                                ? "text-green-600 font-medium"
+                                : "text-gray-500"
+                            }`}
+                          >
+                            {index === 0
+                              ? "Active Now"
+                              : new Date(session.login_at).toLocaleDateString()}
+                          </div>
                         </div>
+                      ))
+                    ) : (
+                      <div className="text-gray-500">
+                        No session history available
                       </div>
-                      <div className="text-green-600 text-sm font-medium">
-                        Active Now
-                      </div>
-                    </div>
-                    <div className="p-4 border rounded-lg flex justify-between items-center">
-                      <div>
-                        <div className="font-medium">Previous Session</div>
-                        <div className="text-sm text-gray-500">
-                          Windows • Firefox • San Francisco, CA
-                        </div>
-                      </div>
-                      <div className="text-gray-500 text-sm">3 days ago</div>
-                    </div>
+                    )}
                   </div>
                 </div>
 
@@ -404,6 +842,17 @@ const SettingsPage: React.FC = () => {
                   >
                     <LogOut className="mr-2 h-4 w-4" />
                     Sign Out of All Devices
+                  </Button>
+                </div>
+
+                <div className="flex justify-end space-x-2">
+                  <Button variant="outline">Cancel</Button>
+                  <Button
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                    onClick={saveSecuritySettings}
+                    disabled={settings.security.loading}
+                  >
+                    Save 2FA Settings
                   </Button>
                 </div>
               </div>

@@ -14,24 +14,131 @@ import {
   SecurityFormData,
 } from "@/types/settings";
 
+// Enhanced debug function to check tables and auth
+export async function debugDatabaseStatus() {
+  const result = {
+    auth: null,
+    tables: {},
+    error: null,
+  };
+
+  try {
+    // Check auth status
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    result.auth = {
+      isAuthenticated: !!authData?.user,
+      user: authData?.user,
+      error: authError,
+    };
+
+    // Try to list tables
+    const tables = [
+      "user_profiles",
+      "company_settings",
+      "billing_settings",
+      "payment_methods",
+      "notification_preferences",
+      "security_settings",
+      "session_history",
+    ];
+
+    for (const table of tables) {
+      try {
+        const { data, error } = await supabase.from(table).select("*").limit(1);
+
+        result.tables[table] = {
+          exists: !error,
+          error: error,
+        };
+      } catch (e) {
+        result.tables[table] = {
+          exists: false,
+          error: e,
+        };
+      }
+    }
+
+    return result;
+  } catch (e) {
+    result.error = e;
+    return result;
+  }
+}
+
 // =========== USER PROFILE ===========
 export async function getUserProfile(): Promise<UserProfile | null> {
   const { data: user } = await supabase.auth.getUser();
 
   if (!user.user) return null;
 
-  const { data, error } = await supabase
-    .from("settings.user_profiles")
-    .select("*")
-    .eq("id", user.user.id)
-    .single();
+  try {
+    // First check if profile exists
+    const { data, error } = await supabase
+      .from("user_profiles")
+      .select("*")
+      .eq("id", user.user.id)
+      .single();
 
-  if (error && error.code !== "PGRST116") {
-    console.error("Error fetching user profile:", error);
+    if (error) {
+      // No result found or other error - try to create profile
+      if (error.code === "PGRST116") {
+        console.log("No user profile found, attempting to create one");
+
+        // Get user data for email
+        const { data: userData } = await supabase.auth.getUser();
+
+        if (!userData.user?.email) {
+          console.error("Cannot create profile: No user email available");
+          return null;
+        }
+
+        // Use upsert with onConflict to handle race conditions
+        const { data: newProfile, error: upsertError } = await supabase
+          .from("user_profiles")
+          .upsert(
+            {
+              id: user.user.id,
+              email: userData.user.email,
+              first_name: "",
+              last_name: "",
+            },
+            {
+              onConflict: "id",
+              ignoreDuplicates: false,
+            }
+          )
+          .select()
+          .single();
+
+        if (upsertError) {
+          console.error("Error creating user profile:", upsertError);
+
+          // If it was a conflict error, try one more time to fetch the profile
+          if (upsertError.code === "23505" || upsertError.code === "409") {
+            const { data: existingProfile } = await supabase
+              .from("user_profiles")
+              .select("*")
+              .eq("id", user.user.id)
+              .single();
+
+            return existingProfile;
+          }
+
+          return null;
+        }
+
+        return newProfile;
+      } else {
+        console.error("Error fetching user profile:", error);
+        return null;
+      }
+    }
+
+    return data;
+  } catch (e) {
+    console.error("Error accessing user_profiles:", e);
     return null;
   }
-
-  return data;
 }
 
 export async function updateUserProfile(
@@ -41,39 +148,59 @@ export async function updateUserProfile(
 
   if (!user.user) return null;
 
-  // Check if profile exists
-  const { data: existingProfile } = await supabase
-    .from("settings.user_profiles")
-    .select("id")
-    .eq("id", user.user.id)
-    .single();
-
-  let result;
-
-  if (existingProfile) {
-    // Update existing profile
-    result = await supabase
-      .from("settings.user_profiles")
-      .update(profile)
+  try {
+    // First, check if we need to create or update by checking if profile exists
+    const { data: existing, error: checkError } = await supabase
+      .from("user_profiles")
+      .select("id")
       .eq("id", user.user.id)
-      .select();
-  } else {
-    // Insert new profile
-    result = await supabase
-      .from("settings.user_profiles")
-      .insert({
-        id: user.user.id,
-        ...profile,
-      })
-      .select();
-  }
+      .maybeSingle();
 
-  if (result.error) {
-    console.error("Error updating user profile:", result.error);
+    if (checkError && checkError.code !== "PGRST116") {
+      console.error("Error checking profile existence:", checkError);
+      return null;
+    }
+
+    let result;
+
+    if (existing) {
+      // Update existing profile
+      result = await supabase
+        .from("user_profiles")
+        .update({
+          first_name: profile.first_name || null,
+          last_name: profile.last_name || null,
+          email: profile.email,
+          phone: profile.phone || null,
+        })
+        .eq("id", user.user.id)
+        .select("*")
+        .single();
+    } else {
+      // Insert new profile
+      result = await supabase
+        .from("user_profiles")
+        .insert({
+          id: user.user.id,
+          email: profile.email,
+          first_name: profile.first_name || null,
+          last_name: profile.last_name || null,
+          phone: profile.phone || null,
+        })
+        .select("*")
+        .single();
+    }
+
+    if (result.error) {
+      console.error("Error updating user profile:", result.error);
+      return null;
+    }
+
+    return result.data;
+  } catch (e) {
+    console.error("Error updating user profile:", e);
     return null;
   }
-
-  return result.data?.[0] || null;
 }
 
 // =========== COMPANY SETTINGS ===========
@@ -82,19 +209,56 @@ export async function getCompanySettings(): Promise<CompanySettings | null> {
 
   if (!user.user) return null;
 
-  const { data, error } = await supabase
-    .from("settings.company_settings")
-    .select("*")
-    .eq("user_id", user.user.id)
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from("company_settings")
+      .select("*")
+      .eq("user_id", user.user.id)
+      .single();
 
-  if (error && error.code !== "PGRST116") {
-    // PGRST116 means no results
-    console.error("Error fetching company settings:", error);
+    if (error) {
+      // No result found - create a new company settings record
+      if (error.code === "PGRST116") {
+        console.log("No company settings found, creating default");
+
+        const { data: newSettings, error: createError } = await supabase
+          .from("company_settings")
+          .upsert(
+            {
+              user_id: user.user.id,
+              company_name: "",
+              industry: "",
+              address: "",
+              city: "",
+              postal_code: "",
+              country: "",
+              tax_id: "",
+            },
+            {
+              onConflict: "user_id",
+              ignoreDuplicates: false,
+            }
+          )
+          .select()
+          .single();
+
+        if (createError) {
+          console.error("Error creating company settings:", createError);
+          return null;
+        }
+
+        return newSettings;
+      } else {
+        console.error("Error fetching company settings:", error);
+        return null;
+      }
+    }
+
+    return data;
+  } catch (e) {
+    console.error("Error accessing company_settings:", e);
     return null;
   }
-
-  return data;
 }
 
 export async function updateCompanySettings(
@@ -104,39 +268,44 @@ export async function updateCompanySettings(
 
   if (!user.user) return null;
 
-  // Check if settings exist
-  const { data: existingSettings } = await supabase
-    .from("settings.company_settings")
-    .select("id")
-    .eq("user_id", user.user.id)
-    .single();
-
-  let result;
-
-  if (existingSettings) {
-    // Update existing settings
-    result = await supabase
-      .from("settings.company_settings")
-      .update(settings)
+  try {
+    // Check if settings exist
+    const { data: existingSettings } = await supabase
+      .from("company_settings")
+      .select("id")
       .eq("user_id", user.user.id)
-      .select();
-  } else {
-    // Insert new settings
-    result = await supabase
-      .from("settings.company_settings")
-      .insert({
-        user_id: user.user.id,
-        ...settings,
-      })
-      .select();
-  }
+      .single();
 
-  if (result.error) {
-    console.error("Error updating company settings:", result.error);
+    let result;
+
+    if (existingSettings) {
+      // Update existing settings
+      result = await supabase
+        .from("company_settings")
+        .update(settings)
+        .eq("user_id", user.user.id)
+        .select();
+    } else {
+      // Insert new settings
+      result = await supabase
+        .from("company_settings")
+        .insert({
+          user_id: user.user.id,
+          ...settings,
+        })
+        .select();
+    }
+
+    if (result.error) {
+      console.error("Error updating company settings:", result.error);
+      return null;
+    }
+
+    return result.data?.[0] || null;
+  } catch (e) {
+    console.error("Error accessing schema:", e);
     return null;
   }
-
-  return result.data?.[0] || null;
 }
 
 // =========== BILLING SETTINGS ===========
@@ -145,18 +314,53 @@ export async function getBillingSettings(): Promise<BillingSettings | null> {
 
   if (!user.user) return null;
 
-  const { data, error } = await supabase
-    .from("settings.billing_settings")
-    .select("*")
-    .eq("user_id", user.user.id)
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from("billing_settings")
+      .select("*")
+      .eq("user_id", user.user.id)
+      .single();
 
-  if (error && error.code !== "PGRST116") {
-    console.error("Error fetching billing settings:", error);
+    if (error) {
+      // No result found - create a new billing record
+      if (error.code === "PGRST116") {
+        console.log("No billing settings found, creating default");
+
+        const { data: newSettings, error: createError } = await supabase
+          .from("billing_settings")
+          .upsert(
+            {
+              user_id: user.user.id,
+              billing_name: "",
+              billing_email: user.user.email || "",
+              subscription_plan: "free",
+              subscription_status: "active",
+            },
+            {
+              onConflict: "user_id",
+              ignoreDuplicates: false,
+            }
+          )
+          .select()
+          .single();
+
+        if (createError) {
+          console.error("Error creating billing settings:", createError);
+          return null;
+        }
+
+        return newSettings;
+      } else {
+        console.error("Error fetching billing settings:", error);
+        return null;
+      }
+    }
+
+    return data;
+  } catch (e) {
+    console.error("Error accessing billing_settings:", e);
     return null;
   }
-
-  return data;
 }
 
 export async function updateBillingSettings(
@@ -166,41 +370,46 @@ export async function updateBillingSettings(
 
   if (!user.user) return null;
 
-  // Check if settings exist
-  const { data: existingSettings } = await supabase
-    .from("settings.billing_settings")
-    .select("id")
-    .eq("user_id", user.user.id)
-    .single();
-
-  let result;
-
-  if (existingSettings) {
-    // Update existing settings
-    result = await supabase
-      .from("settings.billing_settings")
-      .update(settings)
+  try {
+    // Check if settings exist
+    const { data: existingSettings } = await supabase
+      .from("billing_settings")
+      .select("id")
       .eq("user_id", user.user.id)
-      .select();
-  } else {
-    // Insert new settings with defaults
-    result = await supabase
-      .from("settings.billing_settings")
-      .insert({
-        user_id: user.user.id,
-        subscription_plan: "free",
-        subscription_status: "active",
-        ...settings,
-      })
-      .select();
-  }
+      .single();
 
-  if (result.error) {
-    console.error("Error updating billing settings:", result.error);
+    let result;
+
+    if (existingSettings) {
+      // Update existing settings
+      result = await supabase
+        .from("billing_settings")
+        .update(settings)
+        .eq("user_id", user.user.id)
+        .select();
+    } else {
+      // Insert new settings with defaults
+      result = await supabase
+        .from("billing_settings")
+        .insert({
+          user_id: user.user.id,
+          subscription_plan: "free",
+          subscription_status: "active",
+          ...settings,
+        })
+        .select();
+    }
+
+    if (result.error) {
+      console.error("Error updating billing settings:", result.error);
+      return null;
+    }
+
+    return result.data?.[0] || null;
+  } catch (e) {
+    console.error("Error accessing schema:", e);
     return null;
   }
-
-  return result.data?.[0] || null;
 }
 
 // =========== PAYMENT METHODS ===========
@@ -209,18 +418,23 @@ export async function getPaymentMethods(): Promise<PaymentMethod[]> {
 
   if (!user.user) return [];
 
-  const { data, error } = await supabase
-    .from("settings.payment_methods")
-    .select("*")
-    .eq("user_id", user.user.id)
-    .order("is_default", { ascending: false });
+  try {
+    const { data, error } = await supabase
+      .from("payment_methods")
+      .select("*")
+      .eq("user_id", user.user.id)
+      .order("is_default", { ascending: false });
 
-  if (error) {
-    console.error("Error fetching payment methods:", error);
+    if (error) {
+      console.error("Error fetching payment methods:", error);
+      return [];
+    }
+
+    return data || [];
+  } catch (e) {
+    console.error("Error accessing schema:", e);
     return [];
   }
-
-  return data || [];
 }
 
 export async function addPaymentMethod(
@@ -230,28 +444,33 @@ export async function addPaymentMethod(
 
   if (!user.user) return null;
 
-  // If this is marked as default, unset others
-  if (method.is_default) {
-    await supabase
-      .from("settings.payment_methods")
-      .update({ is_default: false })
-      .eq("user_id", user.user.id);
-  }
+  try {
+    // If this is marked as default, unset others
+    if (method.is_default) {
+      await supabase
+        .from("payment_methods")
+        .update({ is_default: false })
+        .eq("user_id", user.user.id);
+    }
 
-  const { data, error } = await supabase
-    .from("settings.payment_methods")
-    .insert({
-      user_id: user.user.id,
-      ...method,
-    })
-    .select();
+    const { data, error } = await supabase
+      .from("payment_methods")
+      .insert({
+        user_id: user.user.id,
+        ...method,
+      })
+      .select();
 
-  if (error) {
-    console.error("Error adding payment method:", error);
+    if (error) {
+      console.error("Error adding payment method:", error);
+      return null;
+    }
+
+    return data?.[0] || null;
+  } catch (e) {
+    console.error("Error accessing schema:", e);
     return null;
   }
-
-  return data?.[0] || null;
 }
 
 export async function deletePaymentMethod(id: string): Promise<boolean> {
@@ -259,18 +478,23 @@ export async function deletePaymentMethod(id: string): Promise<boolean> {
 
   if (!user.user) return false;
 
-  const { error } = await supabase
-    .from("settings.payment_methods")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", user.user.id);
+  try {
+    const { error } = await supabase
+      .from("payment_methods")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", user.user.id);
 
-  if (error) {
-    console.error("Error deleting payment method:", error);
+    if (error) {
+      console.error("Error deleting payment method:", error);
+      return false;
+    }
+
+    return true;
+  } catch (e) {
+    console.error("Error accessing schema:", e);
     return false;
   }
-
-  return true;
 }
 
 // =========== NOTIFICATION PREFERENCES ===========
@@ -279,18 +503,57 @@ export async function getNotificationPreferences(): Promise<NotificationPreferen
 
   if (!user.user) return null;
 
-  const { data, error } = await supabase
-    .from("settings.notification_preferences")
-    .select("*")
-    .eq("user_id", user.user.id)
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from("notification_preferences")
+      .select("*")
+      .eq("user_id", user.user.id)
+      .single();
 
-  if (error && error.code !== "PGRST116") {
-    console.error("Error fetching notification preferences:", error);
+    if (error) {
+      // No result found - create default notification preferences
+      if (error.code === "PGRST116") {
+        console.log("No notification preferences found, creating default");
+
+        const { data: newPreferences, error: createError } = await supabase
+          .from("notification_preferences")
+          .upsert(
+            {
+              user_id: user.user.id,
+              invoice_notifications: true,
+              client_activity: true,
+              project_updates: false,
+              marketing_tips: false,
+              email_frequency: "immediate",
+            },
+            {
+              onConflict: "user_id",
+              ignoreDuplicates: false,
+            }
+          )
+          .select()
+          .single();
+
+        if (createError) {
+          console.error(
+            "Error creating notification preferences:",
+            createError
+          );
+          return null;
+        }
+
+        return newPreferences;
+      } else {
+        console.error("Error fetching notification preferences:", error);
+        return null;
+      }
+    }
+
+    return data;
+  } catch (e) {
+    console.error("Error accessing notification_preferences:", e);
     return null;
   }
-
-  return data;
 }
 
 export async function updateNotificationPreferences(
@@ -300,39 +563,44 @@ export async function updateNotificationPreferences(
 
   if (!user.user) return null;
 
-  // Check if preferences exist
-  const { data: existingPreferences } = await supabase
-    .from("settings.notification_preferences")
-    .select("id")
-    .eq("user_id", user.user.id)
-    .single();
-
-  let result;
-
-  if (existingPreferences) {
-    // Update existing preferences
-    result = await supabase
-      .from("settings.notification_preferences")
-      .update(preferences)
+  try {
+    // Check if preferences exist
+    const { data: existingPreferences } = await supabase
+      .from("notification_preferences")
+      .select("id")
       .eq("user_id", user.user.id)
-      .select();
-  } else {
-    // Insert new preferences
-    result = await supabase
-      .from("settings.notification_preferences")
-      .insert({
-        user_id: user.user.id,
-        ...preferences,
-      })
-      .select();
-  }
+      .single();
 
-  if (result.error) {
-    console.error("Error updating notification preferences:", result.error);
+    let result;
+
+    if (existingPreferences) {
+      // Update existing preferences
+      result = await supabase
+        .from("notification_preferences")
+        .update(preferences)
+        .eq("user_id", user.user.id)
+        .select();
+    } else {
+      // Insert new preferences
+      result = await supabase
+        .from("notification_preferences")
+        .insert({
+          user_id: user.user.id,
+          ...preferences,
+        })
+        .select();
+    }
+
+    if (result.error) {
+      console.error("Error updating notification preferences:", result.error);
+      return null;
+    }
+
+    return result.data?.[0] || null;
+  } catch (e) {
+    console.error("Error accessing schema:", e);
     return null;
   }
-
-  return result.data?.[0] || null;
 }
 
 // =========== SECURITY SETTINGS ===========
@@ -341,18 +609,51 @@ export async function getSecuritySettings(): Promise<SecuritySettings | null> {
 
   if (!user.user) return null;
 
-  const { data, error } = await supabase
-    .from("settings.security_settings")
-    .select("*")
-    .eq("user_id", user.user.id)
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from("security_settings")
+      .select("*")
+      .eq("user_id", user.user.id)
+      .single();
 
-  if (error && error.code !== "PGRST116") {
-    console.error("Error fetching security settings:", error);
+    if (error) {
+      // No result found - create default security settings
+      if (error.code === "PGRST116") {
+        console.log("No security settings found, creating default");
+
+        const { data: newSettings, error: createError } = await supabase
+          .from("security_settings")
+          .upsert(
+            {
+              user_id: user.user.id,
+              two_factor_enabled: false,
+              last_password_change: new Date().toISOString(),
+            },
+            {
+              onConflict: "user_id",
+              ignoreDuplicates: false,
+            }
+          )
+          .select()
+          .single();
+
+        if (createError) {
+          console.error("Error creating security settings:", createError);
+          return null;
+        }
+
+        return newSettings;
+      } else {
+        console.error("Error fetching security settings:", error);
+        return null;
+      }
+    }
+
+    return data;
+  } catch (e) {
+    console.error("Error accessing security_settings:", e);
     return null;
   }
-
-  return data;
 }
 
 export async function updateSecuritySettings(
@@ -365,39 +666,44 @@ export async function updateSecuritySettings(
 
   if (!user.user) return null;
 
-  // Check if settings exist
-  const { data: existingSettings } = await supabase
-    .from("settings.security_settings")
-    .select("id")
-    .eq("user_id", user.user.id)
-    .single();
-
-  let result;
-
-  if (existingSettings) {
-    // Update existing settings
-    result = await supabase
-      .from("settings.security_settings")
-      .update(settings)
+  try {
+    // Check if settings exist
+    const { data: existingSettings } = await supabase
+      .from("security_settings")
+      .select("id")
       .eq("user_id", user.user.id)
-      .select();
-  } else {
-    // Insert new settings
-    result = await supabase
-      .from("settings.security_settings")
-      .insert({
-        user_id: user.user.id,
-        ...settings,
-      })
-      .select();
-  }
+      .single();
 
-  if (result.error) {
-    console.error("Error updating security settings:", result.error);
+    let result;
+
+    if (existingSettings) {
+      // Update existing settings
+      result = await supabase
+        .from("security_settings")
+        .update(settings)
+        .eq("user_id", user.user.id)
+        .select();
+    } else {
+      // Insert new settings
+      result = await supabase
+        .from("security_settings")
+        .insert({
+          user_id: user.user.id,
+          ...settings,
+        })
+        .select();
+    }
+
+    if (result.error) {
+      console.error("Error updating security settings:", result.error);
+      return null;
+    }
+
+    return result.data?.[0] || null;
+  } catch (e) {
+    console.error("Error accessing schema:", e);
     return null;
   }
-
-  return result.data?.[0] || null;
 }
 
 export async function updatePassword(
@@ -418,7 +724,7 @@ export async function updatePassword(
     const { data: user } = await supabase.auth.getUser();
 
     if (user.user) {
-      await supabase.from("settings.security_settings").upsert(
+      await supabase.from("security_settings").upsert(
         {
           user_id: user.user.id,
           last_password_change: new Date().toISOString(),
@@ -440,19 +746,24 @@ export async function getSessionHistory(): Promise<SessionHistory[]> {
 
   if (!user.user) return [];
 
-  const { data, error } = await supabase
-    .from("settings.session_history")
-    .select("*")
-    .eq("user_id", user.user.id)
-    .order("login_at", { ascending: false })
-    .limit(10);
+  try {
+    const { data, error } = await supabase
+      .from("session_history")
+      .select("*")
+      .eq("user_id", user.user.id)
+      .order("login_at", { ascending: false })
+      .limit(10);
 
-  if (error) {
-    console.error("Error fetching session history:", error);
+    if (error) {
+      console.error("Error fetching session history:", error);
+      return [];
+    }
+
+    return data || [];
+  } catch (e) {
+    console.error("Error accessing schema:", e);
     return [];
   }
-
-  return data || [];
 }
 
 export async function recordSessionLogin(
@@ -462,32 +773,42 @@ export async function recordSessionLogin(
 
   if (!user.user) return false;
 
-  const { error } = await supabase.from("settings.session_history").insert({
-    user_id: user.user.id,
-    login_at: new Date().toISOString(),
-    ...sessionInfo,
-  });
+  try {
+    const { error } = await supabase.from("session_history").insert({
+      user_id: user.user.id,
+      login_at: new Date().toISOString(),
+      ...sessionInfo,
+    });
 
-  if (error) {
-    console.error("Error recording session login:", error);
+    if (error) {
+      console.error("Error recording session login:", error);
+      return false;
+    }
+
+    return true;
+  } catch (e) {
+    console.error("Error accessing schema:", e);
     return false;
   }
-
-  return true;
 }
 
 export async function recordSessionLogout(sessionId: string): Promise<boolean> {
-  const { error } = await supabase
-    .from("settings.session_history")
-    .update({
-      logout_at: new Date().toISOString(),
-    })
-    .eq("id", sessionId);
+  try {
+    const { error } = await supabase
+      .from("session_history")
+      .update({
+        logout_at: new Date().toISOString(),
+      })
+      .eq("id", sessionId);
 
-  if (error) {
-    console.error("Error recording session logout:", error);
+    if (error) {
+      console.error("Error recording session logout:", error);
+      return false;
+    }
+
+    return true;
+  } catch (e) {
+    console.error("Error accessing schema:", e);
     return false;
   }
-
-  return true;
 }

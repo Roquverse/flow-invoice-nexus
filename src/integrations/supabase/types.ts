@@ -9,23 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never;
-    };
-    Views: {
-      [_ in never]: never;
-    };
-    Functions: {
-      [_ in never]: never;
-    };
-    Enums: {
-      [_ in never]: never;
-    };
-    CompositeTypes: {
-      [_ in never]: never;
-    };
-  };
-  settings: {
-    Tables: {
       user_profiles: {
         Row: {
           id: string;
@@ -268,6 +251,129 @@ export type Database = {
           logout_at?: string | null;
         };
       };
+      clients: {
+        Row: {
+          id: string;
+          user_id: string;
+          business_name: string;
+          contact_name: string | null;
+          email: string | null;
+          phone: string | null;
+          address: string | null;
+          city: string | null;
+          postal_code: string | null;
+          country: string | null;
+          tax_id: string | null;
+          notes: string | null;
+          status: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          business_name: string;
+          contact_name?: string | null;
+          email?: string | null;
+          phone?: string | null;
+          address?: string | null;
+          city?: string | null;
+          postal_code?: string | null;
+          country?: string | null;
+          tax_id?: string | null;
+          notes?: string | null;
+          status?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          business_name?: string;
+          contact_name?: string | null;
+          email?: string | null;
+          phone?: string | null;
+          address?: string | null;
+          city?: string | null;
+          postal_code?: string | null;
+          country?: string | null;
+          tax_id?: string | null;
+          notes?: string | null;
+          status?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      projects: {
+        Row: {
+          id: string;
+          user_id: string;
+          client_id: string | null;
+          name: string;
+          description: string | null;
+          status: string;
+          start_date: string | null;
+          end_date: string | null;
+          budget: number | null;
+          currency: string;
+          hourly_rate: number | null;
+          is_fixed_price: boolean;
+          tags: string[] | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          client_id?: string | null;
+          name: string;
+          description?: string | null;
+          status?: string;
+          start_date?: string | null;
+          end_date?: string | null;
+          budget?: number | null;
+          currency?: string;
+          hourly_rate?: number | null;
+          is_fixed_price?: boolean;
+          tags?: string[] | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          client_id?: string | null;
+          name?: string;
+          description?: string | null;
+          status?: string;
+          start_date?: string | null;
+          end_date?: string | null;
+          budget?: number | null;
+          currency?: string;
+          hourly_rate?: number | null;
+          is_fixed_price?: boolean;
+          tags?: string[] | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+    };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      [_ in never]: never;
+    };
+    Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
+    };
+  };
+  settings: {
+    Tables: {
+      [_ in never]: never;
     };
     Views: {
       [_ in never]: never;

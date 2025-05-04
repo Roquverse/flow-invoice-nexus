@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AlertCircle, Plus, Trash2, Save, ArrowLeft } from "lucide-react";
+import {
+  AlertCircle,
+  Plus,
+  Trash2,
+  Save,
+  ArrowLeft,
+  FileText,
+} from "lucide-react";
 import {
   Card,
   CardContent,
@@ -24,8 +31,12 @@ import { useInvoices } from "@/hooks/useInvoices";
 import { useClients } from "@/hooks/useClients";
 import { useProjects } from "@/hooks/useProjects";
 import { Invoice, InvoiceItem } from "@/types/invoices";
+import { Client } from "@/types/clients";
 import { formatCurrency } from "@/utils/formatters";
 import { DatePicker } from "@/components/ui/date-picker";
+import { getClientById } from "@/services/clientService";
+import InvoicePreview from "./InvoicePreview";
+import { downloadPDF } from "@/utils/pdf";
 
 interface InvoiceFormProps {
   invoice?: Invoice;
@@ -79,6 +90,11 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
     items: [{ ...DEFAULT_INVOICE_ITEM, id: crypto.randomUUID() }],
   });
 
+  // Preview state
+  const [showPreview, setShowPreview] = useState(false);
+  const [currentClient, setCurrentClient] = useState<Client | null>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const fetchData = async () => {
       if (isEditing && invoice) {
@@ -92,6 +108,43 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
 
     fetchData();
   }, [isEditing, invoice, generateInvoiceNumber]);
+
+  useEffect(() => {
+    console.log("Clients data:", clients);
+  }, [clients]);
+
+  // Fetch client data when client_id changes
+  useEffect(() => {
+    const fetchClientData = async () => {
+      if (formData.client_id) {
+        const client = await getClientById(formData.client_id);
+        setCurrentClient(client);
+      }
+    };
+
+    fetchClientData();
+  }, [formData.client_id]);
+
+  // Preview and PDF handlers
+  const handlePreview = () => {
+    setShowPreview(true);
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!currentClient) return;
+
+    try {
+      await downloadPDF(
+        previewRef,
+        currentClient.business_name.replace(/\s+/g, "-").toLowerCase(),
+        "invoice",
+        formData.invoice_number || "draft"
+      );
+    } catch (error) {
+      console.error("Error downloading PDF:", error);
+      setError("Failed to download PDF");
+    }
+  };
 
   const calculateTotals = (updatedItems: InvoiceItem[]) => {
     const subtotal = updatedItems.reduce((sum, item) => sum + item.total, 0);
@@ -269,6 +322,35 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
         </div>
       )}
 
+      {showPreview && currentClient && (
+        <div className="mb-8">
+          <div className="flex justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-800">
+              Invoice Preview
+            </h2>
+            <div className="flex space-x-2">
+              <Button variant="outline" onClick={() => setShowPreview(false)}>
+                Close Preview
+              </Button>
+              <Button
+                onClick={handleDownloadPDF}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Download PDF
+              </Button>
+            </div>
+          </div>
+          <div className="border rounded-lg p-4 bg-gray-50">
+            <InvoicePreview
+              ref={previewRef}
+              invoice={formData as Invoice}
+              items={formData.items || []}
+              client={currentClient}
+            />
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} style={{ maxWidth: "100%" }}>
         <div className="grid grid-cols-1 gap-6 mb-8 w-full">
           <Card className="w-full" style={{ width: "100%" }}>
@@ -303,7 +385,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
                   <SelectContent>
                     {clients.map((client) => (
                       <SelectItem key={client.id} value={client.id}>
-                        {client.name}
+                        {client.business_name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -553,6 +635,17 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
           >
             Cancel
           </Button>
+          {formData.client_id && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handlePreview}
+              className="border-blue-500 text-blue-500 hover:bg-blue-50"
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              Preview
+            </Button>
+          )}
           <Button
             type="submit"
             disabled={loading}
