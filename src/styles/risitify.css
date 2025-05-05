@@ -15,7 +15,7 @@
   max-height: 40px;
 }
 
-/* .main-menu {
+.main-menu {
   display: flex;
   list-style: none;
   margin: 0;
@@ -35,7 +35,7 @@
 
 .nav-link:hover {
   color: #007bff;
-} */
+}
 
 .header-extra {
   display: flex;
@@ -48,7 +48,7 @@
   margin-left: 20px;
 }
 
-.bg-pink-btn,
+/* .bg-pink-btn,
 .bg-blue-btn {
   background-color: #007bff;
   color: white;
@@ -62,7 +62,7 @@
 .bg-pink-btn:hover,
 .bg-blue-btn:hover {
   background-color: #0056b3;
-}
+} */
 
 .btn-inner {
   position: relative;
@@ -100,7 +100,7 @@
   padding: 8px 16px;
   border-radius: 50px;
   margin-bottom: 20px;
-  color: #4caf50;
+  color: #015b1f;
   font-weight: 500;
   font-size: 16px;
 }

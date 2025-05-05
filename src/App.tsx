@@ -26,7 +26,7 @@ import InvoicePreviewPage from "./pages/dashboard/InvoicePreviewPage";
 import QuotePreviewPage from "./pages/dashboard/QuotePreviewPage";
 import ReceiptPreviewPage from "./pages/dashboard/ReceiptPreviewPage";
 
-// Import styles
+// // Import styles
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./styles/variables.css";
 import "./styles/icons.css";

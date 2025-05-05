@@ -62,52 +62,47 @@ const Hero: React.FC = () => {
   return (
     <section className="hero-section-index5" id="hero">
       <div className="container">
-        <div className="row align-items-center v5-hero-row">
-          <div className="col-md-6">
-            <div className="v5welocme-section">
-              <img src="/icons/hands.png" alt="icons" /> Welcome to Risitify
-            </div>
-            <div className="v5banner-text">
-              <h1 className="banner-title">
-                <span className="brack-text">Smart Invoicing</span> for your{" "}
-                <span className="word-animation-wrapper">
-                  <span
-                    className={`animated-word ${
-                      isAnimating ? "fade-out" : "fade-in"
-                    } ${currentWordIndex === 1 ? "gradient-text" : ""}`}
-                  >
-                    {words[currentWordIndex]}
-                  </span>
+        <div className="index5-hero-content">
+          <div className="v5welocme-section">
+            <img src="/icons/hands.png" alt="icons" /> Welcome to Risitify
+          </div>
+          <div className="v5banner-text">
+            <h1 className="banner-title text-center">
+              <span className="brack-text">Smart Invoicing</span> for your{" "}
+              <span className="word-animation-wrapper">
+                <span
+                  className={`animated-word ${
+                    isAnimating ? "fade-out" : "fade-in"
+                  }`}
+                >
+                  {words[currentWordIndex]}
                 </span>
-              </h1>
-              <p>
-                Streamline your invoicing process with our powerful platform.
-                Create, send, and track invoices effortlessly while managing
-                your business finances with ease.
-              </p>
-            </div>
-            <form className="hero-form" onSubmit={handleSubmit}>
-              <input
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-              <button type="submit" className="start-trial-btn">
-                Start Free Trial
-              </button>
-            </form>
+              </span>
+            </h1>
+            <p>
+              Streamline your invoicing process with our powerful platform.
+              Create, send, and track invoices effortlessly while managing your
+              business finances with ease.
+            </p>
           </div>
-          <div className="col-md-6">
-            <div className="index5-hero-img">
-              <img
-                src="/sass1/index5-banner-img.png"
-                alt="Dashboard preview"
-                className="img-fluid"
-              />
-            </div>
-          </div>
+          <form onSubmit={handleSubmit}>
+            <input
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <button type="submit" className="bg-blue-btn">
+              <span className="btn-inner">
+                <span className="btn-normal-text">Get Started</span>
+                <span className="btn-hover-text">Get Started</span>
+              </span>
+            </button>
+          </form>
+        </div>
+        <div className="index5-hero-img">
+          <img src="/sass1/index5-banner-img.png" alt="img" />
         </div>
       </div>
       <div className="index5-scroll-carousel-section">

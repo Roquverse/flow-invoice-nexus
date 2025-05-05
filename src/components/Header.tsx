@@ -24,8 +24,12 @@ const Header: React.FC = () => {
                   </Link>
 
                   <button id="nav-expander" className="nav-expander bar">
-                    <img src="/icons/menu.svg" alt="menu" />
-                    <img src="/icons/menu-close.svg" alt="menu" />
+                    <img src="/icons/menu.svg" alt="menu" className="visible" />
+                    <img
+                      src="/icons/menu-close.svg"
+                      alt="menu"
+                      className="hidden"
+                    />
                   </button>
 
                   <div

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useCompanySettings } from "@/hooks/useSettings";
 import "@/styles/dashboard.css";
 
 interface SidebarLinkProps {
@@ -37,8 +38,20 @@ function SidebarLink({ to, icon: Icon, label, isActive }: SidebarLinkProps) {
 
 export function DashboardSidebar() {
   const location = useLocation();
+  const { companySettings, loading } = useCompanySettings();
 
   const isActive = (path: string) => location.pathname === path;
+
+  // Get company initials for the badge
+  const getCompanyInitials = () => {
+    if (!companySettings?.company_name) return "AC";
+
+    const words = companySettings.company_name.split(" ");
+    if (words.length === 1) {
+      return words[0].substring(0, 2).toUpperCase();
+    }
+    return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+  };
 
   return (
     <aside className="dashboard-sidebar">
@@ -51,8 +64,8 @@ export function DashboardSidebar() {
       <div className="nav-section">
         <Button className="organization-switcher">
           <div className="flex items-center gap-2">
-            <div className="organization-badge">AC</div>
-            <span>ACME,INC.</span>
+            <div className="organization-badge">{getCompanyInitials()}</div>
+            <span>{companySettings?.company_name || "My Company"}</span>
           </div>
           <ChevronRight size={16} />
         </Button>

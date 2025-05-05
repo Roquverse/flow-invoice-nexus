@@ -1,4 +1,3 @@
-
 /* Custom styles for the app */
 
 /* Auth pages */
@@ -53,12 +52,47 @@
   transform: translateY(-1px);
 }
 
+/* Navbar menu toggle visibility classes */
+.nav-expander.bar img.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.nav-expander.bar img.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* Additional navbar styles for cross-browser compatibility */
+.navbar-nav.main-menu {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (max-width: 991px) {
+  .navbar {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .header-logo {
+    max-width: 120px;
+  }
+}
+
+/* Body class when mobile menu is open */
+body.canvas-open {
+  overflow: hidden;
+}
+
 /* More responsive styles for mobile */
 @media (max-width: 768px) {
   .dashboard-container {
     grid-template-columns: 1fr;
   }
-  
+
   .dashboard-sidebar {
     display: none;
   }
