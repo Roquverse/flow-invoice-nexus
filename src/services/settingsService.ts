@@ -204,62 +204,32 @@ export async function updateUserProfile(
 }
 
 // =========== COMPANY SETTINGS ===========
-export async function getCompanySettings(): Promise<CompanySettings | null> {
-  const { data: user } = await supabase.auth.getUser();
-
-  if (!user.user) return null;
-
+export const getCompanySettings = async (): Promise<CompanySettings | null> => {
   try {
+    const { data: user } = await supabase.auth.getUser();
+    if (!user.user) throw new Error("Not authenticated");
+
     const { data, error } = await supabase
-      .from("company_settings")
+      .from("company_settings" as any)
       .select("*")
       .eq("user_id", user.user.id)
       .single();
 
     if (error) {
-      // No result found - create a new company settings record
       if (error.code === "PGRST116") {
-        console.log("No company settings found, creating default");
-
-        const { data: newSettings, error: createError } = await supabase
-          .from("company_settings")
-          .upsert(
-            {
-              user_id: user.user.id,
-              company_name: "",
-              industry: "",
-              address: "",
-              city: "",
-              postal_code: "",
-              country: "",
-              tax_id: "",
-            },
-            {
-              onConflict: "user_id",
-              ignoreDuplicates: false,
-            }
-          )
-          .select()
-          .single();
-
-        if (createError) {
-          console.error("Error creating company settings:", createError);
-          return null;
-        }
-
-        return newSettings;
-      } else {
-        console.error("Error fetching company settings:", error);
+        // No company settings found
         return null;
       }
+      throw error;
     }
 
     return data;
-  } catch (e) {
-    console.error("Error accessing company_settings:", e);
+  } catch (error) {
+    console.error("Error fetching company settings:", error);
+    toast.error("Failed to load company settings");
     return null;
   }
-}
+};
 
 export async function updateCompanySettings(
   settings: CompanyFormData
@@ -498,12 +468,11 @@ export async function deletePaymentMethod(id: string): Promise<boolean> {
 }
 
 // =========== NOTIFICATION PREFERENCES ===========
-export async function getNotificationPreferences(): Promise<NotificationPreferences | null> {
-  const { data: user } = await supabase.auth.getUser();
-
-  if (!user.user) return null;
-
+export const getNotificationPreferences = async (): Promise<NotificationPreferences | null> => {
   try {
+    const { data: user } = await supabase.auth.getUser();
+    if (!user.user) throw new Error("Not authenticated");
+
     const { data, error } = await supabase
       .from("notification_preferences")
       .select("*")
@@ -511,50 +480,24 @@ export async function getNotificationPreferences(): Promise<NotificationPreferen
       .single();
 
     if (error) {
-      // No result found - create default notification preferences
       if (error.code === "PGRST116") {
-        console.log("No notification preferences found, creating default");
-
-        const { data: newPreferences, error: createError } = await supabase
-          .from("notification_preferences")
-          .upsert(
-            {
-              user_id: user.user.id,
-              invoice_notifications: true,
-              client_activity: true,
-              project_updates: false,
-              marketing_tips: false,
-              email_frequency: "immediate",
-            },
-            {
-              onConflict: "user_id",
-              ignoreDuplicates: false,
-            }
-          )
-          .select()
-          .single();
-
-        if (createError) {
-          console.error(
-            "Error creating notification preferences:",
-            createError
-          );
-          return null;
-        }
-
-        return newPreferences;
-      } else {
-        console.error("Error fetching notification preferences:", error);
+        // No notification preferences found
         return null;
       }
+      throw error;
     }
 
-    return data;
-  } catch (e) {
-    console.error("Error accessing notification_preferences:", e);
+    // Cast the email_frequency to the allowed type
+    return {
+      ...data,
+      email_frequency: data.email_frequency as "immediate" | "daily" | "weekly"
+    };
+  } catch (error) {
+    console.error("Error fetching notification preferences:", error);
+    toast.error("Failed to load notification preferences");
     return null;
   }
-}
+};
 
 export async function updateNotificationPreferences(
   preferences: NotificationFormData

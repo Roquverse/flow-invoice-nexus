@@ -1,5 +1,5 @@
 /* Header styles */
-/* .header-section {
+.header-section {
   background-color: transparent;
   padding: 20px 0;
   position: absolute;
@@ -9,7 +9,7 @@
   z-index: 100;
   box-shadow: none;
   transition: all 0.3s ease;
-} */
+}
 
 .header-section.header-sticky {
   position: fixed;
@@ -64,7 +64,7 @@
   content: "";
   position: absolute;
   width: 0;
-  /* height: 2px; */
+  height: 2px;
   bottom: 0;
   left: 0;
   background-color: #015b1f;
@@ -88,10 +88,27 @@
   text-decoration: none;
   font-size: 16px;
   transition: color 0.3s ease;
+  padding: 0;
 }
 
 .sign-in-link:hover {
-  color: #4caf50;
+  color: #015b1f;
+}
+
+.dashboard-link {
+  color: #000000;
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  background-color: #f3f4f6;
+  padding: 8px 20px;
+  border-radius: 5px;
+}
+
+.dashboard-link:hover {
+  background-color: #e5e7eb;
+  color: #015b1f;
 }
 
 .lets-talk-btn {
@@ -307,6 +324,32 @@ body.canvas-open:before {
   text-align: center;
 }
 
+/* Header Extra - Auth buttons container */
+.header-extra {
+  display: flex;
+  align-items: center;
+  list-style: none;
+  margin: 0 0 0 auto;
+  padding: 0;
+}
+
+.header-extra li {
+  margin-left: 20px;
+}
+
+.header-extra li a {
+  text-decoration: none;
+  color: #000;
+  font-weight: 500;
+}
+
+.header-navbar-content {
+  display: flex;
+  flex-grow: 1;
+  justify-content: space-between;
+  align-items: center;
+}
+
 /* Responsive styles */
 @media (max-width: 991px) {
   .nav-expander.bar {
@@ -359,19 +402,6 @@ body.canvas-open:before {
   .header-extra {
     display: flex !important;
     align-items: center;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-
-  .header-extra li {
-    margin-left: 20px;
-  }
-
-  .header-extra li a {
-    text-decoration: none;
-    color: #000;
-    font-weight: 500;
   }
 
   /* Fix the collapse behavior for Bootstrap compatibility */
