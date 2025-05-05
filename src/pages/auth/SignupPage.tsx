@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -141,7 +142,7 @@ export default function SignupPage() {
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     required
-                    className="input-field"
+                    className="input-field pl-10"
                   />
                 </div>
               </div>
@@ -162,7 +163,7 @@ export default function SignupPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="input-field"
+                    className="input-field pl-10"
                   />
                 </div>
               </div>
@@ -183,7 +184,7 @@ export default function SignupPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="input-field"
+                    className="input-field pl-10 pr-10"
                   />
                   <button
                     type="button"

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -24,30 +25,26 @@ const DebugDatabase: React.FC = () => {
     const fetchTables = async () => {
       try {
         setLoading(true);
-        const { data, error } = await supabase
-          .from("information_schema.tables")
-          .select("table_name")
-          .eq("table_schema", "public");
+        
+        // Use a raw SQL query instead of the problematic information_schema approach
+        const { data, error } = await supabase.rpc('get_all_tables');
 
         if (error) throw error;
 
         if (data) {
-          const tableNames = data.map((table) => table.table_name);
-          const tablesWithSchema: TableSchema[] = [];
-
-          // Fetch schema for each table
-          for (const tableName of tableNames) {
-            const { data: columns, error: columnsError } = await supabase
-              .from("information_schema.columns")
-              .select("column_name, data_type, is_nullable, is_identity")
-              .eq("table_schema", "public")
-              .eq("table_name", tableName as string); // Fix for type error
+          const tableSchemas: TableSchema[] = [];
+          
+          // For each table, fetch its columns
+          for (const tableName of data) {
+            const { data: columns, error: columnsError } = await supabase.rpc('get_table_columns', {
+              table_name: tableName
+            });
 
             if (columnsError) throw columnsError;
 
-            tablesWithSchema.push({
+            tableSchemas.push({
               name: tableName,
-              columns: columns.map((col) => ({
+              columns: columns.map((col: any) => ({
                 name: col.column_name,
                 type: col.data_type,
                 is_nullable: col.is_nullable === "YES",
@@ -56,7 +53,7 @@ const DebugDatabase: React.FC = () => {
             });
           }
 
-          setTables(tablesWithSchema);
+          setTables(tableSchemas);
         }
       } catch (err) {
         console.error("Error fetching tables:", err);
@@ -73,7 +70,10 @@ const DebugDatabase: React.FC = () => {
   const fetchTableData = async (tableName: string) => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.from(tableName as string).select("*"); // Fix for type error
+      // Use a more type-safe approach with direct string type
+      const { data, error } = await supabase
+        .from(tableName)
+        .select('*');
 
       if (error) throw error;
       setTableData(data || []);
