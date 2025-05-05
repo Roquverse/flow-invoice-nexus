@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -61,9 +62,6 @@ const HomePage: React.FC = () => {
 };
 
 const App: React.FC = () => {
-  // We're removing the script loading code that was causing conflicts
-  // and relying on the bootstrap initialization in main.tsx instead
-
   return (
     <AuthProvider>
       <div>
