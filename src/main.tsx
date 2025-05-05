@@ -1,4 +1,3 @@
-
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.tsx";
@@ -7,6 +6,9 @@ import ErrorBoundary from "./components/ErrorBoundary";
 
 // Import Bootstrap CSS
 import "bootstrap/dist/css/bootstrap.min.css";
+
+// Import Bootstrap JS
+import "bootstrap/dist/js/bootstrap.bundle.min.js";
 
 // Import other necessary CSS files
 import "./styles/style.css";
@@ -21,32 +23,10 @@ import "./styles/dashboard.css";
 // Import custom scripts initialization
 import { initCustomScripts } from "./js";
 
-// Import Bootstrap components (using standard approach)
-import * as bootstrap from "bootstrap";
-
 // Initialize all scripts
 const initializeAll = async () => {
-  // Initialize custom scripts first
+  // Initialize custom scripts
   await initCustomScripts();
-
-  // Initialize Bootstrap components after custom scripts are loaded
-  document.addEventListener("DOMContentLoaded", function () {
-    // Initialize Bootstrap tooltips
-    const tooltipTriggerList = document.querySelectorAll(
-      '[data-bs-toggle="tooltip"]'
-    );
-    [...tooltipTriggerList].map(
-      (tooltipTriggerEl) => new bootstrap.Tooltip(tooltipTriggerEl)
-    );
-
-    // Initialize Bootstrap popovers
-    const popoverTriggerList = document.querySelectorAll(
-      '[data-bs-toggle="popover"]'
-    );
-    [...popoverTriggerList].map(
-      (popoverTriggerEl) => new bootstrap.Popover(popoverTriggerEl)
-    );
-  });
 };
 
 // Start initialization

@@ -65,10 +65,31 @@
 
 /* Additional navbar styles for cross-browser compatibility */
 .navbar-nav.main-menu {
-  display: flex;
+  display: flex !important;
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+/* Force navbar elements to show properly */
+.header-navbar-content.show {
+  display: flex !important;
+}
+
+.header-navbar-content ul {
+  list-style: none;
+}
+
+/* Make sure navbar content is properly aligned */
+@media (min-width: 992px) {
+  .header-navbar-content {
+    display: flex !important;
+    flex-basis: auto;
+  }
+
+  .header-extra {
+    margin-left: auto;
+  }
 }
 
 @media (max-width: 991px) {
@@ -95,5 +116,141 @@ body.canvas-open {
 
   .dashboard-sidebar {
     display: none;
+  }
+}
+
+/* Bootstrap 5 navbar overrides */
+.navbar {
+  padding: 1rem 0;
+  width: 100%;
+}
+
+.navbar-nav {
+  align-items: center;
+}
+
+.navbar-nav .nav-link {
+  color: #000;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  position: relative;
+}
+
+.navbar-nav .nav-link:hover {
+  color: #015b1f;
+}
+
+.navbar-nav .nav-link::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: #015b1f;
+  transition: width 0.3s ease;
+}
+
+.navbar-nav .nav-link:hover::after {
+  width: 100%;
+}
+
+.header-actions {
+  align-items: center;
+}
+
+.header-actions .nav-link {
+  color: #000;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* Fix navbar display on larger screens */
+@media (min-width: 992px) {
+  .navbar-expand-lg .navbar-collapse {
+    display: flex !important;
+  }
+
+  .navbar-expand-lg .navbar-nav {
+    flex-direction: row;
+  }
+}
+
+/* Mobile menu toggle */
+.nav-expander.bar {
+  border: none;
+  background: transparent;
+  padding: 0.25rem;
+  cursor: pointer;
+}
+
+/* Ensure the menu is visible on mobile */
+@media (max-width: 991.98px) {
+  .navbar-collapse {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
+    z-index: 1000;
+    padding: 1rem;
+    background: white;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    display: none;
+  }
+
+  .navbar-collapse.show {
+    display: block;
+  }
+}
+
+/* Make sure the navbar menu is visible */
+@media (min-width: 992px) {
+  .navbar-collapse {
+    display: flex !important;
+  }
+}
+
+/* Additional Bootstrap 5 navbar customizations */
+.navbar-toggler {
+  border: none;
+  padding: 0.25rem;
+}
+
+.navbar-toggler:focus {
+  box-shadow: none;
+  outline: none;
+}
+
+.navbar-toggler-icon {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%280, 0, 0, 0.75%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+/* On desktop make sure the navbar is horizontally spread */
+@media (min-width: 992px) {
+  .navbar > .container-fluid {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .bg-pink-btn {
+    min-width: 100px;
+    text-align: center;
+  }
+}
+
+/* Make sure navbar elements are visible */
+.navbar .navbar-collapse {
+  transition: all 0.3s ease;
+}
+
+.navbar-nav .nav-item {
+  margin: 0 0.5rem;
+}
+
+/* Hide the mobile menu on desktop */
+@media (min-width: 992px) {
+  .mobile-navbar-menu {
+    display: none !important;
   }
 }

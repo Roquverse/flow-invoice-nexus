@@ -1,5 +1,5 @@
 /* Header styles */
-.header-section {
+/* .header-section {
   background-color: transparent;
   padding: 20px 0;
   position: absolute;
@@ -9,7 +9,7 @@
   z-index: 100;
   box-shadow: none;
   transition: all 0.3s ease;
-}
+} */
 
 .header-section.header-sticky {
   position: fixed;
@@ -53,6 +53,7 @@
   padding: 8px 0;
   text-decoration: none;
   position: relative;
+  display: inline-block;
 }
 
 .nav-link:hover {
@@ -345,6 +346,12 @@ body.canvas-open:before {
     align-items: center;
   }
 
+  /* Ensure collapse menu is shown for desktop */
+  .collapse.navbar-collapse.show,
+  .collapse.navbar-collapse {
+    display: flex !important;
+  }
+
   .navbar-nav {
     display: flex !important;
   }
@@ -365,5 +372,16 @@ body.canvas-open:before {
     text-decoration: none;
     color: #000;
     font-weight: 500;
+  }
+
+  /* Fix the collapse behavior for Bootstrap compatibility */
+  .navbar-expand-lg .navbar-collapse {
+    display: flex !important;
+    flex-basis: auto;
+  }
+
+  /* Override Bootstrap's default collapse behavior */
+  .navbar-collapse.collapse:not(.show) {
+    display: flex !important;
   }
 }
