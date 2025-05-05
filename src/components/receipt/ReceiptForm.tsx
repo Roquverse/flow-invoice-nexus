@@ -189,6 +189,7 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
     }
   };
 
+  // Fix the handle submit logic to properly handle string IDs
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -210,14 +211,13 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({
       let receiptId = "";
 
       if (isEditing && receipt) {
-        const updatedReceipt = await updateReceipt(
-          receipt.id,
-          formData as Receipt
-        );
+        await updateReceipt(receipt.id, formData as Receipt);
         receiptId = receipt.id;
       } else {
         const newReceipt = await addReceipt(formData as Receipt);
-        receiptId = newReceipt?.id;
+        if (newReceipt) {
+          receiptId = newReceipt;
+        }
       }
 
       // Redirect to the preview page with the receipt ID

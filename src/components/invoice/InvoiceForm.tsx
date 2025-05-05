@@ -44,11 +44,12 @@ interface InvoiceFormProps {
 }
 
 const DEFAULT_INVOICE_ITEM: Partial<InvoiceItem> = {
-  id: "",
+  id: crypto.randomUUID(),
   description: "",
   quantity: 1,
   unit_price: 0,
   amount: 0,
+  total: 0,
 };
 
 const CURRENCIES = [
@@ -87,7 +88,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
     total_amount: 0,
     notes: "",
     terms: "Payment is due within 30 days from the date of invoice.",
-    items: [{ ...DEFAULT_INVOICE_ITEM, id: crypto.randomUUID() }],
+    items: [{ ...DEFAULT_INVOICE_ITEM as InvoiceItem }],
   });
 
   // Preview state
@@ -147,7 +148,13 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
   };
 
   const calculateTotals = (updatedItems: InvoiceItem[]) => {
-    const subtotal = updatedItems.reduce((sum, item) => sum + item.total, 0);
+    // Make sure each item has a total value
+    const itemsWithTotal = updatedItems.map(item => ({
+      ...item,
+      total: (item.total !== undefined) ? item.total : (item.quantity * item.unit_price)
+    }));
+
+    const subtotal = itemsWithTotal.reduce((sum, item) => sum + (item.total || 0), 0);
     const taxAmount = (subtotal * (formData.tax_rate || 0)) / 100;
     const totalAmount = subtotal + taxAmount;
 
@@ -203,24 +210,22 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
     value: string | number
   ) => {
     setFormData((prev) => {
-      const updatedItems =
-        prev.items?.map((item) => {
-          if (item.id === id) {
-            const updatedItem = { ...item, [field]: value };
+      const updatedItems = prev.items?.map((item) => {
+        if (item.id === id) {
+          const updatedItem = { ...item, [field]: value } as InvoiceItem;
 
-            // Recalculate item total if quantity or unit_price changes
-            if (field === "quantity" || field === "unit_price") {
-              const quantity =
-                field === "quantity" ? Number(value) : item.quantity;
-              const unitPrice =
-                field === "unit_price" ? Number(value) : item.unit_price;
-              updatedItem.total = quantity * unitPrice;
-            }
-
-            return updatedItem;
+          // Recalculate item total if quantity or unit_price changes
+          if (field === "quantity" || field === "unit_price") {
+            const quantity = field === "quantity" ? Number(value) : item.quantity;
+            const unitPrice = field === "unit_price" ? Number(value) : item.unit_price;
+            updatedItem.total = quantity * unitPrice;
+            updatedItem.amount = quantity * unitPrice; // Set amount as well
           }
-          return item;
-        }) || [];
+
+          return updatedItem;
+        }
+        return item;
+      }) || [];
 
       // Recalculate subtotal, tax, and total
       const { subtotal, tax_amount, total_amount } =
@@ -238,9 +243,15 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
 
   const addItem = () => {
     setFormData((prev) => {
-      const newItem = { ...DEFAULT_INVOICE_ITEM, id: crypto.randomUUID() };
+      // Cast the DEFAULT_INVOICE_ITEM to a proper InvoiceItem with a valid id
+      const newItem = { 
+        ...DEFAULT_INVOICE_ITEM, 
+        id: crypto.randomUUID(),
+        invoice_id: formData.id || crypto.randomUUID()  // Use a placeholder ID that will be replaced on save
+      } as InvoiceItem;
+      
       const updatedItems = [...(prev.items || []), newItem];
-
+      
       return {
         ...prev,
         items: updatedItems,
@@ -248,9 +259,9 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
     });
   };
 
-  const removeItem = (id: string) => {
+  const removeItem = (itemId: string) => {
     setFormData((prev) => {
-      const updatedItems = prev.items?.filter((item) => item.id !== id) || [];
+      const updatedItems = prev.items?.filter((item) => item.id !== itemId) || [];
 
       // Don't allow removing the last item
       if (updatedItems.length === 0) {

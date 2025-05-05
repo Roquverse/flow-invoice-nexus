@@ -2,6 +2,12 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Project, ProjectFormData } from "@/types/projects";
 
+// Client basic info for dropdown selection
+export interface ClientBasicInfo {
+  id: string;
+  business_name: string;
+}
+
 /**
  * Get all projects for the current user
  */
@@ -56,7 +62,10 @@ export async function getProjectById(id: string): Promise<Project | null> {
       return null;
     }
 
-    return data;
+    return data ? {
+      ...data,
+      status: data.status as "active" | "completed" | "on-hold" | "cancelled"
+    } : null;
   } catch (e) {
     console.error("Error accessing project:", e);
     return null;

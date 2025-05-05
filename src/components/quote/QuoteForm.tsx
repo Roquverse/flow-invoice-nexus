@@ -43,12 +43,13 @@ interface QuoteFormProps {
   isEditing?: boolean;
 }
 
-const DEFAULT_QUOTE_ITEM: QuoteItem = {
-  id: "",
+const DEFAULT_QUOTE_ITEM: Partial<QuoteItem> = {
+  id: crypto.randomUUID(),
   description: "",
   quantity: 1,
   unit_price: 0,
-  total: 0,
+  amount: 0, // Required by QuoteItem
+  total: 0,  // For convenience
 };
 
 const CURRENCIES = [
@@ -84,7 +85,7 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ quote, isEditing = false }) => {
     total_amount: 0,
     notes: "",
     terms: "This quote is valid for 30 days from the date of issue.",
-    items: [{ ...DEFAULT_QUOTE_ITEM, id: crypto.randomUUID() }],
+    items: [{ ...DEFAULT_QUOTE_ITEM as QuoteItem }],
   });
 
   // Preview state
@@ -119,7 +120,13 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ quote, isEditing = false }) => {
   }, [formData.client_id]);
 
   const calculateTotals = (updatedItems: QuoteItem[]) => {
-    const subtotal = updatedItems.reduce((sum, item) => sum + item.total, 0);
+    // Make sure each item has a total value
+    const itemsWithTotal = updatedItems.map(item => ({
+      ...item,
+      total: (item.total !== undefined) ? item.total : (item.quantity * item.unit_price)
+    }));
+
+    const subtotal = itemsWithTotal.reduce((sum, item) => sum + (item.total || 0), 0);
     const taxAmount = (subtotal * (formData.tax_rate || 0)) / 100;
     const totalAmount = subtotal + taxAmount;
 
@@ -175,24 +182,22 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ quote, isEditing = false }) => {
     value: string | number
   ) => {
     setFormData((prev) => {
-      const updatedItems =
-        prev.items?.map((item) => {
-          if (item.id === id) {
-            const updatedItem = { ...item, [field]: value };
+      const updatedItems = prev.items?.map((item) => {
+        if (item.id === id) {
+          const updatedItem = { ...item, [field]: value } as QuoteItem;
 
-            // Recalculate item total if quantity or unit_price changes
-            if (field === "quantity" || field === "unit_price") {
-              const quantity =
-                field === "quantity" ? Number(value) : item.quantity;
-              const unitPrice =
-                field === "unit_price" ? Number(value) : item.unit_price;
-              updatedItem.total = quantity * unitPrice;
-            }
-
-            return updatedItem;
+          // Recalculate item total if quantity or unit_price changes
+          if (field === "quantity" || field === "unit_price") {
+            const quantity = field === "quantity" ? Number(value) : item.quantity;
+            const unitPrice = field === "unit_price" ? Number(value) : item.unit_price;
+            updatedItem.total = quantity * unitPrice;
+            updatedItem.amount = quantity * unitPrice; // Set amount as well
           }
-          return item;
-        }) || [];
+
+          return updatedItem;
+        }
+        return item;
+      }) || [];
 
       // Recalculate subtotal, tax, and total
       const { subtotal, tax_amount, total_amount } =
@@ -210,7 +215,13 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ quote, isEditing = false }) => {
 
   const addItem = () => {
     setFormData((prev) => {
-      const newItem = { ...DEFAULT_QUOTE_ITEM, id: crypto.randomUUID() };
+      // Cast the DEFAULT_QUOTE_ITEM to a proper QuoteItem with a valid id
+      const newItem = { 
+        ...DEFAULT_QUOTE_ITEM, 
+        id: crypto.randomUUID(),
+        quote_id: formData.id || crypto.randomUUID() // Use a placeholder ID that will be replaced on save
+      } as QuoteItem;
+      
       const updatedItems = [...(prev.items || []), newItem];
 
       return {
@@ -220,9 +231,9 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ quote, isEditing = false }) => {
     });
   };
 
-  const removeItem = (id: string) => {
+  const removeItem = (itemId: string) => {
     setFormData((prev) => {
-      const updatedItems = prev.items?.filter((item) => item.id !== id) || [];
+      const updatedItems = prev.items?.filter((item) => item.id !== itemId) || [];
 
       // Don't allow removing the last item
       if (updatedItems.length === 0) {
