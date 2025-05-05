@@ -1,169 +1,110 @@
-
-import { useState, useEffect, useCallback } from "react";
-import { Receipt, ReceiptFormData } from "@/types/receipts";
-import { Client } from "@/types/clients";
-import { Invoice } from "@/types/invoices";
-import {
-  getReceipts,
-  getReceiptById,
-  createReceipt,
-  updateReceipt,
-  deleteReceipt,
-} from "@/services/receiptService";
-import { getClients } from "@/services/clientService";
-import { getInvoices } from "@/services/invoiceService";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Receipt } from "@/types";
+import { toast } from "sonner";
 
 export const useReceipts = () => {
   const [receipts, setReceipts] = useState<Receipt[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchReceipts = useCallback(async () => {
-    setLoading(true);
-    try {
-      const receiptsData = await getReceipts();
-      setReceipts(receiptsData);
-      setError(null);
-    } catch (err) {
-      setError("Failed to fetch receipts");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const fetchClientsAndInvoices = useCallback(async () => {
-    try {
-      const [clientsData, invoicesData] = await Promise.all([
-        getClients(),
-        getInvoices(),
-      ]);
-      setClients(clientsData);
-      setInvoices(invoicesData);
-    } catch (err) {
-      console.error("Error fetching clients and invoices:", err);
-    }
-  }, []);
-
   useEffect(() => {
+    const fetchReceipts = async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from("receipts")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          throw error;
+        }
+
+        setReceipts(data || []);
+      } catch (error) {
+        setError((error as Error).message || "Failed to fetch receipts");
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchReceipts();
-    fetchClientsAndInvoices();
-  }, [fetchReceipts, fetchClientsAndInvoices]);
+  }, []);
 
-  const addReceipt = async (receiptData: ReceiptFormData) => {
+  const createReceipt = async (receiptData: Receipt) => {
     setLoading(true);
     try {
-      const newReceipt = await createReceipt(receiptData);
-      if (newReceipt) {
-        setReceipts((prev) => [newReceipt, ...prev]);
-        return newReceipt.id;
+      const { data, error } = await supabase
+        .from("receipts")
+        .insert([receiptData])
+        .select();
+
+      if (error) {
+        throw error;
       }
-      return null;
-    } catch (err) {
-      setError("Failed to add receipt");
-      console.error(err);
-      return null;
+
+      setReceipts((prevReceipts) => [...prevReceipts, ...(data as Receipt[])]);
+      toast.success("Receipt created successfully!");
+    } catch (error) {
+      setError((error as Error).message || "Failed to create receipt");
+      toast.error(error as string);
     } finally {
       setLoading(false);
     }
   };
 
-  const updateReceiptData = async (
-    id: string,
-    receiptData: ReceiptFormData
-  ) => {
+  const updateReceipt = async (id: string, updates: Partial<Receipt>) => {
     setLoading(true);
     try {
-      const updatedReceipt = await updateReceipt(id, receiptData);
-      if (updatedReceipt) {
-        setReceipts((prev) =>
-          prev.map((receipt) => (receipt.id === id ? updatedReceipt : receipt))
-        );
-        return true;
+      const { data, error } = await supabase
+        .from("receipts")
+        .update(updates)
+        .eq("id", id)
+        .select();
+
+      if (error) {
+        throw error;
       }
-      return false;
-    } catch (err) {
-      setError("Failed to update receipt");
-      console.error(err);
-      return false;
+
+      setReceipts((prevReceipts) =>
+        prevReceipts.map((receipt) => (receipt.id === id ? { ...receipt, ...data[0] } : receipt))
+      );
+      toast.success("Receipt updated successfully!");
+    } catch (error) {
+      setError((error as Error).message || "Failed to update receipt");
+      toast.error(error as string);
     } finally {
       setLoading(false);
     }
   };
 
-  const removeReceipt = async (id: string) => {
-    setLoading(true);
+  const deleteReceipt = async (id: string) => {
     try {
-      const success = await deleteReceipt(id);
-      if (success) {
-        setReceipts((prev) => prev.filter((receipt) => receipt.id !== id));
-        return true;
-      }
-      return false;
-    } catch (err) {
-      setError("Failed to delete receipt");
-      console.error(err);
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
+      setLoading(true);
+      const { error } = await supabase.from("receipts").delete().eq("id", id);
 
-  const getClientName = (clientId: string) => {
-    const client = clients.find((c) => c.id === clientId);
-    return client ? client.business_name : "-";
-  };
+    if (error) throw error;
 
-  const getInvoiceNumber = (invoiceId: string | null | undefined) => {
-    if (!invoiceId) return "-";
-    const invoice = invoices.find((i) => i.id === invoiceId);
-    return invoice ? invoice.invoice_number : "-";
-  };
-
-  const getUnpaidInvoices = (clientId: string) => {
-    return invoices.filter(
-      (invoice) => invoice.client_id === clientId && invoice.status !== "paid"
-    );
-  };
-  
-  // Generate a receipt number
-  const generateReceiptNumber = async (): Promise<string> => {
-    try {
-      // Get the current date
-      const date = new Date();
-      const year = date.getFullYear().toString().slice(-2);
-      const month = (date.getMonth() + 1).toString().padStart(2, '0');
-      
-      // Count existing receipts for this month
-      const monthReceipts = receipts.filter(receipt => {
-        const receiptDate = new Date(receipt.date);
-        return receiptDate.getMonth() + 1 === date.getMonth() + 1 && 
-               receiptDate.getFullYear() === date.getFullYear();
-      });
-      
-      const nextNum = (monthReceipts.length + 1).toString().padStart(3, '0');
-      return `RCT-${year}${month}-${nextNum}`;
-    } catch (err) {
-      console.error("Error generating receipt number:", err);
-      return `RCT-${Date.now()}`;
-    }
-  };
+    // Update state by removing the deleted receipt
+    setReceipts((prev) => prev.filter((receipt) => receipt.id !== id));
+    
+    toast.success("Receipt deleted successfully!");
+  } catch (error) {
+    const errorMessage = (error as Error).message || "Failed to delete receipt";
+    setError(errorMessage);
+    toast.error(errorMessage);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return {
     receipts,
-    clients,
-    invoices,
     loading,
     error,
-    fetchReceipts,
-    addReceipt,
-    updateReceipt: updateReceiptData,
-    removeReceipt,
-    getClientName,
-    getInvoiceNumber,
-    getUnpaidInvoices,
-    generateReceiptNumber,
+    createReceipt,
+    updateReceipt,
+    deleteReceipt,
   };
 };

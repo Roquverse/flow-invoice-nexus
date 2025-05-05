@@ -1,155 +1,180 @@
 
 import React, { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "../integrations/supabase/client";
+import { PostgrestResponse } from "@supabase/supabase-js";
 
-// Fix the type to handle string values
-interface TableSchema {
+type TableColumn = {
   name: string;
-  columns: {
-    name: string;
-    type: string;
-    is_nullable: boolean;
-    is_identity: boolean;
-  }[];
-}
+  type: string;
+  is_nullable: boolean;
+};
 
-const DebugDatabase: React.FC = () => {
-  const [tables, setTables] = useState<TableSchema[]>([]);
-  const [selectedTable, setSelectedTable] = useState<string>("");
-  const [tableData, setTableData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+type TableInfo = {
+  name: string;
+  columns: TableColumn[];
+  rows: any[];
+};
+
+export default function DebugDatabase() {
+  const [tables, setTables] = useState<TableInfo[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedTable, setSelectedTable] = useState<string | null>(null);
 
-  // Fetch all tables from the database
   useEffect(() => {
-    const fetchTables = async () => {
+    async function fetchTables() {
       try {
-        setLoading(true);
+        // Get list of tables from the schema
+        const { data: tableList, error: tableError } = await supabase
+          .from("pg_tables")
+          .select("tablename")
+          .eq("schemaname", "public");
+
+        if (tableError) throw tableError;
+        if (!tableList) throw new Error("No tables found");
+
+        // Convert to array of table names
+        const tableNames = tableList.map((t) => t.tablename);
         
-        // Use a raw SQL query instead of the problematic information_schema approach
-        const { data, error } = await supabase.rpc('get_all_tables');
-
-        if (error) throw error;
-
-        if (data) {
-          const tableSchemas: TableSchema[] = [];
+        // For each table, get info and first few rows
+        const tablesInfo: TableInfo[] = [];
+        
+        for (const tableName of tableNames) {
+          // Get columns info
+          const { data: columnsData, error: columnsError } = await supabase.rpc(
+            "get_table_columns",
+            { table_name: tableName as string }
+          );
           
-          // For each table, fetch its columns
-          for (const tableName of data) {
-            const { data: columns, error: columnsError } = await supabase.rpc('get_table_columns', {
-              table_name: tableName
-            });
-
-            if (columnsError) throw columnsError;
-
-            tableSchemas.push({
-              name: tableName,
-              columns: columns.map((col: any) => ({
-                name: col.column_name,
-                type: col.data_type,
-                is_nullable: col.is_nullable === "YES",
-                is_identity: col.is_identity === "YES",
-              })),
-            });
+          if (columnsError) {
+            console.error(`Error fetching columns for ${tableName}:`, columnsError);
+            continue;
           }
-
-          setTables(tableSchemas);
+          
+          // Get rows (first 5)
+          // We need to use 'any' type here because the table name is dynamic
+          const { data: rows, error: rowsError } = await supabase
+            .from(tableName as any)
+            .select("*")
+            .limit(5);
+            
+          if (rowsError) {
+            console.error(`Error fetching rows for ${tableName}:`, rowsError);
+            continue;
+          }
+          
+          tablesInfo.push({
+            name: tableName,
+            columns: columnsData || [],
+            rows: rows || []
+          });
         }
+        
+        setTables(tablesInfo);
       } catch (err) {
-        console.error("Error fetching tables:", err);
-        setError("Failed to fetch database schema");
+        console.error("Error fetching database info:", err);
+        setError(err instanceof Error ? err.message : "Unknown error");
       } finally {
         setLoading(false);
       }
-    };
-
+    }
+    
     fetchTables();
   }, []);
 
-  // Fetch data for a specific table
-  const fetchTableData = async (tableName: string) => {
-    try {
-      setLoading(true);
-      // Use a more type-safe approach with direct string type
-      const { data, error } = await supabase
-        .from(tableName)
-        .select('*');
-
-      if (error) throw error;
-      setTableData(data || []);
-      setSelectedTable(tableName);
-    } catch (err) {
-      console.error(`Error fetching data for table ${tableName}:`, err);
-      setError(`Failed to fetch data for ${tableName}`);
-      setTableData([]);
-    } finally {
-      setLoading(false);
-    }
+  const handleTableClick = (tableName: string) => {
+    setSelectedTable(tableName);
   };
 
-  // Render methods
-  const renderTableList = () => (
-    <div>
-      <h2>Database Tables</h2>
-      {loading ? (
-        <p>Loading tables...</p>
-      ) : error ? (
-        <p>Error: {error}</p>
-      ) : (
-        <ul>
-          {tables.map((table) => (
-            <li key={table.name}>
-              <button onClick={() => fetchTableData(table.name)}>
-                {table.name}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
+  if (loading) return <div>Loading database info...</div>;
+  if (error) return <div>Error: {error}</div>;
 
-  const renderTableData = () => (
-    <div>
-      <h2>Data from table: {selectedTable}</h2>
-      {loading ? (
-        <p>Loading data...</p>
-      ) : error ? (
-        <p>Error: {error}</p>
-      ) : (
-        <table>
-          <thead>
-            <tr>
-              {tables
-                .find((table) => table.name === selectedTable)
-                ?.columns.map((column) => (
-                  <th key={column.name}>{column.name}</th>
-                ))}
-            </tr>
-          </thead>
-          <tbody>
-            {tableData.map((row, index) => (
-              <tr key={index}>
-                {tables
-                  .find((table) => table.name === selectedTable)
-                  ?.columns.map((column) => (
-                    <td key={column.name}>{JSON.stringify(row[column.name])}</td>
-                  ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </div>
-  );
+  const selectedTableInfo = tables.find(t => t.name === selectedTable);
 
   return (
-    <div>
-      <h1>Debug Database</h1>
-      {renderTableList()}
-      {selectedTable && renderTableData()}
+    <div className="p-4">
+      <h1 className="text-2xl font-bold mb-4">Database Debug</h1>
+      
+      <div className="flex gap-4">
+        <div className="w-1/4">
+          <h2 className="text-xl font-semibold mb-2">Tables</h2>
+          <ul className="border rounded p-2">
+            {tables.map((table) => (
+              <li 
+                key={table.name} 
+                className={`p-2 cursor-pointer hover:bg-gray-100 ${selectedTable === table.name ? 'bg-gray-200' : ''}`}
+                onClick={() => handleTableClick(table.name)}
+              >
+                {table.name}
+              </li>
+            ))}
+          </ul>
+        </div>
+        
+        <div className="w-3/4">
+          {selectedTableInfo ? (
+            <>
+              <h2 className="text-xl font-semibold mb-2">Table: {selectedTableInfo.name}</h2>
+              
+              <div className="mb-4">
+                <h3 className="font-medium mb-1">Columns</h3>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full border">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th className="border p-2">Name</th>
+                        <th className="border p-2">Type</th>
+                        <th className="border p-2">Nullable</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedTableInfo.columns && selectedTableInfo.columns.map((column, i) => (
+                        <tr key={i}>
+                          <td className="border p-2">{column.name}</td>
+                          <td className="border p-2">{column.type}</td>
+                          <td className="border p-2">{column.is_nullable ? "Yes" : "No"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="font-medium mb-1">Sample Data (First 5 rows)</h3>
+                <div className="overflow-x-auto">
+                  {selectedTableInfo.rows && selectedTableInfo.rows.length > 0 ? (
+                    <table className="min-w-full border">
+                      <thead>
+                        <tr className="bg-gray-50">
+                          {Object.keys(selectedTableInfo.rows[0]).map((key) => (
+                            <th key={key} className="border p-2">{key}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedTableInfo.rows.map((row, i) => (
+                          <tr key={i}>
+                            {Object.values(row).map((value: any, j) => (
+                              <td key={j} className="border p-2">
+                                {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <p>No data available</p>
+                  )}
+                </div>
+              </div>
+            </>
+          ) : (
+            <p>Select a table to view details</p>
+          )}
+        </div>
+      </div>
     </div>
   );
-};
-
-export default DebugDatabase;
+}

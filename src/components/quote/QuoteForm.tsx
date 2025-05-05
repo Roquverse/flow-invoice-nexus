@@ -213,6 +213,16 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ quote, isEditing = false }) => {
     });
   };
 
+  const handleClientChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const clientId = e.target.value;
+    if (clientId) {
+      setFormData((prev) => ({
+        ...prev,
+        client_id: clientId,
+      }));
+    }
+  };
+
   const addItem = () => {
     setFormData((prev) => {
       // Cast the DEFAULT_QUOTE_ITEM to a proper QuoteItem with a valid id
