@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Quote, QuoteFormData } from "@/types/quotes";
 import { Client } from "@/types/clients";
@@ -159,6 +160,29 @@ export const useQuotes = () => {
     return project ? project.name : "-";
   };
 
+  // Generate a quote number
+  const generateQuoteNumber = async (): Promise<string> => {
+    try {
+      // Get the current date
+      const date = new Date();
+      const year = date.getFullYear().toString().slice(-2);
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      
+      // Count existing quotes for this month
+      const monthQuotes = quotes.filter(q => {
+        const quoteDate = new Date(q.issue_date);
+        return quoteDate.getMonth() + 1 === date.getMonth() + 1 && 
+               quoteDate.getFullYear() === date.getFullYear();
+      });
+      
+      const nextNum = (monthQuotes.length + 1).toString().padStart(3, '0');
+      return `QT-${year}${month}-${nextNum}`;
+    } catch (err) {
+      console.error("Error generating quote number:", err);
+      return `QT-${Date.now()}`;
+    }
+  };
+
   return {
     quotes,
     clients,
@@ -173,5 +197,6 @@ export const useQuotes = () => {
     convertToInvoice,
     getClientName,
     getProjectName,
+    generateQuoteNumber,
   };
 };

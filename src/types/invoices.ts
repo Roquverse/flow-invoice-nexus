@@ -1,3 +1,4 @@
+
 // Invoice entity type
 export interface Invoice {
   id: string;
@@ -18,6 +19,10 @@ export interface Invoice {
   footer?: string;
   created_at: string;
   updated_at: string;
+  // Additional fields needed for forms
+  subtotal?: number;
+  tax_rate?: number;
+  items?: InvoiceItem[];
 }
 
 // Invoice item entity type
@@ -32,6 +37,7 @@ export interface InvoiceItem {
   amount: number; // quantity * unit_price
   created_at: string;
   updated_at: string;
+  total?: number; // Additional field for convenience
 }
 
 // Form data for invoice creation and updates
@@ -50,6 +56,9 @@ export interface InvoiceFormData {
   items: InvoiceItemFormData[];
   tax_amount?: number;
   discount_amount?: number;
+  subtotal?: number;
+  tax_rate?: number;
+  total_amount?: number;
 }
 
 // Form data for invoice item creation and updates
@@ -60,4 +69,5 @@ export interface InvoiceItemFormData {
   unit_price: number;
   tax_rate?: number;
   discount_rate?: number;
+  total?: number; // For convenience
 }

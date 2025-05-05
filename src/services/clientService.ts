@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Client, ClientFormData } from "@/types/clients";
 
@@ -21,7 +22,13 @@ export async function getClients(): Promise<Client[]> {
       return [];
     }
 
-    return data || [];
+    // Properly cast the status field to ensure type compatibility
+    const typedData = data?.map(client => ({
+      ...client, 
+      status: (client.status || 'active') as "active" | "inactive" | "archived"
+    })) || [];
+
+    return typedData;
   } catch (e) {
     console.error("Error accessing clients:", e);
     return [];
@@ -49,7 +56,11 @@ export async function getClientById(id: string): Promise<Client | null> {
       return null;
     }
 
-    return data;
+    // Cast status field to the correct type
+    return data ? {
+      ...data,
+      status: (data.status || 'active') as "active" | "inactive" | "archived"
+    } : null;
   } catch (e) {
     console.error("Error accessing client:", e);
     return null;
@@ -91,7 +102,11 @@ export async function createClient(
       return null;
     }
 
-    return data;
+    // Cast status field to the correct type
+    return data ? {
+      ...data,
+      status: (data.status || 'active') as "active" | "inactive" | "archived"
+    } : null;
   } catch (e) {
     console.error("Error creating client:", e);
     return null;
@@ -135,7 +150,11 @@ export async function updateClient(
       return null;
     }
 
-    return data;
+    // Cast status field to the correct type
+    return data ? {
+      ...data,
+      status: (data.status || 'active') as "active" | "inactive" | "archived"
+    } : null;
   } catch (e) {
     console.error("Error updating client:", e);
     return null;

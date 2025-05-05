@@ -1,6 +1,6 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Project, ProjectFormData } from "@/types/projects";
-import { ClientBasicInfo } from "@/types/projects";
 
 /**
  * Get all projects for the current user
@@ -15,14 +15,20 @@ export async function getProjects(): Promise<Project[]> {
       .from("projects")
       .select("*")
       .eq("user_id", user.user.id)
-      .order("name");
+      .order("created_at", { ascending: false });
 
     if (error) {
       console.error("Error fetching projects:", error);
       return [];
     }
 
-    return data || [];
+    // Cast status field to the correct type
+    const typedData = data?.map(project => ({
+      ...project,
+      status: project.status as "active" | "completed" | "on-hold" | "cancelled"
+    })) || [];
+
+    return typedData;
   } catch (e) {
     console.error("Error accessing projects:", e);
     return [];

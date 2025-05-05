@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Invoice, InvoiceFormData } from "@/types/invoices";
 import { Client } from "@/types/clients";
@@ -144,6 +145,29 @@ export const useInvoices = () => {
     return project ? project.name : "-";
   };
 
+  // Generate an invoice number
+  const generateInvoiceNumber = async (): Promise<string> => {
+    try {
+      // Get the current date
+      const date = new Date();
+      const year = date.getFullYear().toString().slice(-2);
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      
+      // Count existing invoices for this month
+      const monthInvoices = invoices.filter(inv => {
+        const invDate = new Date(inv.issue_date);
+        return invDate.getMonth() + 1 === date.getMonth() + 1 && 
+               invDate.getFullYear() === date.getFullYear();
+      });
+      
+      const nextNum = (monthInvoices.length + 1).toString().padStart(3, '0');
+      return `INV-${year}${month}-${nextNum}`;
+    } catch (err) {
+      console.error("Error generating invoice number:", err);
+      return `INV-${Date.now()}`;
+    }
+  };
+
   return {
     invoices,
     clients,
@@ -157,5 +181,6 @@ export const useInvoices = () => {
     changeInvoiceStatus,
     getClientName,
     getProjectName,
+    generateInvoiceNumber,
   };
 };

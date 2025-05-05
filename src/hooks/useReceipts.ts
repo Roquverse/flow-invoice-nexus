@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Receipt, ReceiptFormData } from "@/types/receipts";
 import { Client } from "@/types/clients";
@@ -126,6 +127,29 @@ export const useReceipts = () => {
       (invoice) => invoice.client_id === clientId && invoice.status !== "paid"
     );
   };
+  
+  // Generate a receipt number
+  const generateReceiptNumber = async (): Promise<string> => {
+    try {
+      // Get the current date
+      const date = new Date();
+      const year = date.getFullYear().toString().slice(-2);
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      
+      // Count existing receipts for this month
+      const monthReceipts = receipts.filter(receipt => {
+        const receiptDate = new Date(receipt.date);
+        return receiptDate.getMonth() + 1 === date.getMonth() + 1 && 
+               receiptDate.getFullYear() === date.getFullYear();
+      });
+      
+      const nextNum = (monthReceipts.length + 1).toString().padStart(3, '0');
+      return `RCT-${year}${month}-${nextNum}`;
+    } catch (err) {
+      console.error("Error generating receipt number:", err);
+      return `RCT-${Date.now()}`;
+    }
+  };
 
   return {
     receipts,
@@ -140,5 +164,6 @@ export const useReceipts = () => {
     getClientName,
     getInvoiceNumber,
     getUnpaidInvoices,
+    generateReceiptNumber,
   };
 };

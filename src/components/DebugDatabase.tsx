@@ -1,259 +1,347 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import * as settingsService from "@/services/settingsService";
-import { supabase } from "@/integrations/supabase/client";
+import React, { useState, useEffect } from "react";
+import { supabase } from "../integrations/supabase/client";
+import { Button } from "./ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+import { Textarea } from "./ui/textarea";
+import { toast } from "sonner";
+import { AlertCircle, Check, Copy, Database, Play, Trash } from "lucide-react";
 
-// SQL for creating tables
-const CREATE_TABLES_SQL = `
--- Create tables in the public schema
-CREATE TABLE IF NOT EXISTS user_profiles (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  first_name TEXT,
-  last_name TEXT,
-  email TEXT NOT NULL,
-  phone TEXT,
-  avatar_url TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
-);
+const DebugDatabase = () => {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<any[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [queryHistory, setQueryHistory] = useState<string[]>([]);
+  const [tableInfo, setTableInfo] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState("query");
 
--- Enable Row Level Security
-ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
-
--- Create policies
-CREATE POLICY "Users can view their own profile"
-  ON user_profiles FOR SELECT
-  USING (auth.uid() = id);
-
-CREATE POLICY "Users can update their own profile"
-  ON user_profiles FOR UPDATE
-  USING (auth.uid() = id);
-  
-CREATE POLICY "Users can insert their own profile"
-  ON user_profiles FOR INSERT
-  WITH CHECK (auth.uid() = id);
-
--- Company settings table
-CREATE TABLE IF NOT EXISTS company_settings (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  company_name TEXT,
-  industry TEXT,
-  address TEXT,
-  city TEXT,
-  postal_code TEXT,
-  country TEXT,
-  tax_id TEXT,
-  logo_url TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
-  UNIQUE(user_id)
-);
-
-ALTER TABLE company_settings ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view their own company settings"
-  ON company_settings FOR SELECT
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their own company settings"
-  ON company_settings FOR UPDATE
-  USING (auth.uid() = user_id);
-  
-CREATE POLICY "Users can insert their own company settings"
-  ON company_settings FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
-
--- Billing settings table
-CREATE TABLE IF NOT EXISTS billing_settings (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  billing_name TEXT,
-  billing_email TEXT,
-  subscription_plan TEXT DEFAULT 'free',
-  subscription_status TEXT DEFAULT 'active',
-  subscription_renewal_date DATE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
-  UNIQUE(user_id)
-);
-
-ALTER TABLE billing_settings ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view their own billing settings"
-  ON billing_settings FOR SELECT
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their own billing settings"
-  ON billing_settings FOR UPDATE
-  USING (auth.uid() = user_id);
-  
-CREATE POLICY "Users can insert their own billing settings"
-  ON billing_settings FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
-
--- Notification preferences
-CREATE TABLE IF NOT EXISTS notification_preferences (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  invoice_notifications BOOLEAN DEFAULT true,
-  client_activity BOOLEAN DEFAULT true,
-  project_updates BOOLEAN DEFAULT false,
-  marketing_tips BOOLEAN DEFAULT false,
-  email_frequency TEXT DEFAULT 'immediate',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
-  UNIQUE(user_id)
-);
-
-ALTER TABLE notification_preferences ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view their own notification preferences"
-  ON notification_preferences FOR SELECT
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their own notification preferences"
-  ON notification_preferences FOR UPDATE
-  USING (auth.uid() = user_id);
-  
-CREATE POLICY "Users can insert their own notification preferences"
-  ON notification_preferences FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
-
--- Security settings
-CREATE TABLE IF NOT EXISTS security_settings (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  two_factor_enabled BOOLEAN DEFAULT false,
-  last_password_change TIMESTAMP WITH TIME ZONE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
-  UNIQUE(user_id)
-);
-
-ALTER TABLE security_settings ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view their own security settings"
-  ON security_settings FOR SELECT
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their own security settings"
-  ON security_settings FOR UPDATE
-  USING (auth.uid() = user_id);
-  
-CREATE POLICY "Users can insert their own security settings"
-  ON security_settings FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
-`;
-
-export function DebugDatabase() {
-  const [result, setResult] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const runDebug = async () => {
-    setIsLoading(true);
-    try {
-      const status = await settingsService.debugDatabaseStatus();
-      setResult(status);
-    } catch (error) {
-      setResult({ error });
-    } finally {
-      setIsLoading(false);
+  useEffect(() => {
+    // Load query history from localStorage
+    const savedHistory = localStorage.getItem("queryHistory");
+    if (savedHistory) {
+      try {
+        setQueryHistory(JSON.parse(savedHistory));
+      } catch (e) {
+        console.error("Failed to parse query history:", e);
+      }
     }
-  };
 
-  const createUserProfile = async () => {
-    setIsLoading(true);
+    // Fetch table information
+    fetchTableInfo();
+  }, []);
+
+  const fetchTableInfo = async () => {
     try {
-      // Get current user
-      const { data: authData } = await supabase.auth.getUser();
-
-      if (!authData.user) {
-        setResult({ error: "No authenticated user" });
+      const { data, error } = await supabase.rpc("get_schema_info");
+      
+      if (error) {
+        console.error("Error fetching schema info:", error);
         return;
       }
-
-      // Create a basic profile
-      const profile = {
-        email: authData.user.email || "unknown@example.com",
-        first_name: "Test",
-        last_name: "User",
-      };
-
-      const result = await settingsService.updateUserProfile(profile);
-      setResult({ profileCreated: result });
-    } catch (error) {
-      setResult({ error });
-    } finally {
-      setIsLoading(false);
+      
+      setTableInfo(data || []);
+    } catch (e) {
+      console.error("Error in fetchTableInfo:", e);
     }
   };
 
-  const initializeDatabase = async () => {
-    setIsLoading(true);
+  const executeQuery = async () => {
+    if (!query.trim()) {
+      toast.error("Please enter a query");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setResults(null);
+
     try {
-      // Execute the SQL directly through Supabase
-      const { error } = await supabase.rpc("exec", {
-        query: CREATE_TABLES_SQL,
+      // Only allow SELECT queries for safety
+      const trimmedQuery = query.trim();
+      if (!trimmedQuery.toLowerCase().startsWith("select")) {
+        throw new Error("Only SELECT queries are allowed for safety reasons");
+      }
+
+      const { data, error } = await supabase.rpc("execute_query", {
+        query_text: trimmedQuery,
       });
 
       if (error) {
         throw error;
       }
 
-      setResult({
-        message: "Database tables have been initialized",
-        tables:
-          "All required tables should now be created with proper RLS policies",
-      });
-
-      // Verify by running debug
-      await runDebug();
-    } catch (error) {
-      setResult({
-        error: error,
-        message:
-          "Failed to initialize database. Try running the SQL fix script manually in Supabase.",
-      });
+      setResults(data);
+      
+      // Add to history if not already present
+      if (!queryHistory.includes(trimmedQuery)) {
+        const newHistory = [trimmedQuery, ...queryHistory].slice(0, 20);
+        setQueryHistory(newHistory);
+        localStorage.setItem("queryHistory", JSON.stringify(newHistory));
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  return (
-    <div className="p-4 border rounded-lg bg-slate-50">
-      <h2 className="text-lg font-bold mb-4">Database Debugger</h2>
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text)
+      .then(() => toast.success("Copied to clipboard"))
+      .catch(() => toast.error("Failed to copy"));
+  };
 
-      <div className="flex flex-wrap gap-2 mb-4">
-        <Button onClick={runDebug} disabled={isLoading}>
-          {isLoading ? "Running..." : "Check Database Status"}
-        </Button>
+  const loadQuery = (savedQuery: string) => {
+    setQuery(savedQuery);
+    setActiveTab("query");
+  };
 
-        <Button
-          onClick={createUserProfile}
-          disabled={isLoading}
-          variant="secondary"
-        >
-          Create Test Profile
-        </Button>
+  const clearHistory = () => {
+    setQueryHistory([]);
+    localStorage.removeItem("queryHistory");
+    toast.success("Query history cleared");
+  };
 
-        <Button
-          onClick={initializeDatabase}
-          disabled={isLoading}
-          variant="destructive"
-        >
-          Initialize Database Tables
-        </Button>
-      </div>
+  const renderResults = () => {
+    if (loading) {
+      return <div className="p-4 text-center">Loading results...</div>;
+    }
 
-      {result && (
-        <div className="mt-4">
-          <h3 className="font-medium mb-2">Results:</h3>
-          <pre className="bg-slate-800 text-slate-100 p-4 rounded overflow-auto max-h-96">
-            {JSON.stringify(result, null, 2)}
-          </pre>
+    if (error) {
+      return (
+        <div className="p-4 bg-red-50 text-red-800 rounded-md flex items-start">
+          <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="font-semibold">Error executing query</p>
+            <p className="text-sm">{error}</p>
+          </div>
         </div>
-      )}
+      );
+    }
+
+    if (!results) {
+      return (
+        <div className="p-4 text-center text-gray-500">
+          Execute a query to see results
+        </div>
+      );
+    }
+
+    if (results.length === 0) {
+      return (
+        <div className="p-4 text-center text-gray-500">
+          Query executed successfully, but returned no results
+        </div>
+      );
+    }
+
+    // Get column names from the first result
+    const columns = Object.keys(results[0]);
+
+    return (
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="bg-gray-100">
+              {columns.map((column) => (
+                <th key={column} className="border p-2 text-left">
+                  {column}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {results.map((row, rowIndex) => (
+              <tr key={rowIndex} className="border-b hover:bg-gray-50">
+                {columns.map((column) => (
+                  <td key={`${rowIndex}-${column}`} className="border p-2">
+                    {typeof row[column] === "object"
+                      ? JSON.stringify(row[column])
+                      : String(row[column] ?? "")}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="mt-2 text-sm text-gray-500">
+          {results.length} {results.length === 1 ? "row" : "rows"} returned
+        </div>
+      </div>
+    );
+  };
+
+  const renderTableInfo = () => {
+    if (tableInfo.length === 0) {
+      return <div className="p-4 text-center text-gray-500">Loading schema information...</div>;
+    }
+
+    // Group by table name
+    const tableGroups: Record<string, any[]> = {};
+    tableInfo.forEach(column => {
+      if (!tableGroups[column.table_name]) {
+        tableGroups[column.table_name] = [];
+      }
+      tableGroups[column.table_name].push(column);
+    });
+
+    return (
+      <div className="space-y-6">
+        {Object.entries(tableGroups).map(([tableName, columns]) => (
+          <div key={tableName} className="border rounded-md overflow-hidden">
+            <div className="bg-gray-100 p-3 font-medium flex justify-between items-center">
+              <span>{tableName}</span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => copyToClipboard(`SELECT * FROM ${tableName} LIMIT 100;`)}
+                className="h-8"
+              >
+                <Copy className="h-4 w-4 mr-1" /> Query
+              </Button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="border-b p-2 text-left">Column</th>
+                    <th className="border-b p-2 text-left">Type</th>
+                    <th className="border-b p-2 text-left">Nullable</th>
+                    <th className="border-b p-2 text-left">Default</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {columns.map((column, i) => (
+                    <tr key={i} className="border-b hover:bg-gray-50">
+                      <td className="p-2">
+                        {column.column_name}
+                        {column.is_primary_key && (
+                          <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-1 py-0.5 rounded">
+                            PK
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-2">{column.data_type}</td>
+                      <td className="p-2">
+                        {column.is_nullable ? "YES" : "NO"}
+                      </td>
+                      <td className="p-2">{column.column_default || "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-6">Database Explorer</h1>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="mb-4">
+          <TabsTrigger value="query">
+            <Play className="h-4 w-4 mr-2" /> Query Editor
+          </TabsTrigger>
+          <TabsTrigger value="schema">
+            <Database className="h-4 w-4 mr-2" /> Schema Browser
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="query" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>SQL Query</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Enter your SQL query here (SELECT statements only)"
+                className="font-mono"
+                rows={5}
+              />
+              <div className="mt-4 flex justify-between">
+                <Button onClick={executeQuery} disabled={loading}>
+                  {loading ? "Executing..." : "Execute Query"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => copyToClipboard(query)}
+                  disabled={!query}
+                >
+                  <Copy className="h-4 w-4 mr-2" /> Copy Query
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Results</CardTitle>
+            </CardHeader>
+            <CardContent>{renderResults()}</CardContent>
+          </Card>
+
+          {queryHistory.length > 0 && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Query History</CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearHistory}
+                  className="h-8"
+                >
+                  <Trash className="h-4 w-4 mr-1" /> Clear
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {queryHistory.map((savedQuery, index) => (
+                    <div
+                      key={index}
+                      className="p-2 border rounded-md hover:bg-gray-50 flex justify-between items-center cursor-pointer"
+                      onClick={() => loadQuery(savedQuery)}
+                    >
+                      <div className="font-mono text-sm truncate flex-1">
+                        {savedQuery}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          copyToClipboard(savedQuery);
+                        }}
+                        className="h-7 w-7 p-0"
+                      >
+                        <Copy className="h-4 w-4" />
+                        <span className="sr-only">Copy</span>
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="schema">
+          <Card>
+            <CardHeader>
+              <CardTitle>Database Schema</CardTitle>
+            </CardHeader>
+            <CardContent>{renderTableInfo()}</CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
-}
+};
+
+export default DebugDatabase;

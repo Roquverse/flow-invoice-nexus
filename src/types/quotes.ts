@@ -1,3 +1,4 @@
+
 // Quote entity type
 export interface Quote {
   id: string;
@@ -18,6 +19,10 @@ export interface Quote {
   footer?: string;
   created_at: string;
   updated_at: string;
+  // Additional fields for forms
+  subtotal?: number;
+  tax_rate?: number;
+  items?: QuoteItem[];
 }
 
 // Quote item entity type
@@ -32,6 +37,7 @@ export interface QuoteItem {
   amount: number; // quantity * unit_price
   created_at: string;
   updated_at: string;
+  total?: number; // Additional field for convenience
 }
 
 // Form data for quote creation and updates
@@ -50,6 +56,9 @@ export interface QuoteFormData {
   items: QuoteItemFormData[];
   tax_amount?: number;
   discount_amount?: number;
+  subtotal?: number;
+  tax_rate?: number;
+  total_amount?: number;
 }
 
 // Form data for quote item creation and updates
@@ -60,4 +69,5 @@ export interface QuoteItemFormData {
   unit_price: number;
   tax_rate?: number;
   discount_rate?: number;
+  total?: number; // For convenience
 }
