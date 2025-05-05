@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
 const Header: React.FC = () => {
-  const { user } = useAuth();
+  const { currentUser } = useAuth();
   const [isSticky, setIsSticky] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -54,7 +54,7 @@ const Header: React.FC = () => {
   return (
     <>
       <div className="Risitify-overly-bg"></div>
-      <header className={`header-section v2 v5 ${isSticky ? "header-sticky" : ""}`}>
+      <header className={`header-section ${isSticky ? "header-sticky" : ""}`}>
         <div className="container">
           <div className="row">
             <div className="col-md-12">
@@ -74,7 +74,7 @@ const Header: React.FC = () => {
                     <img src="/icons/menu-close.svg" alt="close menu" className={isMobileMenuOpen ? "visible" : "hidden"} />
                   </button>
 
-                  <div className="header-navbar-content" id="navbarSupportedContent">
+                  <div className="header-navbar-content">
                     <ul className="navbar-nav main-menu">
                       <li className="nav-item">
                         <Link
@@ -114,7 +114,7 @@ const Header: React.FC = () => {
                       </li>
                     </ul>
                     <ul className="header-extra">
-                      {user ? (
+                      {currentUser ? (
                         <li>
                           <Link to="/dashboard" className="dashboard-link">
                             Dashboard
@@ -174,7 +174,7 @@ const Header: React.FC = () => {
           </li>
         </ul>
         <ul className="nav-buttons">
-          {user ? (
+          {currentUser ? (
             <li>
               <Link
                 to="/dashboard"

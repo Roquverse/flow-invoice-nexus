@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { supabase } from "../integrations/supabase/client";
-import { PostgrestResponse } from "@supabase/supabase-js";
+import { getAllTables, getTableColumns, getSampleTableData } from "../rpc/databaseHelpers";
 
 type TableColumn = {
   name: string;
@@ -25,41 +25,29 @@ export default function DebugDatabase() {
     async function fetchTables() {
       try {
         // Get list of tables from the schema
-        const { data: tableList, error: tableError } = await supabase
-          .from("pg_tables")
-          .select("tablename")
-          .eq("schemaname", "public");
-
-        if (tableError) throw tableError;
-        if (!tableList) throw new Error("No tables found");
-
-        // Convert to array of table names
-        const tableNames = tableList.map((t) => t.tablename);
+        const tableNames = await getAllTables();
+        
+        if (!tableNames) {
+          throw new Error("Could not fetch tables");
+        }
         
         // For each table, get info and first few rows
         const tablesInfo: TableInfo[] = [];
         
         for (const tableName of tableNames) {
           // Get columns info
-          const { data: columnsData, error: columnsError } = await supabase.rpc(
-            "get_table_columns",
-            { table_name: tableName as string }
-          );
+          const columnsData = await getTableColumns(tableName);
           
-          if (columnsError) {
-            console.error(`Error fetching columns for ${tableName}:`, columnsError);
+          if (!columnsData) {
+            console.error(`Error fetching columns for ${tableName}`);
             continue;
           }
           
           // Get rows (first 5)
-          // We need to use 'any' type here because the table name is dynamic
-          const { data: rows, error: rowsError } = await supabase
-            .from(tableName as any)
-            .select("*")
-            .limit(5);
+          const rows = await getSampleTableData(tableName, 5);
             
-          if (rowsError) {
-            console.error(`Error fetching rows for ${tableName}:`, rowsError);
+          if (!rows) {
+            console.error(`Error fetching rows for ${tableName}`);
             continue;
           }
           

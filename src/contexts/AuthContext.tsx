@@ -5,12 +5,14 @@ import { User } from "@supabase/supabase-js";
 
 interface AuthContextType {
   currentUser: User | null;
+  user: User | null; // Added for compatibility
   loading: boolean;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   currentUser: null,
+  user: null, // Added for compatibility
   loading: true,
   signOut: async () => {},
 });
@@ -55,6 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value = {
     currentUser,
+    user: currentUser, // Add user property for compatibility
     loading,
     signOut,
   };
