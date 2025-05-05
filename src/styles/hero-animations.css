@@ -1,0 +1,182 @@
+/* Hero animations - Simplified */
+.hero-section-index5 {
+  position: relative;
+  overflow: hidden;
+}
+
+.index5-hero-img {
+  transition: transform 0.3s ease-out;
+}
+
+.index5-hero-img img {
+  max-width: 100%;
+  animation: float 4s ease-in-out infinite;
+  filter: drop-shadow(0 15px 15px rgba(0, 0, 0, 0.1));
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+/* Word animation */
+.word-animation-wrapper {
+  display: inline-block;
+  position: relative;
+  min-width: 150px;
+  height: 1.2em;
+  vertical-align: middle;
+  text-align: left;
+  transform: translateY(-3px);
+}
+
+.animated-word {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: inline-block;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.fade-in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.fade-out {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+/* Basic carousel styles without animations */
+.index5-scroll-carousel-section {
+  overflow: hidden;
+  position: relative;
+  margin-top: 50px;
+  box-shadow: none;
+}
+
+.slide-left,
+.slide-right {
+  display: flex;
+  overflow-x: auto;
+  white-space: nowrap;
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.slide-left::-webkit-scrollbar,
+.slide-right::-webkit-scrollbar {
+  display: none;
+}
+
+.slide-left li,
+.slide-right li {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 15px 30px;
+  border-radius: 10px;
+  margin-right: 20px;
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  box-shadow: none;
+}
+
+.slide-left li span,
+.slide-right li span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  margin-bottom: 10px;
+}
+
+.slide-left li strong,
+.slide-right li strong {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Basic welcome section */
+.v5welocme-section {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  border-radius: 50px;
+  background: rgba(79, 70, 229, 0.1);
+  color: #4f46e5;
+  font-weight: 500;
+  margin-bottom: 20px;
+}
+
+.v5welocme-section img {
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+}
+
+/* Basic form styles */
+.index5-hero-content form {
+  position: relative;
+  display: flex;
+  max-width: 500px;
+  margin: 30px auto;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+  border-radius: 50px;
+  overflow: hidden;
+}
+
+.index5-hero-content input {
+  flex: 1;
+  padding: 15px 20px;
+  border: none;
+  outline: none;
+  font-size: 16px;
+  border-radius: 50px 0 0 50px;
+}
+
+.index5-hero-content button {
+  padding: 15px 30px;
+  border: none;
+  background: #4f46e5;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 0 50px 50px 0;
+  position: relative;
+}
+
+/* Basic button states */
+.btn-inner {
+  position: relative;
+  display: inline-block;
+}
+
+.btn-normal-text,
+.btn-hover-text {
+  transition: all 0.3s ease;
+}
+
+.btn-hover-text {
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 0;
+}
+
+.bg-blue-btn:hover .btn-normal-text {
+  opacity: 0;
+}
+
+.bg-blue-btn:hover .btn-hover-text {
+  opacity: 1;
+}

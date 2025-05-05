@@ -122,11 +122,23 @@
   margin-bottom: 25px;
 }
 
+.banner-title .word-animation-wrapper {
+  display: inline-block;
+  vertical-align: middle;
+  text-align: left;
+  min-width: 180px;
+  height: 1.2em;
+  line-height: 1.2;
+  margin-bottom: 0;
+  position: relative;
+  transform: translateY(-3px);
+}
+
 .word-animation-wrapper {
   position: relative;
   display: inline-block;
-  height: 60px;
-  vertical-align: bottom;
+  height: 1.2em;
+  vertical-align: middle;
 }
 
 .animated-word {
@@ -210,6 +222,7 @@ Hero Form Styling .hero-form {
   position: relative;
   overflow: hidden;
   padding: 20px 0;
+  box-shadow: none !important;
 }
 
 .slide-left,
@@ -234,7 +247,7 @@ Hero Form Styling .hero-form {
   margin-right: 20px;
   padding: 15px 20px;
   border-radius: 10px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  box-shadow: none !important;
   min-width: 200px;
 }
 
