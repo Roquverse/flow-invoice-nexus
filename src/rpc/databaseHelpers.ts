@@ -2,12 +2,17 @@
 import { supabase } from "@/integrations/supabase/client";
 import { PostgrestError } from "@supabase/supabase-js";
 
+interface TableColumn {
+  name: string;
+  dataType: string;
+}
+
 /**
  * Executes a raw SQL query safely.
  */
 export const executeQuery = async <T,>(query: string): Promise<T[]> => {
   try {
-    const { data, error } = await supabase.rpc("execute_query", { query_text: query });
+    const { data, error } = await supabase.rpc<T>("execute_query", { query_text: query });
     
     if (error) {
       throw new Error(`SQL query error: ${error.message}`);
@@ -26,14 +31,8 @@ export const executeQuery = async <T,>(query: string): Promise<T[]> => {
 export const getTablesList = async (): Promise<string[]> => {
   try {
     // Use raw SQL query to get tables to avoid type errors
-    const { data, error } = await executeQuery<{ table_name: string }>(
-      "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'"
-    );
-
-    if (error) {
-      console.error("Error fetching tables:", error);
-      return [];
-    }
+    const query = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'";
+    const data = await executeQuery<{ table_name: string }>(query);
 
     return data.map((row) => row.table_name);
   } catch (error) {
@@ -55,14 +54,8 @@ export const getTableSchemas = async () => {
     // For each table, get its schema
     for (const table of tables) {
       // Use a safer way to get schema info
-      const { data, error } = await executeQuery<any>(
-        `SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '${table}' AND table_schema = 'public'`
-      );
-        
-      if (error) {
-        console.error(`Error fetching schema for ${table}:`, error);
-        continue;
-      }
+      const query = `SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '${table}' AND table_schema = 'public'`;
+      const data = await executeQuery<{ column_name: string; data_type: string }>(query);
       
       schemas[table] = {
         columns: data.map(col => col.column_name),
@@ -80,21 +73,18 @@ export const getTableSchemas = async () => {
   }
 };
 
-// Add these functions for the DebugDatabase component
+// Functions for the DebugDatabase component
 export const getAllTables = getTablesList;
 
-export const getTableColumns = async (tableName: string): Promise<string[]> => {
+export const getTableColumns = async (tableName: string): Promise<TableColumn[]> => {
   try {
-    const { data, error } = await executeQuery<{ column_name: string }>(
-      `SELECT column_name FROM information_schema.columns WHERE table_name = '${tableName}' AND table_schema = 'public'`
-    );
+    const query = `SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '${tableName}' AND table_schema = 'public'`;
+    const data = await executeQuery<{ column_name: string; data_type: string }>(query);
     
-    if (error) {
-      console.error(`Error fetching columns for ${tableName}:`, error);
-      return [];
-    }
-    
-    return data.map(col => col.column_name);
+    return data.map(col => ({
+      name: col.column_name,
+      dataType: col.data_type
+    }));
   } catch (error) {
     console.error(`Failed to get columns for ${tableName}:`, error);
     return [];
@@ -103,14 +93,8 @@ export const getTableColumns = async (tableName: string): Promise<string[]> => {
 
 export const getSampleTableData = async (tableName: string, limit: number = 10): Promise<any[]> => {
   try {
-    const { data, error } = await executeQuery<any>(
-      `SELECT * FROM "${tableName}" LIMIT ${limit}`
-    );
-    
-    if (error) {
-      console.error(`Error fetching data for ${tableName}:`, error);
-      return [];
-    }
+    const query = `SELECT * FROM "${tableName}" LIMIT ${limit}`;
+    const data = await executeQuery(query);
     
     return data;
   } catch (error) {
