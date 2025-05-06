@@ -1,0 +1,20 @@
+/* Minimal app styling */
+:root {
+  --primary-color: #4f46e5;
+  --secondary-color: #818cf8;
+  --success-color: #22c55e;
+  --danger-color: #ef4444;
+  --warning-color: #f59e0b;
+  --info-color: #0ea5e9;
+}
+
+/* Default styling */
+body {
+  font-family: "Inter", sans-serif;
+  line-height: 1.5;
+}
+
+/* Fix for RTL support */
+html[dir="rtl"] {
+  text-align: right;
+}

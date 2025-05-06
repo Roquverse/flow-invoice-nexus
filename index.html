@@ -8,6 +8,9 @@
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="/assets/css/bootstrap.min.css" />
 
+    <!-- App Style for RTL support -->
+    <link id="app-style" rel="stylesheet" href="/assets/css/app.min.css" />
+
     <!-- Slick Carousel CSS -->
     <link rel="stylesheet" href="/assets/css/slick.css" />
     <link rel="stylesheet" href="/assets/css/slick-theme.css" />
@@ -60,8 +63,35 @@
     <script src="/assets/js/isotope.pkgd.min.js"></script>
     <script src="/assets/js/main.js"></script>
 
+    <!-- Fix for Theme Customizer JSON parse error -->
+    <script>
+      // Default theme configuration
+      window.defaultConfig = {
+        theme: "light",
+        nav: "vertical",
+        layout: {
+          mode: "fluid",
+          position: "fixed",
+        },
+        topbar: {
+          color: "light",
+        },
+        menu: {
+          color: "light",
+        },
+        sidenav: {
+          size: "default",
+          user: true,
+        },
+      };
+
+      // Current config (same as default initially)
+      window.config = JSON.parse(JSON.stringify(window.defaultConfig));
+    </script>
+
     <script src="/js/vendor.min.js"></script>
     <script src="/js/app.js"></script>
+    <script src="/js/app-fix.js"></script>
     <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
     <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
     <script type="module" src="/src/main.tsx"></script>

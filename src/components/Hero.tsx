@@ -10,6 +10,7 @@ const Hero: React.FC = () => {
   const slideLeftRef = useRef<HTMLUListElement>(null);
   const slideRightRef = useRef<HTMLUListElement>(null);
 
+  // Word animation effect
   useEffect(() => {
     const interval = setInterval(() => {
       setIsAnimating(true);
@@ -22,6 +23,7 @@ const Hero: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Simple carousel scrolling
   useEffect(() => {
     const slideLeft = slideLeftRef.current;
     const slideRight = slideRightRef.current;
@@ -102,92 +104,103 @@ const Hero: React.FC = () => {
           </form>
         </div>
         <div className="index5-hero-img">
-          <img src="/sass1/index5-banner-img.png" alt="img" />
+          <img src="/banner.png" alt="img" />
         </div>
       </div>
-      <div className="index5-scroll-carousel-section">
-        <ul className="slide-left" ref={slideLeftRef}>
-          <li>
+      <div
+        className="index5-scroll-carousel-section"
+        style={{ boxShadow: "none" }}
+      >
+        <ul
+          className="slide-left"
+          ref={slideLeftRef}
+          style={{ boxShadow: "none" }}
+        >
+          <li style={{ boxShadow: "none" }}>
             <span>
               <img src="/sass1/team-managemnet.svg" alt="img" />
             </span>
             <strong>Invoice Creation</strong>
           </li>
-          <li>
+          <li style={{ boxShadow: "none" }}>
             <span>
               <img src="/sass1/invoice.svg" alt="img" />
             </span>
             <strong>Payment Tracking</strong>
           </li>
-          <li>
+          <li style={{ boxShadow: "none" }}>
             <span>
               <img src="/sass1/meeting.svg" alt="img" />
             </span>
             <strong>Client Management</strong>
           </li>
-          <li>
+          <li style={{ boxShadow: "none" }}>
             <span>
               <img src="/sass1/chatbot.svg" alt="img" />
             </span>
             <strong>Automated Reminders</strong>
           </li>
-          <li>
+          <li style={{ boxShadow: "none" }}>
             <span>
               <img src="/sass1/seo.svg" alt="img" />
             </span>
             <strong>Financial Reports</strong>
           </li>
-          <li>
+          <li style={{ boxShadow: "none" }}>
             <span>
               <img src="/sass1/telehealth.svg" alt="img" />
             </span>
             <strong>Online Payments</strong>
           </li>
-          <li>
+          <li style={{ boxShadow: "none" }}>
             <span>
               <img src="/sass1/invoice.svg" alt="img" />
             </span>
             <strong>Tax Management</strong>
           </li>
         </ul>
-        <ul className="slide-right" ref={slideRightRef}>
-          <li>
+        <ul
+          className="slide-right"
+          ref={slideRightRef}
+          style={{ boxShadow: "none" }}
+        >
+          <li style={{ boxShadow: "none" }}>
             <span>
               <img src="/sass1/team-managemnet.svg" alt="img" />
             </span>
             <strong>Multi-Currency</strong>
           </li>
-          <li>
+          <li style={{ boxShadow: "none" }}>
             <span>
               <img src="/sass1/chat-inventory.svg" alt="img" />
             </span>
             <strong>Expense Tracking</strong>
           </li>
-          <li>
+          <li style={{ boxShadow: "none" }}>
             <span>
               <img src="/sass1/inventory.svg" alt="img" />
             </span>
             <strong>Inventory Sync</strong>
           </li>
-          <li>
+          <li style={{ boxShadow: "none" }}>
             <span>
               <img src="/sass1/email-automotion.svg" alt="img" />
             </span>
             <strong>Email Notifications</strong>
           </li>
-          <li>
+          <li style={{ boxShadow: "none" }}>
             <span>
               <img src="/sass1/help-desk.svg" alt="img" />
             </span>
             <strong>Customer Support</strong>
           </li>
-          <li>
+          <li style={{ boxShadow: "none" }}>
             <span>
               <img src="/sass1/campaign.svg" alt="img" />
             </span>
             <strong>Custom Templates</strong>
           </li>
-          <li>
+          <li style={{ boxShadow: "none" }}>
             <span>
               <img src="/sass1/saas.svg" alt="img" />
             </span>

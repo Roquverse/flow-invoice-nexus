@@ -4,6 +4,7 @@ export interface Receipt {
   user_id: string;
   client_id: string;
   invoice_id?: string;
+  quote_id?: string;
   receipt_number: string;
   reference?: string;
   date: string;
@@ -20,6 +21,7 @@ export interface Receipt {
 export interface ReceiptFormData {
   client_id: string;
   invoice_id?: string;
+  quote_id?: string;
   receipt_number?: string; // Auto-generated if not provided
   reference?: string;
   date: string;

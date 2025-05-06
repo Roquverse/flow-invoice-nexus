@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Quote, QuoteFormData } from "@/types/quotes";
 
@@ -23,10 +22,17 @@ export async function getQuotes(): Promise<Quote[]> {
     }
 
     // Cast status field to the correct type
-    const typedData = data?.map(quote => ({
-      ...quote,
-      status: quote.status as "draft" | "sent" | "viewed" | "accepted" | "rejected" | "expired"
-    })) || [];
+    const typedData =
+      data?.map((quote) => ({
+        ...quote,
+        status: quote.status as
+          | "draft"
+          | "sent"
+          | "viewed"
+          | "accepted"
+          | "rejected"
+          | "expired",
+      })) || [];
 
     return typedData;
   } catch (e) {
@@ -38,7 +44,9 @@ export async function getQuotes(): Promise<Quote[]> {
 /**
  * Get a specific quote by ID along with its items
  */
-export async function getQuoteById(id: string): Promise<{ quote: Quote, items: any[] }> {
+export async function getQuoteById(
+  id: string
+): Promise<{ quote: Quote; items: any[] }> {
   const { data: user } = await supabase.auth.getUser();
 
   if (!user.user) {
@@ -73,7 +81,13 @@ export async function getQuoteById(id: string): Promise<{ quote: Quote, items: a
     // Cast status field to the correct type
     const typedQuote = {
       ...quote,
-      status: quote.status as "draft" | "sent" | "viewed" | "accepted" | "rejected" | "expired"
+      status: quote.status as
+        | "draft"
+        | "sent"
+        | "viewed"
+        | "accepted"
+        | "rejected"
+        | "expired",
     };
 
     return { quote: typedQuote, items: items || [] };
@@ -86,7 +100,9 @@ export async function getQuoteById(id: string): Promise<{ quote: Quote, items: a
 /**
  * Create a new quote with its items
  */
-export async function createQuote(quoteData: QuoteFormData): Promise<Quote | null> {
+export async function createQuote(
+  quoteData: QuoteFormData
+): Promise<Quote | null> {
   const { data: user } = await supabase.auth.getUser();
 
   if (!user.user) return null;
@@ -108,6 +124,8 @@ export async function createQuote(quoteData: QuoteFormData): Promise<Quote | nul
         tax_amount: quoteData.tax_amount || 0,
         discount_amount: quoteData.discount_amount || 0,
         currency: quoteData.currency,
+        payment_percentage: quoteData.payment_percentage || 100,
+        payment_amount: quoteData.payment_amount || quoteData.total_amount || 0,
         notes: quoteData.notes || null,
         terms: quoteData.terms || null,
         footer: quoteData.footer || null,
@@ -123,7 +141,13 @@ export async function createQuote(quoteData: QuoteFormData): Promise<Quote | nul
     // Cast status field to the correct type
     const typedQuote = {
       ...newQuote,
-      status: newQuote.status as "draft" | "sent" | "viewed" | "accepted" | "rejected" | "expired"
+      status: newQuote.status as
+        | "draft"
+        | "sent"
+        | "viewed"
+        | "accepted"
+        | "rejected"
+        | "expired",
     };
 
     // Insert the quote items
@@ -158,7 +182,10 @@ export async function createQuote(quoteData: QuoteFormData): Promise<Quote | nul
 /**
  * Update an existing quote and its items
  */
-export async function updateQuote(id: string, quoteData: QuoteFormData): Promise<Quote | null> {
+export async function updateQuote(
+  id: string,
+  quoteData: QuoteFormData
+): Promise<Quote | null> {
   const { data: user } = await supabase.auth.getUser();
 
   if (!user.user) return null;
@@ -179,6 +206,8 @@ export async function updateQuote(id: string, quoteData: QuoteFormData): Promise
         tax_amount: quoteData.tax_amount || 0,
         discount_amount: quoteData.discount_amount || 0,
         currency: quoteData.currency,
+        payment_percentage: quoteData.payment_percentage || 100,
+        payment_amount: quoteData.payment_amount || quoteData.total_amount || 0,
         notes: quoteData.notes || null,
         terms: quoteData.terms || null,
         footer: quoteData.footer || null,
@@ -196,7 +225,13 @@ export async function updateQuote(id: string, quoteData: QuoteFormData): Promise
     // Cast status field to the correct type
     const typedQuote = {
       ...updatedQuote,
-      status: updatedQuote.status as "draft" | "sent" | "viewed" | "accepted" | "rejected" | "expired"
+      status: updatedQuote.status as
+        | "draft"
+        | "sent"
+        | "viewed"
+        | "accepted"
+        | "rejected"
+        | "expired",
     };
 
     // Delete existing items
@@ -279,7 +314,7 @@ export async function deleteQuote(id: string): Promise<boolean> {
  * Update the status of a quote
  */
 export async function updateQuoteStatus(
-  id: string, 
+  id: string,
   status: "draft" | "sent" | "viewed" | "accepted" | "rejected" | "expired"
 ): Promise<boolean> {
   const { data: user } = await supabase.auth.getUser();
@@ -308,7 +343,9 @@ export async function updateQuoteStatus(
 /**
  * Convert a quote to an invoice
  */
-export async function convertQuoteToInvoice(id: string): Promise<string | null> {
+export async function convertQuoteToInvoice(
+  id: string
+): Promise<string | null> {
   const { data: user } = await supabase.auth.getUser();
 
   if (!user.user) return null;
@@ -369,7 +406,10 @@ export async function convertQuoteToInvoice(id: string): Promise<string | null> 
         .insert(invoiceItems);
 
       if (itemsError) {
-        console.error(`Error creating invoice items from quote ${id}:`, itemsError);
+        console.error(
+          `Error creating invoice items from quote ${id}:`,
+          itemsError
+        );
       }
     }
 
@@ -391,7 +431,7 @@ export async function generateQuoteNumber(): Promise<string> {
   try {
     const date = new Date();
     const year = date.getFullYear().toString().slice(-2);
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
 
     const { data: quotes, error } = await supabase
       .from("quotes")
@@ -407,8 +447,8 @@ export async function generateQuoteNumber(): Promise<string> {
     // Find the highest number
     let highestNum = 0;
     if (quotes && quotes.length > 0) {
-      quotes.forEach(quote => {
-        const numStr = quote.quote_number.split('-')[2];
+      quotes.forEach((quote) => {
+        const numStr = quote.quote_number.split("-")[2];
         const num = parseInt(numStr);
         if (!isNaN(num) && num > highestNum) {
           highestNum = num;
@@ -417,7 +457,7 @@ export async function generateQuoteNumber(): Promise<string> {
     }
 
     // Generate next number
-    const nextNum = (highestNum + 1).toString().padStart(3, '0');
+    const nextNum = (highestNum + 1).toString().padStart(3, "0");
     return `QT-${year}${month}-${nextNum}`;
   } catch (e) {
     console.error("Error generating quote number:", e);

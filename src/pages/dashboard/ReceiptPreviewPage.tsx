@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, Printer } from "lucide-react";
 import { getReceiptById } from "@/services/receiptService";
 import { getClientById } from "@/services/clientService";
-import { getInvoiceById } from "@/services/invoiceService";
+import { invoiceService } from "@/services/invoiceService";
 import { Receipt } from "@/types/receipts";
 import { Invoice } from "@/types/invoices";
 import { Client } from "@/types/clients";
@@ -43,9 +43,8 @@ const ReceiptPreviewPage: React.FC = () => {
 
         // Fetch invoice data if there's a related invoice
         if (fetchedReceipt.invoice_id) {
-          const { invoice: fetchedInvoice } = await getInvoiceById(
-            fetchedReceipt.invoice_id
-          );
+          const { invoice: fetchedInvoice } =
+            await invoiceService.getInvoiceById(fetchedReceipt.invoice_id);
           if (fetchedInvoice) {
             setInvoice(fetchedInvoice);
           }

@@ -55,7 +55,11 @@ const Header: React.FC = () => {
       <div className="Risitify-overly-bg"></div>
       <header
         className={`header-section ${isSticky ? "header-sticky" : ""}`}
-        style={{ backgroundColor: "transparent" }}
+        style={{
+          backgroundColor: isSticky ? "#ffffff" : "transparent",
+          boxShadow: isSticky ? "0 4px 10px rgba(0, 0, 0, 0.05)" : "none",
+          transition: "all 0.3s ease",
+        }}
       >
         <div className="container">
           <div className="row">
@@ -91,7 +95,10 @@ const Header: React.FC = () => {
                           className="nav-link"
                           to="/"
                           onClick={() => scrollToSection("hero")}
-                          style={{ color: "#fff" }}
+                          style={{
+                            color: isSticky ? "#333" : "#000",
+                            fontWeight: "500",
+                          }}
                         >
                           Home
                         </Link>
@@ -101,7 +108,10 @@ const Header: React.FC = () => {
                           className="nav-link"
                           to="/"
                           onClick={() => scrollToSection("why-choose-us")}
-                          style={{ color: "#fff" }}
+                          style={{
+                            color: isSticky ? "#333" : "#000",
+                            fontWeight: "500",
+                          }}
                         >
                           About
                         </Link>
@@ -111,7 +121,10 @@ const Header: React.FC = () => {
                           className="nav-link"
                           to="/"
                           onClick={() => scrollToSection("powerful-template")}
-                          style={{ color: "#fff" }}
+                          style={{
+                            color: isSticky ? "#333" : "#000",
+                            fontWeight: "500",
+                          }}
                         >
                           Services
                         </Link>
@@ -121,7 +134,10 @@ const Header: React.FC = () => {
                           className="nav-link"
                           to="/"
                           onClick={() => scrollToSection("footer")}
-                          style={{ color: "#fff" }}
+                          style={{
+                            color: isSticky ? "#333" : "#000",
+                            fontWeight: "500",
+                          }}
                         >
                           Contact
                         </Link>
@@ -133,7 +149,10 @@ const Header: React.FC = () => {
                           <Link
                             to="/dashboard"
                             className="dashboard-link"
-                            style={{ color: "#fff" }}
+                            style={{
+                              color: isSticky ? "#333" : "#000",
+                              fontWeight: "500",
+                            }}
                           >
                             Dashboard
                           </Link>
@@ -144,7 +163,10 @@ const Header: React.FC = () => {
                             <Link
                               to="/sign-in"
                               className="sign-in-link"
-                              style={{ color: "#fff" }}
+                              style={{
+                                color: isSticky ? "#333" : "#000",
+                                fontWeight: "500",
+                              }}
                             >
                               Sign In
                             </Link>

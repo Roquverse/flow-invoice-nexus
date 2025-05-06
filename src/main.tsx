@@ -17,6 +17,7 @@ import "./styles/font-fixes.css";
 import "./styles/pricing.css";
 import "./styles/powerfulTemplate.css";
 import "./styles/auth-pages.css";
+import "./styles/hero-animations.css";
 import "./index.css";
 import "./styles/dashboard.css";
 

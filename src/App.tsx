@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -19,12 +18,12 @@ import SettingsPage from "./pages/dashboard/SettingsPage";
 import InvoicesPage from "./pages/dashboard/InvoicesPage";
 import QuotesPage from "./pages/dashboard/QuotesPage";
 import ReceiptsPage from "./pages/dashboard/ReceiptsPage";
-import InvoiceForm from "./components/invoice/InvoiceForm";
 import QuoteForm from "./components/quote/QuoteForm";
-import ReceiptForm from "./components/receipt/ReceiptForm";
-import InvoicePreviewPage from "./pages/dashboard/InvoicePreviewPage";
-import QuotePreviewPage from "./pages/dashboard/QuotePreviewPage";
 import ReceiptPreviewPage from "./pages/dashboard/ReceiptPreviewPage";
+import QuotePreviewPage from "./pages/dashboard/QuotePreviewPage";
+import ModernInvoicePage from "./pages/dashboard/ModernInvoicePage";
+import ModernInvoicePreviewPage from "./pages/dashboard/ModernInvoicePreviewPage";
+import ModernReceiptPage from "./pages/dashboard/ModernReceiptPage";
 
 // // Import styles
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -82,36 +81,44 @@ const App: React.FC = () => {
 
             {/* Invoice Routes */}
             <Route path="invoices" element={<InvoicesPage />} />
-            <Route path="invoices/new" element={<InvoiceForm />} />
+            <Route path="invoices/new" element={<ModernInvoicePage />} />
             <Route path="invoices/:id" element={<InvoicesPage />} />
-            <Route
-              path="invoices/:id/edit"
-              element={<InvoiceForm isEditing />}
-            />
+            <Route path="invoices/:id/edit" element={<ModernInvoicePage />} />
             <Route
               path="invoices/preview/:id"
-              element={<InvoicePreviewPage />}
+              element={<ModernInvoicePreviewPage />}
+            />
+
+            {/* Modern Invoice Routes - keeping for compatibility */}
+            <Route path="modern-invoice/new" element={<ModernInvoicePage />} />
+            <Route
+              path="modern-invoice/edit/:id"
+              element={<ModernInvoicePage />}
+            />
+            <Route
+              path="modern-invoice/preview/:id"
+              element={<ModernInvoicePreviewPage />}
             />
 
             {/* Quote Routes */}
             <Route path="quotes" element={<QuotesPage />} />
-            <Route path="quotes/new" element={<QuoteForm />} />
+            <Route
+              path="quotes/new"
+              element={<QuoteForm isEditing={false} />}
+            />
             <Route path="quotes/:id" element={<QuotesPage />} />
             <Route path="quotes/:id/edit" element={<QuoteForm isEditing />} />
             <Route path="quotes/preview/:id" element={<QuotePreviewPage />} />
 
             {/* Receipt Routes */}
             <Route path="receipts" element={<ReceiptsPage />} />
-            <Route path="receipts/new" element={<ReceiptForm />} />
-            <Route path="receipts/:id" element={<ReceiptsPage />} />
-            <Route
-              path="receipts/:id/edit"
-              element={<ReceiptForm isEditing />}
-            />
+            <Route path="receipts/new" element={<ModernReceiptPage />} />
             <Route
               path="receipts/preview/:id"
               element={<ReceiptPreviewPage />}
             />
+            <Route path="receipts/edit/:id" element={<ModernReceiptPage />} />
+            <Route path="receipts/:id" element={<ReceiptsPage />} />
 
             <Route path="clients" element={<ClientsPage />} />
             <Route path="projects" element={<ProjectsPage />} />

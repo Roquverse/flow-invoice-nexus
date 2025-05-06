@@ -2,20 +2,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Invoice } from "@/types/invoices";
+import { Quote } from "@/types/quotes";
 import { useCallback, useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useInvoices } from "@/hooks/useInvoices";
+import { useQuotes } from "@/hooks/useQuotes";
 import { formatCurrency, formatDate } from "@/utils/formatters";
 import { Link } from "react-router-dom";
 
-interface RecentInvoicesProps {
-  invoices: Invoice[];
+interface RecentQuotesProps {
+  quotes: Quote[];
   loading: boolean;
 }
 
-export function RecentInvoices({ invoices, loading }: RecentInvoicesProps) {
-  const { getClientName } = useInvoices();
+export function RecentQuotes({ quotes, loading }: RecentQuotesProps) {
+  const { getClientName } = useQuotes();
 
   // Get client initials from name
   const getClientInitials = useCallback(
@@ -35,42 +35,42 @@ export function RecentInvoices({ invoices, loading }: RecentInvoicesProps) {
   // Get status style
   const getStatusStyles = useCallback((status: string) => {
     switch (status) {
-      case "paid":
+      case "accepted":
         return "bg-green-100 text-green-800";
       case "sent":
         return "bg-blue-100 text-blue-800";
       case "viewed":
         return "bg-violet-100 text-violet-800";
-      case "overdue":
+      case "rejected":
         return "bg-red-100 text-red-800";
+      case "expired":
+        return "bg-amber-100 text-amber-800";
       case "draft":
-        return "bg-gray-100 text-gray-800";
-      case "cancelled":
         return "bg-gray-100 text-gray-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
   }, []);
 
-  // Sort invoices by issue date (newest first) and take latest 5
-  const recentInvoices = useMemo(() => {
-    if (loading || invoices.length === 0) return [];
+  // Sort quotes by issue date (newest first) and take latest 5
+  const recentQuotes = useMemo(() => {
+    if (loading || quotes.length === 0) return [];
 
-    return [...invoices]
+    return [...quotes]
       .sort(
         (a, b) =>
           new Date(b.issue_date).getTime() - new Date(a.issue_date).getTime()
       )
       .slice(0, 5);
-  }, [invoices, loading]);
+  }, [quotes, loading]);
 
   if (loading) {
     return (
       <Card className="col-span-1 md:col-span-2 lg:col-span-3">
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Recent Invoices</CardTitle>
+          <CardTitle>Recent Quotes</CardTitle>
           <Link
-            to="/dashboard/invoices"
+            to="/dashboard/quotes"
             className="text-sm text-primary hover:underline"
           >
             View all
@@ -102,49 +102,46 @@ export function RecentInvoices({ invoices, loading }: RecentInvoicesProps) {
   return (
     <Card className="col-span-1 md:col-span-2 lg:col-span-3">
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Recent Invoices</CardTitle>
+        <CardTitle>Recent Quotes</CardTitle>
         <Link
-          to="/dashboard/invoices"
+          to="/dashboard/quotes"
           className="text-sm text-primary hover:underline"
         >
           View all
         </Link>
       </CardHeader>
       <CardContent>
-        {recentInvoices.length > 0 ? (
+        {recentQuotes.length > 0 ? (
           <div className="space-y-3">
-            {recentInvoices.map((invoice) => (
+            {recentQuotes.map((quote) => (
               <div
-                key={invoice.id}
+                key={quote.id}
                 className="flex items-center justify-between p-3 hover:bg-muted/50 rounded-md transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <Avatar className="h-9 w-9">
                     <AvatarFallback className="bg-primary/10 text-primary">
-                      {getClientInitials(invoice.client_id)}
+                      {getClientInitials(quote.client_id)}
                     </AvatarFallback>
                   </Avatar>
                   <div>
                     <p className="font-medium">
-                      {getClientName(invoice.client_id)}
+                      {getClientName(quote.client_id)}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {invoice.invoice_number}
+                      {quote.quote_number}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <p className="font-medium">
-                    {formatCurrency(invoice.total_amount, invoice.currency)}
+                    {formatCurrency(quote.total_amount, quote.currency)}
                   </p>
                   <Badge
                     variant="outline"
-                    className={cn(
-                      "capitalize",
-                      getStatusStyles(invoice.status)
-                    )}
+                    className={cn("capitalize", getStatusStyles(quote.status))}
                   >
-                    {invoice.status}
+                    {quote.status}
                   </Badge>
                 </div>
               </div>
@@ -152,7 +149,7 @@ export function RecentInvoices({ invoices, loading }: RecentInvoicesProps) {
           </div>
         ) : (
           <div className="flex items-center justify-center h-[200px] text-gray-500">
-            No invoices available
+            No quotes available
           </div>
         )}
       </CardContent>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import * as projectService from "@/services/projectService";
+import { projectService } from "@/services/projectService";
 import { Project, ProjectFormData, ClientBasicInfo } from "@/types/projects";
 
 export function useProjects() {
@@ -13,12 +13,14 @@ export function useProjects() {
     try {
       setLoading(true);
       const data = await projectService.getProjects();
-      setProjects(data);
+      setProjects(data || []);
     } catch (err) {
       setError(
         err instanceof Error ? err : new Error("Failed to load projects")
       );
       console.error("Error loading projects:", err);
+      // Don't throw, set empty array to prevent app from crashing
+      setProjects([]);
     } finally {
       setLoading(false);
     }
@@ -26,16 +28,29 @@ export function useProjects() {
 
   const fetchClients = async () => {
     try {
-      const data = await projectService.getClientsList();
-      setClients(data);
+      const data = await projectService.getClientBasicInfo();
+      setClients(data || []);
     } catch (err) {
       console.error("Error loading clients for dropdown:", err);
+      // Don't throw, set empty array to prevent app from crashing
+      setClients([]);
     }
   };
 
   useEffect(() => {
-    fetchProjects();
-    fetchClients();
+    // Use Promise.allSettled to prevent one failure from affecting the other
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        await Promise.allSettled([fetchProjects(), fetchClients()]);
+      } catch (err) {
+        console.error("Error loading initial data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
   }, []);
 
   const getProject = async (id: string): Promise<Project | null> => {
@@ -112,16 +127,10 @@ export function useProjects() {
   const removeProject = async (id: string): Promise<boolean> => {
     try {
       setLoading(true);
-      const success = await projectService.deleteProject(id);
-
-      if (success) {
-        setProjects((prev) => prev.filter((project) => project.id !== id));
-        toast.success("Project deleted successfully");
-        return true;
-      } else {
-        toast.error("Failed to delete project");
-        return false;
-      }
+      await projectService.deleteProject(id);
+      setProjects((prev) => prev.filter((project) => project.id !== id));
+      toast.success("Project deleted successfully");
+      return true;
     } catch (err) {
       setError(
         err instanceof Error ? err : new Error(`Failed to delete project ${id}`)

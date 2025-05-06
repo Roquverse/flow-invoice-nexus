@@ -1,44 +1,41 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import "../styles/powerfulTemplate.css";
 
 const PowerfulTemplate: React.FC = () => {
-  const timelineRef = useRef<HTMLDivElement>(null);
-  const progressRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLDivElement>(null);
+  const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Store active state for each row
+  const [activeRows, setActiveRows] = useState<boolean[]>([
+    false,
+    false,
+    false,
+  ]);
 
   useEffect(() => {
+    // Set refs for the rows
+    rowRefs.current = rowRefs.current.slice(0, 3);
+
     const handleScroll = () => {
-      if (timelineRef.current && progressRef.current && sectionRef.current) {
+      if (sectionRef.current) {
         const section = sectionRef.current;
         const sectionRect = section.getBoundingClientRect();
         const viewportHeight = window.innerHeight;
 
-        // Calculate how far into the section we've scrolled
-        const sectionTop = sectionRect.top;
-        const sectionHeight = sectionRect.height;
-        const scrollPosition = window.scrollY;
-        const sectionOffset = scrollPosition + sectionTop;
-        const sectionScrollable = sectionHeight - viewportHeight;
+        // Update active state for each row
+        const newActiveRows = [...activeRows];
+        rowRefs.current.forEach((row, index) => {
+          if (row) {
+            const rect = row.getBoundingClientRect();
+            // Activate earlier for a smoother experience
+            const isInView = rect.top < viewportHeight * 0.85;
+            newActiveRows[index] = isInView;
+          }
+        });
 
-        // Calculate progress percentage
-        let progress = 0;
-        if (sectionTop <= 0) {
-          // We're inside or have scrolled past the section
-          const scrolled = Math.abs(sectionTop);
-          progress = Math.min((scrolled / sectionScrollable) * 100, 100);
-        } else if (sectionTop < viewportHeight) {
-          // We're approaching the section
-          progress = Math.min(
-            ((viewportHeight - sectionTop) / sectionHeight) * 100,
-            100
-          );
+        if (JSON.stringify(newActiveRows) !== JSON.stringify(activeRows)) {
+          setActiveRows(newActiveRows);
         }
-
-        // Ensure we reach 100% when near the bottom of the section
-        if (sectionTop + sectionHeight <= viewportHeight + 100) {
-          progress = 100;
-        }
-
-        progressRef.current.style.height = `${progress}%`;
       }
     };
 
@@ -47,7 +44,7 @@ const PowerfulTemplate: React.FC = () => {
     handleScroll();
 
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [activeRows]);
 
   return (
     <div
@@ -64,22 +61,23 @@ const PowerfulTemplate: React.FC = () => {
           </h6>
         </div>
         <div className="powerfull-template-content">
-          <div className="timeline-innerline" ref={timelineRef}>
-            <div className="timeline-progress" ref={progressRef}></div>
-          </div>
-
-          <div className="powerfull-template-row">
-            <div className="powerfull-template-number">1</div>
+          <div
+            className={`powerfull-template-row ${
+              activeRows[0] ? "active" : ""
+            }`}
+            ref={(el) => (rowRefs.current[0] = el)}
+          >
             <div className="row">
-              <div className="col-md-6">
+              <div className="col-lg-6 order-lg-1 order-md-2 order-2">
                 <div className="powerfull-template-img powerfull-template-img-left">
                   <img
                     src="/sass1/template-img1.png"
                     alt="Create Professional Invoices"
+                    loading="lazy"
                   />
                 </div>
               </div>
-              <div className="col-md-6">
+              <div className="col-lg-6 order-lg-2 order-md-1 order-1">
                 <div className="powerfull-template-text powerfull-template-text-right">
                   <h4>Create Professional Invoices</h4>
                   <p>
@@ -90,15 +88,21 @@ const PowerfulTemplate: React.FC = () => {
                   </p>
                   <ul>
                     <li>
-                      <span className="iconify" data-icon="bi:check-lg"></span>
+                      <span>
+                        <img src="/icons/check-green.svg" alt="check" />
+                      </span>
                       Customizable templates
                     </li>
                     <li>
-                      <span className="iconify" data-icon="bi:check-lg"></span>
+                      <span>
+                        <img src="/icons/check-green.svg" alt="check" />
+                      </span>
                       Brand customization
                     </li>
                     <li>
-                      <span className="iconify" data-icon="bi:check-lg"></span>
+                      <span>
+                        <img src="/icons/check-green.svg" alt="check" />
+                      </span>
                       Multi-currency support
                     </li>
                   </ul>
@@ -107,18 +111,23 @@ const PowerfulTemplate: React.FC = () => {
             </div>
           </div>
 
-          <div className="powerfull-template-row">
-            <div className="powerfull-template-number">2</div>
-            <div className="row flex-row-reverse">
-              <div className="col-md-6">
+          <div
+            className={`powerfull-template-row ${
+              activeRows[1] ? "active" : ""
+            }`}
+            ref={(el) => (rowRefs.current[1] = el)}
+          >
+            <div className="row">
+              <div className="col-lg-6 order-lg-2 order-md-2 order-2">
                 <div className="powerfull-template-img powerfull-template-img-right">
                   <img
                     src="/sass1/template-img2.png"
                     alt="Automate Your Workflow"
+                    loading="lazy"
                   />
                 </div>
               </div>
-              <div className="col-md-6">
+              <div className="col-lg-6 order-lg-1 order-md-1 order-1">
                 <div className="powerfull-template-text powerfull-template-text-left">
                   <h4>Automate Your Workflow</h4>
                   <h6>
@@ -155,15 +164,23 @@ const PowerfulTemplate: React.FC = () => {
             </div>
           </div>
 
-          <div className="powerfull-template-row">
-            <div className="powerfull-template-number">3</div>
+          <div
+            className={`powerfull-template-row ${
+              activeRows[2] ? "active" : ""
+            }`}
+            ref={(el) => (rowRefs.current[2] = el)}
+          >
             <div className="row">
-              <div className="col-md-6">
+              <div className="col-lg-6 order-lg-1 order-md-2 order-2">
                 <div className="powerfull-template-img powerfull-template-img-left">
-                  <img src="/sass1/template-img3.png" alt="Track and Analyze" />
+                  <img
+                    src="/sass1/template-img3.png"
+                    alt="Track and Analyze"
+                    loading="lazy"
+                  />
                 </div>
               </div>
-              <div className="col-md-6">
+              <div className="col-lg-6 order-lg-2 order-md-1 order-1">
                 <div className="powerfull-template-text powerfull-template-text-right">
                   <h4>Track and Analyze</h4>
                   <p>
@@ -173,15 +190,21 @@ const PowerfulTemplate: React.FC = () => {
                   </p>
                   <ul>
                     <li>
-                      <span className="iconify" data-icon="bi:check-lg"></span>
+                      <span>
+                        <img src="/icons/check-green.svg" alt="check" />
+                      </span>
                       Real-time payment tracking
                     </li>
                     <li>
-                      <span className="iconify" data-icon="bi:check-lg"></span>
+                      <span>
+                        <img src="/icons/check-green.svg" alt="check" />
+                      </span>
                       Financial analytics
                     </li>
                     <li>
-                      <span className="iconify" data-icon="bi:check-lg"></span>
+                      <span>
+                        <img src="/icons/check-green.svg" alt="check" />
+                      </span>
                       Custom reports
                     </li>
                   </ul>

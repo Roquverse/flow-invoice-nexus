@@ -13,6 +13,7 @@ import {
   NotificationFormData,
   SecurityFormData,
 } from "@/types/settings";
+import { toast } from "sonner";
 
 // Enhanced debug function to check tables and auth
 export async function debugDatabaseStatus() {
@@ -210,7 +211,7 @@ export const getCompanySettings = async (): Promise<CompanySettings | null> => {
     if (!user.user) throw new Error("Not authenticated");
 
     const { data, error } = await supabase
-      .from("company_settings" as any)
+      .from("company_settings")
       .select("*")
       .eq("user_id", user.user.id)
       .single();
@@ -242,17 +243,24 @@ export async function updateCompanySettings(
     // Check if settings exist
     const { data: existingSettings } = await supabase
       .from("company_settings")
-      .select("id")
+      .select("*")
       .eq("user_id", user.user.id)
       .single();
 
     let result;
 
+    // Include logo_url in settings
+    const updatedSettings = {
+      ...settings,
+      // If logo_url is empty string, set to null for the database
+      logo_url: settings.logo_url || null,
+    };
+
     if (existingSettings) {
       // Update existing settings
       result = await supabase
         .from("company_settings")
-        .update(settings)
+        .update(updatedSettings)
         .eq("user_id", user.user.id)
         .select();
     } else {
@@ -261,7 +269,7 @@ export async function updateCompanySettings(
         .from("company_settings")
         .insert({
           user_id: user.user.id,
-          ...settings,
+          ...updatedSettings,
         })
         .select();
     }
@@ -468,36 +476,40 @@ export async function deletePaymentMethod(id: string): Promise<boolean> {
 }
 
 // =========== NOTIFICATION PREFERENCES ===========
-export const getNotificationPreferences = async (): Promise<NotificationPreferences | null> => {
-  try {
-    const { data: user } = await supabase.auth.getUser();
-    if (!user.user) throw new Error("Not authenticated");
+export const getNotificationPreferences =
+  async (): Promise<NotificationPreferences | null> => {
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) throw new Error("Not authenticated");
 
-    const { data, error } = await supabase
-      .from("notification_preferences")
-      .select("*")
-      .eq("user_id", user.user.id)
-      .single();
+      const { data, error } = await supabase
+        .from("notification_preferences")
+        .select("*")
+        .eq("user_id", user.user.id)
+        .single();
 
-    if (error) {
-      if (error.code === "PGRST116") {
-        // No notification preferences found
-        return null;
+      if (error) {
+        if (error.code === "PGRST116") {
+          // No notification preferences found
+          return null;
+        }
+        throw error;
       }
-      throw error;
-    }
 
-    // Cast the email_frequency to the allowed type
-    return {
-      ...data,
-      email_frequency: data.email_frequency as "immediate" | "daily" | "weekly"
-    };
-  } catch (error) {
-    console.error("Error fetching notification preferences:", error);
-    toast.error("Failed to load notification preferences");
-    return null;
-  }
-};
+      // Cast the email_frequency to the allowed type
+      return {
+        ...data,
+        email_frequency: data.email_frequency as
+          | "immediate"
+          | "daily"
+          | "weekly",
+      };
+    } catch (error) {
+      console.error("Error fetching notification preferences:", error);
+      toast.error("Failed to load notification preferences");
+      return null;
+    }
+  };
 
 export async function updateNotificationPreferences(
   preferences: NotificationFormData

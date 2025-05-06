@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -77,10 +76,6 @@ export default function SignupPage() {
       {/* Left side - Form */}
       <div className="auth-form-side">
         <div className="auth-form-container">
-          <div className="auth-logo">
-            <Logo size="lg" />
-          </div>
-
           <div className="auth-heading">
             <h1>Create an account</h1>
             <p>Enter your information to get started</p>
@@ -142,7 +137,7 @@ export default function SignupPage() {
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     required
-                    className="input-field pl-10"
+                    className="input-field"
                   />
                 </div>
               </div>
@@ -163,7 +158,7 @@ export default function SignupPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="input-field pl-10"
+                    className="input-field"
                   />
                 </div>
               </div>
@@ -184,7 +179,7 @@ export default function SignupPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="input-field pl-10 pr-10"
+                    className="input-field"
                   />
                   <button
                     type="button"

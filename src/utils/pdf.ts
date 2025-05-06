@@ -52,8 +52,8 @@ export const generatePDF = async (
 export const downloadPDF = async (
   previewRef: React.RefObject<HTMLDivElement>,
   filename: string,
-  documentType: "invoice" | "quote" | "receipt",
-  documentNumber: string
+  documentType?: "invoice" | "quote" | "receipt",
+  documentNumber?: string
 ): Promise<void> => {
   if (!previewRef.current) {
     throw new Error("Preview element not found");
@@ -68,15 +68,17 @@ export const downloadPDF = async (
     document.body.appendChild(tempElement);
 
     // Generate PDF from the temporary element
-    await generatePDF(
-      tempElement,
-      `${filename}-${documentType}-${documentNumber}`
-    );
+    let finalFilename = filename;
+    if (documentType && documentNumber) {
+      finalFilename = `${filename}-${documentType}-${documentNumber}`;
+    }
+
+    await generatePDF(tempElement, finalFilename);
 
     // Remove the temporary element
     document.body.removeChild(tempElement);
   } catch (error) {
-    console.error(`Error downloading ${documentType} PDF:`, error);
+    console.error(`Error downloading PDF:`, error);
     throw error;
   }
 };

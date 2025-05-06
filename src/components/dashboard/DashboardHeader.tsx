@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Bell, Menu, Search } from "lucide-react";
+import { Bell, Menu, Search, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -14,6 +14,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useInvoices } from "@/hooks/useInvoices";
+import { useProfileSettings } from "@/hooks/useSettings";
+import { formatDate } from "@/utils/formatters";
 import "@/styles/dashboard.css";
 
 interface DashboardHeaderProps {
@@ -22,6 +25,9 @@ interface DashboardHeaderProps {
 
 export function DashboardHeader({ onMenuToggle }: DashboardHeaderProps) {
   const [user, setUser] = useState<any>(null);
+  const { invoices } = useInvoices();
+  const { profile } = useProfileSettings();
+  const [recentInvoices, setRecentInvoices] = useState<any[]>([]);
   const navigate = useNavigate();
 
   // Get user on component mount
@@ -35,15 +41,48 @@ export function DashboardHeader({ onMenuToggle }: DashboardHeaderProps) {
     getUser();
   }, []);
 
-  // Get user initials for avatar fallback
-  const getUserInitials = () => {
-    if (!user?.user_metadata?.full_name) return "U";
-    return user.user_metadata.full_name
-      .split(" ")
-      .map((n: string) => n[0])
-      .join("")
-      .toUpperCase()
-      .substring(0, 2);
+  // Set recent invoices when invoices data is loaded
+  useEffect(() => {
+    if (invoices && invoices.length > 0) {
+      // Get the 3 most recent invoices
+      const recent = [...invoices]
+        .sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        )
+        .slice(0, 3);
+      setRecentInvoices(recent);
+    }
+  }, [invoices]);
+
+  // Get user first name
+  const getFirstName = () => {
+    // First try to get name from profile settings
+    if (profile?.first_name) {
+      return profile.first_name;
+    }
+
+    // Fall back to user metadata if profile not available
+    if (user?.user_metadata?.full_name) {
+      return user.user_metadata.full_name.split(" ")[0];
+    }
+
+    return "User";
+  };
+
+  // Get first letter of user's name for avatar
+  const getUserFirstLetter = () => {
+    // First try to get letter from profile settings
+    if (profile?.first_name) {
+      return profile.first_name.trim()[0].toUpperCase();
+    }
+
+    // Fall back to user metadata
+    if (user?.user_metadata?.full_name) {
+      return user.user_metadata.full_name.trim()[0].toUpperCase();
+    }
+
+    return "U";
   };
 
   return (
@@ -58,12 +97,10 @@ export function DashboardHeader({ onMenuToggle }: DashboardHeaderProps) {
           >
             <Menu size={20} />
           </Button>
-          <div className="search-bar hidden md:block">
-            <Search className="search-icon" />
-            <Input
-              placeholder="Search..."
-              className="bg-transparent border-muted/30"
-            />
+          <div className="hidden md:flex items-center gap-3">
+            <div className="text-lg font-medium hidden lg:block">
+              Welcome, <span className="text-primary">{getFirstName()}</span>
+            </div>
           </div>
         </div>
 
@@ -72,10 +109,73 @@ export function DashboardHeader({ onMenuToggle }: DashboardHeaderProps) {
             <SignOutButton />
           </div>
 
-          <Button variant="ghost" size="icon" className="notification-button">
-            <Bell size={20} />
-            <span className="notification-badge">3</span>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="notification-button"
+              >
+                <Bell size={20} />
+                <span className="notification-badge">
+                  {recentInvoices.length}
+                </span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-80" align="end">
+              <DropdownMenuLabel>Recent Invoices</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {recentInvoices.length === 0 ? (
+                <div className="px-2 py-4 text-center text-sm text-muted-foreground">
+                  No recent invoices
+                </div>
+              ) : (
+                recentInvoices.map((invoice) => (
+                  <DropdownMenuItem
+                    key={invoice.id}
+                    onClick={() =>
+                      navigate(`/dashboard/invoices/${invoice.id}`)
+                    }
+                    className="flex items-center gap-2 p-3 cursor-pointer"
+                  >
+                    <div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
+                      <FileText size={16} className="text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">
+                        {invoice.invoice_number}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDate(invoice.issue_date)} - ${invoice.total}
+                      </p>
+                    </div>
+                    <div
+                      className={`
+                      px-2 py-1 rounded-full text-xs font-medium
+                      ${
+                        invoice.status === "paid"
+                          ? "bg-green-100 text-green-800"
+                          : invoice.status === "overdue"
+                          ? "bg-red-100 text-red-800"
+                          : "bg-yellow-100 text-yellow-800"
+                      }
+                    `}
+                    >
+                      {invoice.status.charAt(0).toUpperCase() +
+                        invoice.status.slice(1)}
+                    </div>
+                  </DropdownMenuItem>
+                ))
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => navigate("/dashboard/invoices")}
+                className="justify-center text-sm font-medium text-primary"
+              >
+                View All Invoices
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -90,7 +190,7 @@ export function DashboardHeader({ onMenuToggle }: DashboardHeaderProps) {
                     alt="User avatar"
                   />
                   <AvatarFallback className="bg-primary text-primary-foreground">
-                    {getUserInitials()}
+                    {getUserFirstLetter()}
                   </AvatarFallback>
                 </Avatar>
               </Button>
@@ -99,7 +199,7 @@ export function DashboardHeader({ onMenuToggle }: DashboardHeaderProps) {
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium leading-none">
-                    {user?.user_metadata?.full_name || "User"}
+                    {getFirstName() || "User"}
                   </p>
                   <p className="text-xs leading-none text-muted-foreground">
                     {user?.email || ""}

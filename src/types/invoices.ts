@@ -1,4 +1,3 @@
-
 // Invoice entity type
 export interface Invoice {
   id: string;

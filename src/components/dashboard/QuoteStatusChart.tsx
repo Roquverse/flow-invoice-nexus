@@ -7,57 +7,54 @@ import {
   Legend,
   Tooltip,
 } from "recharts";
-import { Invoice } from "@/types/invoices";
+import { Quote } from "@/types/quotes";
 import { useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
-interface InvoiceStatusChartProps {
-  invoices: Invoice[];
+interface QuoteStatusChartProps {
+  quotes: Quote[];
   loading: boolean;
 }
 
-export function InvoiceStatusChart({
-  invoices,
-  loading,
-}: InvoiceStatusChartProps) {
+export function QuoteStatusChart({ quotes, loading }: QuoteStatusChartProps) {
   const data = useMemo(() => {
-    if (loading || invoices.length === 0) return [];
+    if (loading || quotes.length === 0) return [];
 
-    // Count invoices by status
+    // Count quotes by status
     const statusCounts = {
-      paid: 0,
+      draft: 0,
       sent: 0,
       viewed: 0,
-      overdue: 0,
-      draft: 0,
-      cancelled: 0,
+      accepted: 0,
+      rejected: 0,
+      expired: 0,
     };
 
-    invoices.forEach((invoice) => {
+    quotes.forEach((quote) => {
       if (
-        statusCounts[invoice.status as keyof typeof statusCounts] !== undefined
+        statusCounts[quote.status as keyof typeof statusCounts] !== undefined
       ) {
-        statusCounts[invoice.status as keyof typeof statusCounts]++;
+        statusCounts[quote.status as keyof typeof statusCounts]++;
       }
     });
 
     // Get color for status
     const getColor = (status: string) => {
       switch (status) {
-        case "paid":
-          return "#10B981";
+        case "accepted":
+          return "#10B981"; // green
         case "sent":
-          return "#3B82F6";
+          return "#3B82F6"; // blue
         case "viewed":
-          return "#8B5CF6";
-        case "overdue":
-          return "#EF4444";
+          return "#8B5CF6"; // purple
+        case "rejected":
+          return "#EF4444"; // red
+        case "expired":
+          return "#F59E0B"; // amber
         case "draft":
-          return "#9CA3AF";
-        case "cancelled":
-          return "#6B7280";
+          return "#9CA3AF"; // gray
         default:
-          return "#D1D5DB";
+          return "#D1D5DB"; // light gray
       }
     };
 
@@ -69,13 +66,13 @@ export function InvoiceStatusChart({
         value: count,
         color: getColor(status),
       }));
-  }, [invoices, loading]);
+  }, [quotes, loading]);
 
   if (loading) {
     return (
       <Card className="col-span-1 md:col-span-2">
         <CardHeader>
-          <CardTitle>Invoice Status</CardTitle>
+          <CardTitle>Quote Status</CardTitle>
         </CardHeader>
         <CardContent>
           <Skeleton className="w-full h-[250px]" />
@@ -87,7 +84,7 @@ export function InvoiceStatusChart({
   return (
     <Card className="col-span-1 md:col-span-2">
       <CardHeader>
-        <CardTitle>Invoice Status Distribution</CardTitle>
+        <CardTitle>Quote Status Distribution</CardTitle>
       </CardHeader>
       <CardContent>
         {data.length > 0 ? (
@@ -110,13 +107,13 @@ export function InvoiceStatusChart({
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
               </Pie>
-              <Tooltip formatter={(value) => [`${value} invoices`, ""]} />
+              <Tooltip formatter={(value) => [`${value} quotes`, ""]} />
               <Legend />
             </PieChart>
           </ResponsiveContainer>
         ) : (
           <div className="flex items-center justify-center h-[250px] text-gray-500">
-            No invoice data available
+            No quote data available
           </div>
         )}
       </CardContent>

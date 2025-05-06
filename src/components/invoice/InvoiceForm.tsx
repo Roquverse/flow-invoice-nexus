@@ -5,45 +5,75 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Plus,
+  Trash2,
+  ArrowLeft,
+  Save,
+  Send,
+  Download,
+  ChevronDown,
+} from "lucide-react";
 import { invoiceService } from "@/services/invoiceService";
-import { Project } from "@/types/projects";
 import { projectService } from "@/services/projectService";
 import { useClients } from "@/hooks/useClients";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCompanySettings } from "@/hooks/useSettings";
+import {
+  InvoiceFormData,
+  InvoiceItemFormData,
+  Invoice,
+} from "@/types/invoices";
+import { formatCurrency } from "@/utils/formatters";
+import "@/styles/invoice.css";
+
+// Define invoice status type from Invoice interface
+type InvoiceStatus =
+  | "draft"
+  | "sent"
+  | "viewed"
+  | "paid"
+  | "overdue"
+  | "cancelled";
 
 // Define the schema for form validation
-const schema = yup.object({
-  client_id: yup.string().required("Client is required"),
-  project_id: yup.string().required("Project is required"),
-  invoice_date: yup.date().required("Invoice Date is required"),
-  due_date: yup.date().required("Due Date is required"),
-  status: yup.string().required("Status is required"),
-  notes: yup.string(),
-  terms: yup.string(),
-  items: yup.array().of(
-    yup.object({
-      id: yup.string().required(),
-      name: yup.string().required("Item Name is required"),
-      quantity: yup.number().required("Quantity is required").positive("Quantity must be positive"),
-      unit_price: yup.number().required("Unit Price is required").positive("Unit Price must be positive"),
-    })
-  ),
-}).required();
+const schema = yup
+  .object({
+    client_id: yup.string().required("Client is required"),
+    project_id: yup.string().nullable(),
+    invoice_date: yup.date().required("Invoice date is required"),
+    due_date: yup.date().required("Due date is required"),
+    status: yup.string().required("Status is required"),
+    notes: yup.string(),
+    terms: yup.string(),
+    currency: yup.string().required("Currency is required"),
+    items: yup.array().of(
+      yup.object({
+        id: yup.string().required(),
+        name: yup.string().required("Item name is required"),
+        quantity: yup
+          .number()
+          .required("Quantity is required")
+          .positive("Quantity must be positive"),
+        unit_price: yup
+          .number()
+          .required("Unit price is required")
+          .positive("Unit price must be positive"),
+      })
+    ),
+  })
+  .required();
 
 interface FormData {
   client_id: string;
-  project_id: string;
+  project_id: string | null;
   invoice_date: Date;
   due_date: Date;
-  status: string;
+  status: InvoiceStatus;
   notes: string;
   terms: string;
+  reference?: string;
+  currency: string;
   items: {
     id: string;
     name: string;
@@ -56,49 +86,126 @@ interface InvoiceFormProps {
   isEditing?: boolean;
 }
 
-const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing }) => {
+const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false }) => {
   const { user } = useAuth();
+  const { companySettings } = useCompanySettings();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const [invoice, setInvoice] = useState<any>({ items: [] });
-  const [projects, setProjects] = useState<Project[]>([]);
-  const { clients, loading: clientsLoading, error: clientsError } = useClients();
+  const [invoiceData, setInvoiceData] = useState<{
+    invoice: Invoice;
+    items: any[];
+  } | null>(null);
+  const [projects, setProjects] = useState<any[]>([]);
+  const { clients, loading: clientsLoading } = useClients();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [total, setTotal] = useState(0);
+  const [subtotal, setSubtotal] = useState(0);
+  const [reference, setReference] = useState("");
+  const [tax, setTax] = useState(0);
+  const [discount, setDiscount] = useState(0);
 
-  const { register, handleSubmit, control, setValue, formState: { errors } } = useForm<FormData>({
-    resolver: yupResolver(schema),
+  const {
+    register,
+    handleSubmit,
+    control,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<FormData>({
+    resolver: yupResolver(schema) as any,
     defaultValues: {
       client_id: "",
-      project_id: "",
+      project_id: null,
       invoice_date: new Date(),
-      due_date: new Date(),
-      status: "draft",
+      due_date: new Date(new Date().setDate(new Date().getDate() + 30)),
+      status: "draft" as InvoiceStatus,
       notes: "",
       terms: "",
-      items: [],
+      currency: "NGN",
+      items: [{ id: uuidv4(), name: "", quantity: 1, unit_price: 0 }],
     },
   });
 
+  const items = watch("items") || [];
+  const currency = watch("currency");
+  const selectedClientId = watch("client_id");
+
   useEffect(() => {
+    // Add the modern-invoice-page class to the dashboard-content element
+    const dashboardContent = document.querySelector(".dashboard-content");
+    if (dashboardContent) {
+      dashboardContent.classList.add("modern-invoice-page");
+    }
+
+    // Cleanup function to remove the class when component unmounts
+    return () => {
+      if (dashboardContent) {
+        dashboardContent.classList.remove("modern-invoice-page");
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    console.log("InvoiceForm mounted with id:", id);
+    console.log("isEditing flag:", isEditing);
+
     const fetchInvoice = async () => {
       if (isEditing && id) {
+        console.log(`Attempting to fetch invoice with ID: ${id}`);
         setLoading(true);
         try {
-          const invoiceData = await invoiceService.getInvoiceById(id);
-          setInvoice(invoiceData);
+          // Add a small delay to ensure proper state updates
+          await new Promise((resolve) => setTimeout(resolve, 100));
+
+          const data = await invoiceService.getInvoiceById(id);
+          console.log("Fetched invoice data:", data);
+
+          if (!data) {
+            console.error("No data returned from getInvoiceById");
+            toast.error("Failed to load invoice data");
+            setLoading(false);
+            return;
+          }
+
+          setInvoiceData(data);
+          const { invoice, items } = data;
+          console.log("Invoice details:", invoice);
+          console.log("Invoice items:", items);
+
+          setReference(invoice.reference || "");
 
           // Set default values for the form
-          setValue("client_id", invoiceData.client_id);
-          setValue("project_id", invoiceData.project_id);
-          setValue("invoice_date", new Date(invoiceData.invoice_date));
-          setValue("due_date", new Date(invoiceData.due_date));
-          setValue("status", invoiceData.status);
-          setValue("notes", invoiceData.notes);
-          setValue("terms", invoiceData.terms);
-          setValue("items", invoiceData.items);
+          setValue("client_id", invoice.client_id);
+          setValue("project_id", invoice.project_id || null);
+          setValue(
+            "invoice_date",
+            new Date(invoice.issue_date || invoice.created_at)
+          );
+          setValue("due_date", new Date(invoice.due_date));
+          setValue("status", invoice.status as InvoiceStatus);
+          setValue("notes", invoice.notes || "");
+          setValue("terms", invoice.terms || "");
+          setValue("currency", invoice.currency || "USD");
+
+          // Transform items from API format to form format
+          if (items && items.length > 0) {
+            const formattedItems = items.map((item) => ({
+              id: item.id,
+              name: item.description,
+              quantity: item.quantity,
+              unit_price: item.unit_price,
+            }));
+            console.log("Formatted items for form:", formattedItems);
+            setValue("items", formattedItems);
+          }
+
+          // Set tax and discount values
+          setTax(invoice.tax_amount || 0);
+          setDiscount(invoice.discount_amount || 0);
+
+          toast.success("Invoice data loaded successfully");
         } catch (error: any) {
-          setError(error.message || "Failed to load invoice");
+          console.error("Error fetching invoice:", error);
           toast.error(error.message || "Failed to load invoice");
         } finally {
           setLoading(false);
@@ -113,261 +220,598 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing }) => {
     const fetchProjects = async () => {
       try {
         const projectsData = await projectService.getProjects();
-        setProjects(projectsData);
+
+        // Filter projects by client if a client is selected
+        if (selectedClientId) {
+          const clientProjects = projectsData.filter(
+            (project) => project.client_id === selectedClientId
+          );
+          setProjects(clientProjects);
+        } else {
+          setProjects(projectsData);
+        }
       } catch (error: any) {
-        setError(error.message || "Failed to load projects");
-        toast.error(error.message || "Failed to load projects");
+        console.error("Error fetching projects:", error);
       }
     };
 
     fetchProjects();
-  }, []);
+  }, [selectedClientId]);
 
-  // Fix the issue where id is accessed on a string type
-  const handleClientChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const clientId = e.target.value;
-    if (clientId) {
-      setInvoice((prev) => ({
-        ...prev,
-        client_id: clientId,
-      }));
+  // Calculate totals whenever items, tax, or discount changes
+  useEffect(() => {
+    if (items) {
+      const calculatedSubtotal = items.reduce((acc, item) => {
+        const qty = Number(item.quantity) || 0;
+        const price = Number(item.unit_price) || 0;
+        return acc + qty * price;
+      }, 0);
+      setSubtotal(calculatedSubtotal);
+
+      // Calculate tax amount as percentage of subtotal
+      const taxAmount = calculatedSubtotal * (Number(tax) / 100);
+
+      // Calculate total with tax and discount
+      const numDiscount = Number(discount) || 0;
+      const calculatedTotal = calculatedSubtotal + taxAmount - numDiscount;
+      setTotal(calculatedTotal < 0 ? 0 : calculatedTotal);
     }
-  };
+  }, [items, tax, discount]);
 
-  const handleProjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const projectId = e.target.value;
-    if (projectId) {
-      setInvoice((prev) => ({
-        ...prev,
-        project_id: projectId,
-      }));
-    }
-  };
+  // Generate a unique invoice number
+  useEffect(() => {
+    const generateReference = () => {
+      if (!isEditing) {
+        const date = new Date();
+        const year = date.getFullYear().toString().slice(-2);
+        const month = (date.getMonth() + 1).toString().padStart(2, "0");
+        const randomDigits = Math.floor(Math.random() * 10000)
+          .toString()
+          .padStart(4, "0");
 
-  const handleDateChange = (dateType: string, date: Date) => {
-    setInvoice((prev) => ({
-      ...prev,
-      [dateType]: date.toISOString(),
-    }));
-  };
+        setReference(`INV-${year}${month}-${randomDigits}`);
+      }
+    };
 
-  const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const status = e.target.value;
-    setInvoice((prev) => ({
-      ...prev,
-      status: status,
-    }));
-  };
+    generateReference();
+  }, [isEditing]);
 
-  const handleNotesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const notes = e.target.value;
-    setInvoice((prev) => ({
-      ...prev,
-      notes: notes,
-    }));
-  };
-
-  const handleTermsChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const terms = e.target.value;
-    setInvoice((prev) => ({
-      ...prev,
-      terms: terms,
-    }));
-  };
+  // Add console logging to verify the company details are being loaded
+  useEffect(() => {
+    console.log("Company settings in InvoiceForm:", companySettings);
+    console.log("User in InvoiceForm:", user);
+  }, [companySettings, user]);
 
   const addItem = () => {
-    const newItem = { id: uuidv4(), name: "", quantity: 1, unit_price: 0 };
-    setInvoice((prev) => ({
-      ...prev,
-      items: [...(prev.items || []), newItem],
-    }));
+    const currentItems = watch("items") || [];
+    setValue("items", [
+      ...currentItems,
+      { id: uuidv4(), name: "", quantity: 1, unit_price: 0 },
+    ]);
   };
 
-  const updateItem = (itemId: string, field: string, value: string | number) => {
-    setInvoice((prev) => ({
-      ...prev,
-      items: prev.items?.map((item) =>
-        item.id === itemId ? { ...item, [field]: value } : item
-      ),
-    }));
+  const updateItem = (
+    itemId: string,
+    field: string,
+    value: string | number
+  ) => {
+    const updatedItems = items.map((item) => {
+      if (item.id === itemId) {
+        return { ...item, [field]: value };
+      }
+      return item;
+    });
+    setValue("items", updatedItems);
   };
 
-  // Use proper id handling in deleteItem function
   const deleteItem = (itemId: string) => {
-    setInvoice((prev) => ({
-      ...prev,
-      items: prev.items?.filter((item) => item.id !== itemId) || [],
-    }));
+    if (items.length <= 1) {
+      toast.error("Invoice must have at least one item");
+      return;
+    }
+    const updatedItems = items.filter((item) => item.id !== itemId);
+    setValue("items", updatedItems);
   };
 
   const onSubmit = async (data: FormData) => {
-    setLoading(true);
-    setError(null);
-
     try {
+      setLoading(true);
+
+      // Transform form data to match the InvoiceFormData interface
+      const formattedInvoiceData: InvoiceFormData = {
+        client_id: data.client_id,
+        project_id: data.project_id,
+        issue_date: data.invoice_date.toISOString(),
+        due_date: data.due_date.toISOString(),
+        status: data.status,
+        notes: data.notes,
+        terms: data.terms,
+        reference: reference,
+        currency: data.currency,
+        discount_amount: discount,
+        tax_amount: tax,
+        subtotal: subtotal,
+        total_amount: total,
+        items: data.items.map((item) => ({
+          id: item.id,
+          description: item.name,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+        })),
+      };
+
       if (isEditing && id) {
-        await invoiceService.updateInvoice(id, data);
-        toast.success("Invoice updated successfully!");
+        await invoiceService.updateInvoice(id, formattedInvoiceData);
+        toast.success("Invoice updated successfully");
       } else {
-        await invoiceService.createInvoice(data);
-        toast.success("Invoice created successfully!");
+        await invoiceService.createInvoice(formattedInvoiceData);
+        toast.success("Invoice created successfully");
       }
+
       navigate("/dashboard/invoices");
     } catch (error: any) {
-      setError(error.message || "Failed to save invoice");
+      console.error("Error submitting form:", error);
       toast.error(error.message || "Failed to save invoice");
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
+  const handleSendInvoice = async () => {
+    // This would be implemented with an email service in a real app
+    toast.success("Invoice sent to client!");
+  };
 
-  if (error) {
-    return <div>Error: {error}</div>;
-  }
+  const getSelectedClient = () => {
+    if (!selectedClientId || !clients) return null;
+    return clients.find((client) => client.id === selectedClientId);
+  };
+
+  const selectedClient = getSelectedClient();
 
   return (
-    <Card>
-      <CardContent className="p-4">
-        <h2 className="text-lg font-semibold mb-4">{isEditing ? "Edit Invoice" : "Create New Invoice"}</h2>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <Label htmlFor="client_id">Client</Label>
-            <Select onValueChange={(value) => setValue("client_id", value)}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select a client" />
-              </SelectTrigger>
-              <SelectContent>
-                {clients?.map((client) => (
-                  <SelectItem key={client.id} value={client.id}>
-                    {client.business_name || client.contact_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.client_id && <p className="text-red-500 text-sm">{errors.client_id.message}</p>}
-          </div>
+    <div className="modern-invoice-page">
+      <div className="invoice-actions">
+        <div className="invoice-actions-left">
+          <button
+            className="invoice-button button-secondary"
+            onClick={() => navigate("/dashboard/invoices")}
+            type="button"
+          >
+            <ArrowLeft size={16} />
+            Back
+          </button>
+        </div>
+        <div className="invoice-actions-right">
+          <button
+            className="invoice-button button-primary"
+            onClick={handleSubmit(onSubmit)}
+            type="button"
+          >
+            {loading ? (
+              <>
+                <span className="loading-spinner"></span>
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save size={16} />
+                Save {isEditing ? "Changes" : "Invoice"}
+              </>
+            )}
+          </button>
+          {isEditing && (
+            <button
+              className="invoice-button button-accent"
+              onClick={handleSendInvoice}
+              type="button"
+            >
+              <Send size={16} />
+              Send Invoice
+            </button>
+          )}
+        </div>
+      </div>
 
-          <div>
-            <Label htmlFor="project_id">Project</Label>
-            <Select onValueChange={(value) => setValue("project_id", value)}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select a project" />
-              </SelectTrigger>
-              <SelectContent>
-                {projects?.map((project) => (
-                  <SelectItem key={project.id} value={project.id}>
-                    {project.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.project_id && <p className="text-red-500 text-sm">{errors.project_id.message}</p>}
-          </div>
-
-          <div>
-            <Label htmlFor="invoice_date">Invoice Date</Label>
-            <Input
-              type="date"
-              id="invoice_date"
-              {...register("invoice_date", { valueAsDate: true })}
-              className="w-full"
-            />
-            {errors.invoice_date && <p className="text-red-500 text-sm">{errors.invoice_date.message}</p>}
-          </div>
-
-          <div>
-            <Label htmlFor="due_date">Due Date</Label>
-            <Input
-              type="date"
-              id="due_date"
-              {...register("due_date", { valueAsDate: true })}
-              className="w-full"
-            />
-            {errors.due_date && <p className="text-red-500 text-sm">{errors.due_date.message}</p>}
-          </div>
-
-          <div>
-            <Label htmlFor="status">Status</Label>
-            <Select onValueChange={(value) => setValue("status", value)}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="sent">Sent</SelectItem>
-                <SelectItem value="paid">Paid</SelectItem>
-                <SelectItem value="overdue">Overdue</SelectItem>
-              </SelectContent>
-            </Select>
-            {errors.status && <p className="text-red-500 text-sm">{errors.status.message}</p>}
-          </div>
-
-          <div>
-            <Label htmlFor="notes">Notes</Label>
-            <Textarea
-              id="notes"
-              {...register("notes")}
-              className="w-full"
-            />
-            {errors.notes && <p className="text-red-500 text-sm">{errors.notes.message}</p>}
-          </div>
-
-          <div>
-            <Label htmlFor="terms">Terms</Label>
-            <Textarea
-              id="terms"
-              {...register("terms")}
-              className="w-full"
-            />
-            {errors.terms && <p className="text-red-500 text-sm">{errors.terms.message}</p>}
-          </div>
-
-          <div>
-            <Label>Items</Label>
-            {invoice.items?.map((item: any, index: number) => (
-              <div key={item.id} className="grid grid-cols-5 gap-2 mb-2">
-                <Input
-                  type="text"
-                  placeholder="Item Name"
-                  value={item.name}
-                  onChange={(e) => updateItem(item.id, "name", e.target.value)}
-                  className="col-span-2"
+      <form
+        className="modern-invoice-form"
+        onSubmit={handleSubmit(onSubmit)}
+        noValidate
+      >
+        <div className="form-grid">
+          <div className="invoice-header">
+            <div className="invoice-header-left">
+              <div className="invoice-logo">
+                <img
+                  src="/logo-light.png"
+                  alt="Company Logo"
+                  className="logo-image"
                 />
-                <Input
-                  type="number"
-                  placeholder="Quantity"
-                  value={item.quantity}
-                  onChange={(e) => updateItem(item.id, "quantity", Number(e.target.value))}
-                  className="w-20"
-                />
-                <Input
-                  type="number"
-                  placeholder="Unit Price"
-                  value={item.unit_price}
-                  onChange={(e) => updateItem(item.id, "unit_price", Number(e.target.value))}
-                  className="w-24"
-                />
-                <Button type="button" variant="destructive" size="sm" onClick={() => deleteItem(item.id)}>
-                  Delete
-                </Button>
               </div>
-            ))}
-            <Button type="button" variant="secondary" onClick={addItem}>
-              Add Item
-            </Button>
-            {errors.items && <p className="text-red-500 text-sm">{errors.items.message}</p>}
+              <div className="invoice-label">INVOICE</div>
+            </div>
+            <div className="invoice-header-right">
+              <div className="invoice-number">
+                <div className="field-label">Invoice #</div>
+                <div className="invoice-number-display">{reference}</div>
+              </div>
+            </div>
           </div>
 
-          <Button type="submit" className="w-full" disabled={loading}>
-            {isEditing ? "Update Invoice" : "Create Invoice"}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+          <div className="invoice-details-grid">
+            <div className="invoice-from">
+              <h3>From</h3>
+              <div className="company-details">
+                <div className="company-name">
+                  {companySettings?.company_name ||
+                    user?.email ||
+                    "Your Company Name"}
+                </div>
+                <div className="company-address">
+                  {companySettings?.address || "Address not set"}
+                  <br />
+                  {companySettings?.city || ""}{" "}
+                  {companySettings?.postal_code || ""}
+                  <br />
+                  {companySettings?.country || "Country not set"}
+                </div>
+                <div className="company-contact">
+                  {user?.email || "email@example.com"}
+                  <br />
+                  {user?.phone || "Phone not set"}
+                </div>
+              </div>
+            </div>
+
+            <div className="invoice-to">
+              <h3>Bill To</h3>
+              <div className="client-select-container">
+                <select
+                  {...register("client_id")}
+                  className={`client-select ${errors.client_id ? "error" : ""}`}
+                >
+                  <option value="">Select a client</option>
+                  {clients &&
+                    clients.map((client) => (
+                      <option key={client.id} value={client.id}>
+                        {client.business_name}
+                      </option>
+                    ))}
+                </select>
+                <ChevronDown className="select-icon" />
+              </div>
+              {errors.client_id && (
+                <div className="error-message">{errors.client_id.message}</div>
+              )}
+
+              {selectedClient && (
+                <div className="client-details">
+                  <div className="client-name">
+                    {selectedClient.business_name}
+                  </div>
+                  <div className="client-address">
+                    {selectedClient.address || ""}
+                    <br />
+                    {selectedClient.city || ""}{" "}
+                    {selectedClient.postal_code || ""}
+                    <br />
+                    {selectedClient.country || ""}
+                  </div>
+                  <div className="client-contact">
+                    {selectedClient.email || ""}
+                    <br />
+                    {selectedClient.phone || ""}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="invoice-meta-grid">
+            <div className="invoice-meta">
+              <div className="meta-group">
+                <label>Project (Optional)</label>
+                <div className="select-container">
+                  <select {...register("project_id")} className="form-select">
+                    <option value="">None</option>
+                    {projects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="meta-row">
+                <div className="meta-group">
+                  <label>Invoice Date</label>
+                  <Controller
+                    name="invoice_date"
+                    control={control}
+                    render={({ field }) => (
+                      <input
+                        type="date"
+                        className={`form-input ${
+                          errors.invoice_date ? "error" : ""
+                        }`}
+                        value={
+                          field.value
+                            ? new Date(field.value).toISOString().split("T")[0]
+                            : ""
+                        }
+                        onChange={(e) => {
+                          const date = new Date(e.target.value);
+                          field.onChange(date);
+                        }}
+                      />
+                    )}
+                  />
+                  {errors.invoice_date && (
+                    <div className="error-message">
+                      {errors.invoice_date.message}
+                    </div>
+                  )}
+                </div>
+
+                <div className="meta-group">
+                  <label>Due Date</label>
+                  <Controller
+                    name="due_date"
+                    control={control}
+                    render={({ field }) => (
+                      <input
+                        type="date"
+                        className={`form-input ${
+                          errors.due_date ? "error" : ""
+                        }`}
+                        value={
+                          field.value
+                            ? new Date(field.value).toISOString().split("T")[0]
+                            : ""
+                        }
+                        onChange={(e) => {
+                          const date = new Date(e.target.value);
+                          field.onChange(date);
+                        }}
+                      />
+                    )}
+                  />
+                  {errors.due_date && (
+                    <div className="error-message">
+                      {errors.due_date.message}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="meta-row">
+              <div className="meta-group">
+                <label>Currency</label>
+                <div className="select-container">
+                  <select {...register("currency")} className="form-select">
+                    <option value="NGN">NGN - Nigerian Naira</option>
+                    <option value="USD">USD - US Dollar</option>
+                    <option value="EUR">EUR - Euro</option>
+                    <option value="GBP">GBP - British Pound</option>
+                    <option value="CAD">CAD - Canadian Dollar</option>
+                    <option value="AUD">AUD - Australian Dollar</option>
+                    <option value="JPY">JPY - Japanese Yen</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="meta-group">
+                <label>Status</label>
+                <div className="select-container">
+                  <select {...register("status")} className="form-select">
+                    <option value="draft">Draft</option>
+                    <option value="sent">Sent</option>
+                    <option value="paid">Paid</option>
+                    <option value="overdue">Overdue</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="invoice-items-section">
+            <h3>Items</h3>
+            <div className="invoice-items-table">
+              <div className="invoice-items-header">
+                <div className="item-description">Description</div>
+                <div className="item-quantity">Qty</div>
+                <div className="item-price">Rate</div>
+                <div className="item-total">Total</div>
+                <div className="item-actions"></div>
+              </div>
+
+              {items.map((item, index) => (
+                <div key={item.id} className="invoice-item">
+                  <div className="item-description">
+                    <input
+                      type="text"
+                      value={item.name}
+                      onChange={(e) =>
+                        updateItem(item.id, "name", e.target.value)
+                      }
+                      placeholder="Item description"
+                      className={`form-input ${
+                        errors.items?.[index]?.name ? "error" : ""
+                      }`}
+                    />
+                    {errors.items?.[index]?.name && (
+                      <div className="error-message">
+                        {errors.items[index].name.message}
+                      </div>
+                    )}
+                  </div>
+                  <div className="item-quantity">
+                    <label className="field-label-mobile">Quantity:</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={item.quantity}
+                      onChange={(e) => {
+                        let value: number | string = e.target.value;
+                        if (value !== "") {
+                          value = parseInt(value) || 1;
+                        }
+                        updateItem(item.id, "quantity", value);
+                      }}
+                      onBlur={(e) => {
+                        if (e.target.value === "") {
+                          updateItem(item.id, "quantity", 1);
+                        }
+                      }}
+                      className="form-input"
+                    />
+                    {errors.items?.[index]?.quantity && (
+                      <div className="error-message">
+                        {errors.items[index].quantity.message}
+                      </div>
+                    )}
+                  </div>
+                  <div className="item-price">
+                    <label className="field-label-mobile">Rate:</label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      min="0"
+                      step="0.01"
+                      value={item.unit_price}
+                      onChange={(e) => {
+                        const value =
+                          e.target.value === ""
+                            ? ""
+                            : parseFloat(e.target.value) || 0;
+                        updateItem(item.id, "unit_price", value);
+                      }}
+                      onBlur={(e) => {
+                        if (e.target.value === "") {
+                          updateItem(item.id, "unit_price", 0);
+                        }
+                      }}
+                      className="form-input"
+                    />
+                    {errors.items?.[index]?.unit_price && (
+                      <div className="error-message">
+                        {errors.items[index].unit_price.message}
+                      </div>
+                    )}
+                  </div>
+                  <div className="item-total">
+                    <label className="field-label-mobile">Total:</label>
+                    <span className="total-value">
+                      {formatCurrency(
+                        (item.quantity || 0) * (item.unit_price || 0),
+                        currency
+                      )}
+                    </span>
+                  </div>
+                  <div className="item-actions">
+                    <button
+                      type="button"
+                      onClick={() => deleteItem(item.id)}
+                      className="delete-item-button"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              <div className="add-item-row">
+                <button
+                  type="button"
+                  onClick={addItem}
+                  className="add-item-button"
+                >
+                  <Plus size={16} />
+                  <span>Add Item</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="invoice-totals">
+              <div className="totals-row">
+                <div className="total-label">Subtotal</div>
+                <div className="total-amount">
+                  {formatCurrency(subtotal, currency)}
+                </div>
+              </div>
+
+              <div className="totals-row">
+                <div className="total-label-with-input">
+                  <label>Tax (%)</label>
+                  <input
+                    type="number"
+                    value={tax}
+                    onChange={(e) => {
+                      const taxRate = parseFloat(e.target.value) || 0;
+                      setTax(taxRate);
+                    }}
+                    className="tax-input"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                  />
+                </div>
+                <div className="total-amount">
+                  {formatCurrency(subtotal * (tax / 100), currency)}
+                </div>
+              </div>
+
+              <div className="totals-row">
+                <div className="total-label-with-input">
+                  <label>Discount</label>
+                  <input
+                    type="number"
+                    value={discount}
+                    onChange={(e) =>
+                      setDiscount(parseFloat(e.target.value) || 0)
+                    }
+                    className="discount-input"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+                <div className="total-amount">
+                  {formatCurrency(discount, currency)}
+                </div>
+              </div>
+
+              <div className="totals-row grand-total">
+                <div className="total-label">Total</div>
+                <div className="total-amount">
+                  {formatCurrency(total, currency)}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="invoice-footer">
+            <div className="invoice-notes">
+              <h3>Notes</h3>
+              <textarea
+                {...register("notes")}
+                className="form-textarea"
+                placeholder="Notes for the client (optional)"
+              ></textarea>
+            </div>
+
+            <div className="invoice-terms">
+              <h3>Terms & Conditions</h3>
+              <textarea
+                {...register("terms")}
+                className="form-textarea"
+                placeholder="Payment terms and conditions (optional)"
+              ></textarea>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
   );
 };
 

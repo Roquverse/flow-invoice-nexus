@@ -97,6 +97,7 @@ export interface CompanyFormData {
   postal_code?: string;
   country?: string;
   tax_id?: string;
+  logo_url?: string;
 }
 
 export interface BillingFormData {

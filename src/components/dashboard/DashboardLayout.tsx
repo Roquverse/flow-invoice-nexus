@@ -1,7 +1,7 @@
 import { Outlet, Navigate } from "react-router-dom";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import "@/styles/dashboard.css";
@@ -10,10 +10,65 @@ export function DashboardLayout() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
+  const sidebarRef = useRef<HTMLDivElement>(null);
 
+  // Toggle sidebar menu
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
   };
+
+  // Close sidebar
+  const closeSidebar = () => {
+    setMenuOpen(false);
+  };
+
+  // Handle document clicks to close sidebar when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      // If sidebar is open and click is outside sidebar
+      if (
+        menuOpen &&
+        sidebarRef.current &&
+        !sidebarRef.current.contains(event.target as Node)
+      ) {
+        // But don't close if clicking the hamburger button (handled by toggleMenu)
+        if ((event.target as Element).closest(".md\\:hidden")) {
+          return;
+        }
+        closeSidebar();
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [menuOpen]);
+
+  // Close menu when window resizes beyond mobile breakpoint
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth > 768 && menuOpen) {
+        setMenuOpen(false);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [menuOpen]);
+
+  // Prevent body scrolling when sidebar is open
+  useEffect(() => {
+    if (menuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [menuOpen]);
 
   useEffect(() => {
     // Check for existing session
@@ -60,7 +115,15 @@ export function DashboardLayout() {
 
   return (
     <div className="flex h-screen">
-      <DashboardSidebar />
+      {/* Apply 'open' class to sidebar on mobile when menu is toggled */}
+      <div
+        ref={sidebarRef}
+        className={`dashboard-sidebar-container ${
+          menuOpen ? "sidebar-open" : ""
+        }`}
+      >
+        <DashboardSidebar />
+      </div>
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader onMenuToggle={toggleMenu} />
         <main className="dashboard-main">
@@ -72,7 +135,7 @@ export function DashboardLayout() {
       {/* Mobile menu overlay */}
       <div
         className={`menu-overlay ${menuOpen ? "open" : ""}`}
-        onClick={toggleMenu}
+        onClick={closeSidebar}
       ></div>
     </div>
   );

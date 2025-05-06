@@ -22,10 +22,16 @@ export async function getReceipts(): Promise<Receipt[]> {
     }
 
     // Cast payment_method field to the correct type
-    const typedData = data?.map(receipt => ({
-      ...receipt,
-      payment_method: receipt.payment_method as "cash" | "bank_transfer" | "credit_card" | "paypal" | "other"
-    })) || [];
+    const typedData =
+      data?.map((receipt) => ({
+        ...receipt,
+        payment_method: receipt.payment_method as
+          | "cash"
+          | "bank_transfer"
+          | "credit_card"
+          | "paypal"
+          | "other",
+      })) || [];
 
     return typedData;
   } catch (e) {
@@ -56,10 +62,17 @@ export async function getReceiptById(id: string): Promise<Receipt | null> {
     }
 
     // Cast payment_method field to the correct type
-    return data ? {
-      ...data,
-      payment_method: data.payment_method as "cash" | "bank_transfer" | "credit_card" | "paypal" | "other"
-    } : null;
+    return data
+      ? {
+          ...data,
+          payment_method: data.payment_method as
+            | "cash"
+            | "bank_transfer"
+            | "credit_card"
+            | "paypal"
+            | "other",
+        }
+      : null;
   } catch (e) {
     console.error("Error accessing receipt:", e);
     return null;
@@ -83,6 +96,7 @@ export async function createReceipt(
         user_id: user.user.id,
         client_id: receipt.client_id,
         invoice_id: receipt.invoice_id || null,
+        quote_id: receipt.quote_id || null,
         receipt_number: receipt.receipt_number,
         reference: receipt.reference || null,
         date: receipt.date,
@@ -124,6 +138,7 @@ export async function updateReceipt(
       .update({
         client_id: receipt.client_id,
         invoice_id: receipt.invoice_id || null,
+        quote_id: receipt.quote_id || null,
         receipt_number: receipt.receipt_number,
         reference: receipt.reference || null,
         date: receipt.date,
@@ -144,10 +159,17 @@ export async function updateReceipt(
     }
 
     // Cast payment_method field to the correct type
-    return data ? {
-      ...data,
-      payment_method: data.payment_method as "cash" | "bank_transfer" | "credit_card" | "paypal" | "other"
-    } : null;
+    return data
+      ? {
+          ...data,
+          payment_method: data.payment_method as
+            | "cash"
+            | "bank_transfer"
+            | "credit_card"
+            | "paypal"
+            | "other",
+        }
+      : null;
   } catch (e) {
     console.error("Error updating receipt:", e);
     return null;

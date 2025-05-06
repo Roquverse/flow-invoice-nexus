@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Invoice, InvoiceFormData } from "@/types/invoices";
 
@@ -23,10 +22,17 @@ export async function getInvoices(): Promise<Invoice[]> {
     }
 
     // Cast status field to the correct type
-    const typedData = data?.map(invoice => ({
-      ...invoice,
-      status: invoice.status as "draft" | "sent" | "viewed" | "paid" | "overdue" | "cancelled"
-    })) || [];
+    const typedData =
+      data?.map((invoice) => ({
+        ...invoice,
+        status: invoice.status as
+          | "draft"
+          | "sent"
+          | "viewed"
+          | "paid"
+          | "overdue"
+          | "cancelled",
+      })) || [];
 
     return typedData;
   } catch (e) {
@@ -38,7 +44,9 @@ export async function getInvoices(): Promise<Invoice[]> {
 /**
  * Get a specific invoice by ID along with its items
  */
-export async function getInvoiceById(id: string): Promise<{ invoice: Invoice, items: any[] }> {
+export async function getInvoiceById(
+  id: string
+): Promise<{ invoice: Invoice; items: any[] }> {
   const { data: user } = await supabase.auth.getUser();
 
   if (!user.user) {
@@ -73,7 +81,13 @@ export async function getInvoiceById(id: string): Promise<{ invoice: Invoice, it
     // Cast status field to the correct type
     const typedInvoice = {
       ...invoice,
-      status: invoice.status as "draft" | "sent" | "viewed" | "paid" | "overdue" | "cancelled"
+      status: invoice.status as
+        | "draft"
+        | "sent"
+        | "viewed"
+        | "paid"
+        | "overdue"
+        | "cancelled",
     };
 
     return { invoice: typedInvoice, items: items || [] };
@@ -86,7 +100,9 @@ export async function getInvoiceById(id: string): Promise<{ invoice: Invoice, it
 /**
  * Create a new invoice with its items
  */
-export async function createInvoice(invoiceData: InvoiceFormData): Promise<Invoice | null> {
+export async function createInvoice(
+  invoiceData: InvoiceFormData
+): Promise<Invoice | null> {
   const { data: user } = await supabase.auth.getUser();
 
   if (!user.user) return null;
@@ -123,7 +139,13 @@ export async function createInvoice(invoiceData: InvoiceFormData): Promise<Invoi
     // Cast status field to the correct type
     const typedInvoice = {
       ...newInvoice,
-      status: newInvoice.status as "draft" | "sent" | "viewed" | "paid" | "overdue" | "cancelled"
+      status: newInvoice.status as
+        | "draft"
+        | "sent"
+        | "viewed"
+        | "paid"
+        | "overdue"
+        | "cancelled",
     };
 
     // Insert the invoice items
@@ -158,7 +180,10 @@ export async function createInvoice(invoiceData: InvoiceFormData): Promise<Invoi
 /**
  * Update an existing invoice and its items
  */
-export async function updateInvoice(id: string, invoiceData: InvoiceFormData): Promise<Invoice | null> {
+export async function updateInvoice(
+  id: string,
+  invoiceData: InvoiceFormData
+): Promise<Invoice | null> {
   const { data: user } = await supabase.auth.getUser();
 
   if (!user.user) return null;
@@ -196,7 +221,13 @@ export async function updateInvoice(id: string, invoiceData: InvoiceFormData): P
     // Cast status field to the correct type
     const typedInvoice = {
       ...updatedInvoice,
-      status: updatedInvoice.status as "draft" | "sent" | "viewed" | "paid" | "overdue" | "cancelled"
+      status: updatedInvoice.status as
+        | "draft"
+        | "sent"
+        | "viewed"
+        | "paid"
+        | "overdue"
+        | "cancelled",
     };
 
     // Delete existing items
@@ -279,7 +310,7 @@ export async function deleteInvoice(id: string): Promise<boolean> {
  * Update the status of an invoice
  */
 export async function updateInvoiceStatus(
-  id: string, 
+  id: string,
   status: "draft" | "sent" | "viewed" | "paid" | "overdue" | "cancelled"
 ): Promise<boolean> {
   const { data: user } = await supabase.auth.getUser();
@@ -316,7 +347,7 @@ export async function generateInvoiceNumber(): Promise<string> {
   try {
     const date = new Date();
     const year = date.getFullYear().toString().slice(-2);
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
 
     const { data: invoices, error } = await supabase
       .from("invoices")
@@ -332,8 +363,8 @@ export async function generateInvoiceNumber(): Promise<string> {
     // Find the highest number
     let highestNum = 0;
     if (invoices && invoices.length > 0) {
-      invoices.forEach(invoice => {
-        const numStr = invoice.invoice_number.split('-')[2];
+      invoices.forEach((invoice) => {
+        const numStr = invoice.invoice_number.split("-")[2];
         const num = parseInt(numStr);
         if (!isNaN(num) && num > highestNum) {
           highestNum = num;
@@ -342,10 +373,21 @@ export async function generateInvoiceNumber(): Promise<string> {
     }
 
     // Generate next number
-    const nextNum = (highestNum + 1).toString().padStart(3, '0');
+    const nextNum = (highestNum + 1).toString().padStart(3, "0");
     return `INV-${year}${month}-${nextNum}`;
   } catch (e) {
     console.error("Error generating invoice number:", e);
     return `INV-${Date.now()}`;
   }
 }
+
+// Export invoiceService object for consistent import pattern
+export const invoiceService = {
+  getInvoices,
+  getInvoiceById,
+  createInvoice,
+  updateInvoice,
+  deleteInvoice,
+  updateInvoiceStatus,
+  generateInvoiceNumber,
+};

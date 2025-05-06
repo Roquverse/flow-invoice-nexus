@@ -358,6 +358,12 @@ const QuotesPage: React.FC = () => {
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
+                            <Link to={`/dashboard/quotes/preview/${quote.id}`}>
+                              <FileText className="mr-2 h-4 w-4" />
+                              Preview Quote
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
                             <Link to={`/dashboard/quotes/${quote.id}/edit`}>
                               <Edit className="mr-2 h-4 w-4" />
                               Edit Quote

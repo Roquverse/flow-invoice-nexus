@@ -244,11 +244,13 @@ const InvoicesPage: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">Invoices</h1>
           <p className="text-gray-500">Manage and track your invoices</p>
         </div>
-        <Link to="/dashboard/invoices/new">
-          <Button className="bg-green-600 hover:bg-green-700 text-white">
-            <Plus className="mr-2 h-4 w-4" /> New Invoice
-          </Button>
-        </Link>
+        <div className="flex gap-3">
+          <Link to="/dashboard/invoices/new">
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+              <Plus className="mr-2 h-4 w-4" /> New Invoice
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="mb-6">
@@ -280,11 +282,13 @@ const InvoicesPage: React.FC = () => {
               Clear Search
             </Button>
           ) : (
-            <Link to="/dashboard/invoices/new">
-              <Button className="bg-green-600 hover:bg-green-700 text-white">
-                <Plus className="mr-2 h-4 w-4" /> Create Your First Invoice
-              </Button>
-            </Link>
+            <div className="flex gap-3 justify-center">
+              <Link to="/dashboard/invoices/new">
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                  <Plus className="mr-2 h-4 w-4" /> Create New Invoice
+                </Button>
+              </Link>
+            </div>
           )}
         </div>
       ) : (
@@ -355,11 +359,21 @@ const InvoicesPage: React.FC = () => {
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
+                            <Link
+                              to={`/dashboard/invoices/preview/${invoice.id}`}
+                            >
+                              <Eye className="mr-2 h-4 w-4" />
+                              Preview Invoice
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem asChild>
                             <Link to={`/dashboard/invoices/${invoice.id}/edit`}>
                               <Edit className="mr-2 h-4 w-4" />
                               Edit Invoice
                             </Link>
                           </DropdownMenuItem>
+                          <DropdownMenuSeparator />
                           {renderStatusActions(invoice)}
                           <DropdownMenuItem
                             onClick={() => handleDeleteClick(invoice)}

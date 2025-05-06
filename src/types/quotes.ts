@@ -1,4 +1,3 @@
-
 // Quote entity type
 export interface Quote {
   id: string;
@@ -14,6 +13,9 @@ export interface Quote {
   tax_amount?: number;
   discount_amount?: number;
   currency: string;
+  payment_plan?: "full" | "part";
+  payment_percentage?: number; // Percentage of total amount to be paid
+  payment_amount?: number; // Calculated amount to be paid based on percentage
   notes?: string;
   terms?: string;
   footer?: string;
@@ -50,6 +52,9 @@ export interface QuoteFormData {
   expiry_date: string;
   status?: "draft" | "sent" | "viewed" | "accepted" | "rejected" | "expired";
   currency: string;
+  payment_plan?: "full" | "part";
+  payment_percentage?: number; // Percentage of total amount to be paid
+  payment_amount?: number; // Calculated amount to be paid based on percentage
   notes?: string;
   terms?: string;
   footer?: string;

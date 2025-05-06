@@ -9,7 +9,6 @@ import {
   Receipt,
   ClipboardCheck,
   FolderKanban,
-  CreditCard,
   PieChart,
   Briefcase,
 } from "lucide-react";
@@ -27,10 +26,13 @@ interface SidebarLinkProps {
 
 function SidebarLink({ to, icon: Icon, label, isActive }: SidebarLinkProps) {
   return (
-    <Link to={to} className={cn("nav-link", isActive && "active")}>
-      <span className="nav-link-content">
-        <Icon className="nav-icon" />
-        <span className="nav-label">{label}</span>
+    <Link
+      to={to}
+      className={cn("nav-link mobile-nav-link", isActive && "active")}
+    >
+      <span className="nav-link-content mobile-nav-link-content">
+        <Icon className="nav-icon mobile-nav-icon" />
+        <span className="nav-label mobile-nav-label">{label}</span>
       </span>
     </Link>
   );
@@ -54,42 +56,41 @@ export function DashboardSidebar() {
   };
 
   return (
-    <aside className="dashboard-sidebar">
-      <div className="sidebar-header">
-        <div className="logo-container">
-          <img src="/logo.png" alt="Logo" className="logo" />
+    <aside className="dashboard-sidebar mobile-dashboard-sidebar">
+      <div className="sidebar-header mobile-sidebar-header">
+        <div className="logo-container mobile-logo-container">
+          <img src="/logo.png" alt="Logo" className="logo mobile-logo" />
         </div>
       </div>
 
-      <div className="nav-section">
-        <Button className="organization-switcher">
+      <div className="nav-section mobile-nav-section">
+        <Button className="organization-switcher mobile-organization-switcher">
           <div className="flex items-center gap-2">
-            <div className="organization-badge">{getCompanyInitials()}</div>
-            <span>{companySettings?.company_name || "My Company"}</span>
+            <span className="mobile-company-name">
+              {companySettings?.company_name || "My Company"}
+            </span>
           </div>
           <ChevronRight size={16} />
         </Button>
       </div>
 
-      <div className="nav-section">
-        <div className="nav-section-title">Overview</div>
-        <div className="nav-links">
+      <div className="nav-section mobile-nav-section">
+        <div className="nav-section-title mobile-nav-section-title">
+          Overview
+        </div>
+        <div className="nav-links mobile-nav-links">
           <SidebarLink
             to="/dashboard"
             icon={LayoutDashboard}
             label="Dashboard"
             isActive={isActive("/dashboard")}
           />
-          <SidebarLink
-            to="/dashboard/analytics"
-            icon={PieChart}
-            label="Analytics"
-            isActive={isActive("/dashboard/analytics")}
-          />
         </div>
 
-        <div className="nav-section-title">Documents</div>
-        <div className="nav-links">
+        <div className="nav-section-title mobile-nav-section-title">
+          Documents
+        </div>
+        <div className="nav-links mobile-nav-links">
           <SidebarLink
             to="/dashboard/invoices"
             icon={FileText}
@@ -110,8 +111,10 @@ export function DashboardSidebar() {
           />
         </div>
 
-        <div className="nav-section-title">Management</div>
-        <div className="nav-links">
+        <div className="nav-section-title mobile-nav-section-title">
+          Management
+        </div>
+        <div className="nav-links mobile-nav-links">
           <SidebarLink
             to="/dashboard/clients"
             icon={Users}
@@ -124,18 +127,14 @@ export function DashboardSidebar() {
             label="Projects"
             isActive={isActive("/dashboard/projects")}
           />
-          <SidebarLink
-            to="/dashboard/payments"
-            icon={CreditCard}
-            label="Payments"
-            isActive={isActive("/dashboard/payments")}
-          />
         </div>
       </div>
 
-      <div className="nav-section mt-auto">
-        <div className="nav-section-title">Account</div>
-        <div className="nav-links">
+      <div className="nav-section mt-auto mobile-nav-section">
+        <div className="nav-section-title mobile-nav-section-title">
+          Account
+        </div>
+        <div className="nav-links mobile-nav-links">
           <SidebarLink
             to="/dashboard/settings"
             icon={Settings}

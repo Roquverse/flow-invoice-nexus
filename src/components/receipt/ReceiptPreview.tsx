@@ -2,148 +2,163 @@ import React, { forwardRef } from "react";
 import { Receipt } from "@/types/receipts";
 import { Client } from "@/types/clients";
 import { Invoice } from "@/types/invoices";
-import { formatCurrency } from "@/utils/formatters";
+import { Quote } from "@/types/quotes";
+import { formatCurrency, formatDate } from "@/utils/formatters";
+import { useCompanySettings } from "@/hooks/useSettings";
 
 interface ReceiptPreviewProps {
   receipt: Receipt;
-  client: Client;
+  client: Client | null;
   invoice?: Invoice | null;
-  companyName?: string;
-  companyLogo?: string;
-  companyAddress?: string;
-  companyEmail?: string;
-  companyPhone?: string;
+  quote?: Quote | null;
 }
 
 const ReceiptPreview = forwardRef<HTMLDivElement, ReceiptPreviewProps>(
-  (
-    {
-      receipt,
-      client,
-      invoice,
-      companyName = "Your Company",
-      companyLogo,
-      companyAddress = "Your Company Address",
-      companyEmail = "email@company.com",
-      companyPhone = "+1 234 567 890",
-    },
-    ref
-  ) => {
+  ({ receipt, client, invoice, quote }, ref) => {
+    // Get company settings for logo and company info
+    const { companySettings } = useCompanySettings();
+
+    // Determine the reference document (invoice or quote)
+    const referenceDocument = invoice || quote;
+    const referenceType = invoice ? "Invoice" : quote ? "Quote" : null;
+    const referenceNumber = invoice
+      ? invoice.invoice_number
+      : quote
+      ? quote.quote_number
+      : null;
+
     return (
-      <div
-        ref={ref}
-        className="bg-white p-8 rounded-lg shadow-lg max-w-4xl mx-auto"
-      >
+      <div ref={ref} className="p-8 max-w-4xl mx-auto bg-white">
         {/* Header */}
         <div className="flex justify-between items-start mb-8">
           <div>
-            {companyLogo ? (
-              <img src={companyLogo} alt={companyName} className="h-16 mb-2" />
-            ) : (
-              <h1 className="text-2xl font-bold text-gray-800">
-                {companyName}
-              </h1>
-            )}
-            <div className="text-gray-500 text-sm mt-1">{companyAddress}</div>
-            <div className="text-gray-500 text-sm">{companyEmail}</div>
-            <div className="text-gray-500 text-sm">{companyPhone}</div>
-          </div>
-          <div className="text-right">
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">RECEIPT</h1>
-            <div className="text-gray-600 mb-1">
-              <span className="font-semibold">Receipt #:</span>{" "}
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">RECEIPT</h1>
+            <p className="text-lg text-gray-500">
+              <span className="font-semibold">Receipt Number:</span>{" "}
               {receipt.receipt_number}
-            </div>
-            <div className="text-gray-600 mb-1">
+            </p>
+            {referenceDocument && (
+              <p className="text-lg text-gray-500">
+                <span className="font-semibold">{referenceType} Number:</span>{" "}
+                {referenceNumber}
+              </p>
+            )}
+            <p className="text-lg text-gray-500">
               <span className="font-semibold">Date:</span>{" "}
-              {new Date(receipt.date).toLocaleDateString()}
-            </div>
-            {invoice && (
-              <div className="text-gray-600 mb-1">
-                <span className="font-semibold">For Invoice:</span>{" "}
-                {invoice.invoice_number}
+              {formatDate(receipt.date)}
+            </p>
+          </div>
+          <div className="text-right flex flex-col items-end">
+            {companySettings?.logo_url && (
+              <div className="mb-3">
+                <img
+                  src={companySettings.logo_url}
+                  alt={companySettings.company_name || "Company Logo"}
+                  className="max-h-16 max-w-[200px] object-contain"
+                />
               </div>
+            )}
+            <h2 className="text-xl font-bold text-gray-800">
+              {companySettings?.company_name || "Your Company"}
+            </h2>
+            <p className="text-gray-600">
+              {companySettings?.address || "123 Business Street"}
+            </p>
+            <p className="text-gray-600">
+              {companySettings?.city && companySettings?.postal_code
+                ? `${companySettings.city}, ${companySettings.postal_code}`
+                : "City, State ZIP"}
+            </p>
+            {companySettings?.country && (
+              <p className="text-gray-600">{companySettings.country}</p>
             )}
           </div>
         </div>
 
-        {/* Client Details */}
-        <div className="border-t border-b border-gray-200 py-4 mb-6">
-          <h2 className="text-lg font-semibold text-gray-700 mb-2">
-            Received From:
-          </h2>
-          <div className="text-gray-600 font-medium">
-            {client.business_name}
-          </div>
-          {client.contact_name && (
-            <div className="text-gray-600">Attn: {client.contact_name}</div>
-          )}
-          {client.address && (
-            <div className="text-gray-600">{client.address}</div>
-          )}
-          {client.city && client.postal_code && (
-            <div className="text-gray-600">
-              {client.city}, {client.postal_code}
+        {/* Client Info */}
+        <div className="mb-8">
+          <h2 className="text-xl font-bold text-gray-800 mb-2">Receipt To:</h2>
+          {client ? (
+            <div>
+              <p className="text-gray-700 font-bold">
+                {client.business_name || client.contact_name}
+              </p>
+              <p className="text-gray-600">{client.address}</p>
+              <p className="text-gray-600">{client.email}</p>
+              <p className="text-gray-600">{client.phone}</p>
             </div>
-          )}
-          {client.country && (
-            <div className="text-gray-600">{client.country}</div>
+          ) : (
+            <p className="text-gray-500 italic">No client information</p>
           )}
         </div>
 
         {/* Payment Details */}
-        <div className="mb-8 border rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-gray-700 mb-4">
+        <div className="mb-8">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">
             Payment Details
           </h2>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-gray-500 mb-1">Amount Paid</p>
-              <p className="text-lg font-semibold text-gray-800">
-                {formatCurrency(receipt.amount, receipt.currency)}
-              </p>
-            </div>
-
-            <div>
-              <p className="text-sm text-gray-500 mb-1">Payment Method</p>
-              <p className="text-gray-700 capitalize">
-                {receipt.payment_method.replace("_", " ")}
-              </p>
-            </div>
-
-            {receipt.payment_reference && (
-              <div className="col-span-2">
-                <p className="text-sm text-gray-500 mb-1">Payment Reference</p>
-                <p className="text-gray-700">{receipt.payment_reference}</p>
-              </div>
-            )}
+          <div className="border rounded-lg overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-gray-200">
+                <tr>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 bg-gray-50 w-1/3">
+                    Amount Paid
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {formatCurrency(receipt.amount, receipt.currency)}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 bg-gray-50">
+                    Payment Method
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">
+                    {receipt.payment_method.replace("_", " ")}
+                  </td>
+                </tr>
+                {receipt.payment_reference && (
+                  <tr>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 bg-gray-50">
+                      Payment Reference
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {receipt.payment_reference}
+                    </td>
+                  </tr>
+                )}
+                {referenceDocument && (
+                  <tr>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 bg-gray-50">
+                      {referenceType} Reference
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {referenceNumber}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
 
         {/* Notes */}
         {receipt.notes && (
           <div className="mb-8">
-            <h3 className="text-gray-700 font-semibold mb-2">Notes:</h3>
-            <p className="text-gray-600 text-sm whitespace-pre-wrap border-t border-b border-gray-200 py-4">
-              {receipt.notes}
-            </p>
+            <h2 className="text-xl font-bold text-gray-800 mb-2">Notes</h2>
+            <div className="border rounded-lg p-4 bg-gray-50">
+              <p className="text-gray-700 whitespace-pre-line">
+                {receipt.notes}
+              </p>
+            </div>
           </div>
         )}
 
-        {/* Official Receipt */}
-        <div className="border-2 border-gray-300 rounded-lg p-4 mb-6 text-center">
-          <p className="text-lg font-semibold text-gray-800 mb-1">
-            Official Receipt
-          </p>
-          <p className="text-gray-600">
-            This is an official receipt for the payment received.
-          </p>
-        </div>
-
         {/* Footer */}
-        <div className="text-center text-gray-500 text-sm border-t border-gray-200 pt-4">
-          Thank you for your payment!
+        <div className="mt-12 text-center border-t pt-8">
+          <p className="text-gray-500 text-sm">
+            Thank you for your business! This receipt serves as proof of
+            payment.
+          </p>
         </div>
       </div>
     );

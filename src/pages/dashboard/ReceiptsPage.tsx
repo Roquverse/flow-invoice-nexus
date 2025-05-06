@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -36,9 +36,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { getClientById } from "@/services/clientService";
+import { invoiceService } from "@/services/invoiceService";
+import { getQuoteById } from "@/services/quoteService";
+import { downloadPDF } from "@/utils/pdf";
+import ReceiptPreview from "@/components/receipt/ReceiptPreview";
+import { useQuotes } from "@/hooks/useQuotes";
 
 const ReceiptsPage: React.FC = () => {
+  const navigate = useNavigate();
   const {
     receipts,
     loading,
@@ -47,9 +54,24 @@ const ReceiptsPage: React.FC = () => {
     getInvoiceNumber,
     removeReceipt,
   } = useReceipts();
+  const { quotes } = useQuotes();
   const [searchTerm, setSearchTerm] = useState("");
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
+
+  // Preview and download related states
+  const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false);
+  const [previewClient, setPreviewClient] = useState<any>(null);
+  const [previewInvoice, setPreviewInvoice] = useState<any>(null);
+  const [previewQuote, setPreviewQuote] = useState<any>(null);
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+  const previewRef = useRef<HTMLDivElement>(null);
+
+  // Helper function to get quote number from quote ID
+  const getQuoteNumber = (quoteId: string) => {
+    const quote = quotes.find((q) => q.id === quoteId);
+    return quote ? quote.quote_number : "Unknown";
+  };
 
   const handleDeleteClick = (receipt: Receipt) => {
     setSelectedReceipt(receipt);
@@ -61,6 +83,60 @@ const ReceiptsPage: React.FC = () => {
       await removeReceipt(selectedReceipt.id);
       setIsDeleteDialogOpen(false);
       setSelectedReceipt(null);
+    }
+  };
+
+  const handlePreviewClick = async (receipt: Receipt) => {
+    setSelectedReceipt(receipt);
+    setIsLoadingPreview(true);
+    setIsPreviewDialogOpen(true);
+
+    try {
+      // Fetch client data
+      const client = await getClientById(receipt.client_id);
+      setPreviewClient(client);
+
+      // Fetch invoice data if there's a related invoice
+      if (receipt.invoice_id) {
+        const { invoice } = await invoiceService.getInvoiceById(
+          receipt.invoice_id
+        );
+        setPreviewInvoice(invoice);
+      }
+
+      // Fetch quote data if there's a related quote
+      if (receipt.quote_id) {
+        const { quote } = await getQuoteById(receipt.quote_id);
+        setPreviewQuote(quote);
+      }
+    } catch (error) {
+      console.error("Error loading preview data:", error);
+    } finally {
+      setIsLoadingPreview(false);
+    }
+  };
+
+  const handleDownloadReceipt = async (receipt: Receipt) => {
+    try {
+      // First navigate to the preview page which handles the download
+      navigate(`/dashboard/receipts/preview/${receipt.id}`);
+    } catch (error) {
+      console.error("Error navigating to download receipt:", error);
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!selectedReceipt || !previewClient || !previewRef.current) return;
+
+    try {
+      await downloadPDF(
+        previewRef,
+        previewClient.business_name.replace(/\s+/g, "-").toLowerCase(),
+        "receipt",
+        selectedReceipt.receipt_number
+      );
+    } catch (error) {
+      console.error("Error downloading PDF:", error);
     }
   };
 
@@ -156,7 +232,7 @@ const ReceiptsPage: React.FC = () => {
               <TableRow>
                 <TableHead>Receipt #</TableHead>
                 <TableHead>Client</TableHead>
-                <TableHead>Invoice #</TableHead>
+                <TableHead>Invoice/Quote #</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>Payment Method</TableHead>
@@ -169,7 +245,7 @@ const ReceiptsPage: React.FC = () => {
                 <TableRow key={receipt.id}>
                   <TableCell className="font-medium">
                     <Link
-                      to={`/dashboard/receipts/${receipt.id}`}
+                      to={`/dashboard/receipts/preview/${receipt.id}`}
                       className="text-blue-600 hover:underline"
                     >
                       {receipt.receipt_number}
@@ -183,6 +259,13 @@ const ReceiptsPage: React.FC = () => {
                         className="text-blue-600 hover:underline"
                       >
                         {getInvoiceNumber(receipt.invoice_id)}
+                      </Link>
+                    ) : receipt.quote_id ? (
+                      <Link
+                        to={`/dashboard/quotes/${receipt.quote_id}`}
+                        className="text-blue-600 hover:underline"
+                      >
+                        {getQuoteNumber(receipt.quote_id)}
                       </Link>
                     ) : (
                       "-"
@@ -209,18 +292,28 @@ const ReceiptsPage: React.FC = () => {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem asChild>
-                            <Link to={`/dashboard/receipts/${receipt.id}`}>
+                            <Link
+                              to={`/dashboard/receipts/preview/${receipt.id}`}
+                            >
                               <Eye className="mr-2 h-4 w-4" />
                               View Details
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
-                            <Link to={`/dashboard/receipts/${receipt.id}/edit`}>
+                            <Link to={`/dashboard/receipts/edit/${receipt.id}`}>
                               <Edit className="mr-2 h-4 w-4" />
                               Edit Receipt
                             </Link>
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handlePreviewClick(receipt)}
+                          >
+                            <FileText className="mr-2 h-4 w-4" />
+                            Preview Receipt
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleDownloadReceipt(receipt)}
+                          >
                             <Download className="mr-2 h-4 w-4" />
                             Download Receipt
                           </DropdownMenuItem>
@@ -283,6 +376,49 @@ const ReceiptsPage: React.FC = () => {
               Delete
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Preview Dialog */}
+      <Dialog open={isPreviewDialogOpen} onOpenChange={setIsPreviewDialogOpen}>
+        <DialogContent className="sm:max-w-[800px]">
+          <DialogHeader>
+            <DialogTitle>Receipt Preview</DialogTitle>
+          </DialogHeader>
+          {isLoadingPreview ? (
+            <div className="py-12 flex justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+            </div>
+          ) : (
+            <>
+              <div className="max-h-[600px] overflow-y-auto">
+                {selectedReceipt && previewClient && (
+                  <ReceiptPreview
+                    ref={previewRef}
+                    receipt={selectedReceipt}
+                    client={previewClient}
+                    invoice={previewInvoice}
+                    quote={previewQuote}
+                  />
+                )}
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsPreviewDialogOpen(false)}
+                >
+                  Close
+                </Button>
+                <Button
+                  onClick={handleDownloadPDF}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Download PDF
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>

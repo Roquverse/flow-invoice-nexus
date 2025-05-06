@@ -1,18 +1,10 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Invoice, InvoiceFormData } from "@/types/invoices";
 import { Client } from "@/types/clients";
 import { Project } from "@/types/projects";
-import {
-  getInvoices,
-  getInvoiceById,
-  createInvoice,
-  updateInvoice,
-  deleteInvoice,
-  updateInvoiceStatus,
-} from "@/services/invoiceService";
+import { invoiceService } from "@/services/invoiceService";
 import { getClients } from "@/services/clientService";
-import { getProjects } from "@/services/projectService";
+import { projectService } from "@/services/projectService";
 
 export const useInvoices = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -24,7 +16,7 @@ export const useInvoices = () => {
   const fetchInvoices = useCallback(async () => {
     setLoading(true);
     try {
-      const invoicesData = await getInvoices();
+      const invoicesData = await invoiceService.getInvoices();
       setInvoices(invoicesData);
       setError(null);
     } catch (err) {
@@ -39,7 +31,7 @@ export const useInvoices = () => {
     try {
       const [clientsData, projectsData] = await Promise.all([
         getClients(),
-        getProjects(),
+        projectService.getProjects(),
       ]);
       setClients(clientsData);
       setProjects(projectsData);
@@ -56,7 +48,7 @@ export const useInvoices = () => {
   const addInvoice = async (invoiceData: InvoiceFormData) => {
     setLoading(true);
     try {
-      const newInvoice = await createInvoice(invoiceData);
+      const newInvoice = await invoiceService.createInvoice(invoiceData);
       if (newInvoice) {
         setInvoices((prev) => [newInvoice, ...prev]);
         return newInvoice.id;
@@ -77,7 +69,10 @@ export const useInvoices = () => {
   ) => {
     setLoading(true);
     try {
-      const updatedInvoice = await updateInvoice(id, invoiceData);
+      const updatedInvoice = await invoiceService.updateInvoice(
+        id,
+        invoiceData
+      );
       if (updatedInvoice) {
         setInvoices((prev) =>
           prev.map((invoice) => (invoice.id === id ? updatedInvoice : invoice))
@@ -97,7 +92,7 @@ export const useInvoices = () => {
   const removeInvoice = async (id: string) => {
     setLoading(true);
     try {
-      const success = await deleteInvoice(id);
+      const success = await invoiceService.deleteInvoice(id);
       if (success) {
         setInvoices((prev) => prev.filter((invoice) => invoice.id !== id));
         return true;
@@ -117,7 +112,7 @@ export const useInvoices = () => {
     status: "draft" | "sent" | "viewed" | "paid" | "overdue" | "cancelled"
   ) => {
     try {
-      const success = await updateInvoiceStatus(id, status);
+      const success = await invoiceService.updateInvoiceStatus(id, status);
       if (success) {
         setInvoices((prev) =>
           prev.map((invoice) =>
@@ -151,16 +146,18 @@ export const useInvoices = () => {
       // Get the current date
       const date = new Date();
       const year = date.getFullYear().toString().slice(-2);
-      const month = (date.getMonth() + 1).toString().padStart(2, '0');
-      
+      const month = (date.getMonth() + 1).toString().padStart(2, "0");
+
       // Count existing invoices for this month
-      const monthInvoices = invoices.filter(inv => {
+      const monthInvoices = invoices.filter((inv) => {
         const invDate = new Date(inv.issue_date);
-        return invDate.getMonth() + 1 === date.getMonth() + 1 && 
-               invDate.getFullYear() === date.getFullYear();
+        return (
+          invDate.getMonth() + 1 === date.getMonth() + 1 &&
+          invDate.getFullYear() === date.getFullYear()
+        );
       });
-      
-      const nextNum = (monthInvoices.length + 1).toString().padStart(3, '0');
+
+      const nextNum = (monthInvoices.length + 1).toString().padStart(3, "0");
       return `INV-${year}${month}-${nextNum}`;
     } catch (err) {
       console.error("Error generating invoice number:", err);
