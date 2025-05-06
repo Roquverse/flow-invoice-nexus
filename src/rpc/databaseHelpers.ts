@@ -1,53 +1,78 @@
 
-import { supabase } from "../integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
+import { PostgrestError } from "@supabase/supabase-js";
 
 /**
- * Gets column information for a specified table
+ * Executes a raw SQL query safely.
  */
-export async function getTableColumns(tableName: string) {
-  const { data, error } = await supabase.rpc("get_table_columns", {
-    table_name: tableName
-  });
-
-  if (error) {
-    console.error("Error fetching table columns:", error);
-    return null;
+export const executeQuery = async <T,>(query: string): Promise<T[]> => {
+  try {
+    const { data, error } = await supabase.rpc("execute_query", { query_text: query });
+    
+    if (error) {
+      throw new Error(`SQL query error: ${error.message}`);
+    }
+    
+    return data as T[];
+  } catch (error) {
+    console.error("Failed to execute query:", error);
+    throw error;
   }
-
-  return data;
-}
+};
 
 /**
- * Executes a simple query to get some rows from a table
+ * Gets the list of tables in the public schema.
  */
-export async function getSampleTableData(tableName: string, limit = 5) {
-  // We need to use 'any' type here because the table name is dynamic
-  const { data, error } = await supabase
-    .from(tableName as any)
-    .select("*")
-    .limit(limit);
+export const getTablesList = async (): Promise<string[]> => {
+  try {
+    // Use information_schema to get tables from public schema
+    const { data, error } = await supabase
+      .from("information_schema.tables")
+      .select("table_name")
+      .eq("table_schema", "public");
 
-  if (error) {
-    console.error(`Error fetching sample data for ${tableName}:`, error);
-    return null;
+    if (error) {
+      console.error("Error fetching tables:", error);
+      return [];
+    }
+
+    return data.map((row) => row.table_name);
+  } catch (error) {
+    console.error("Failed to get tables list:", error);
+    return [];
   }
-
-  return data;
-}
+};
 
 /**
- * Gets a list of all tables in the public schema
+ * Gets all table schemas from the database.
  */
-export async function getAllTables() {
-  const { data, error } = await supabase
-    .from("pg_tables")
-    .select("tablename")
-    .eq("schemaname", "public");
-
-  if (error) {
-    console.error("Error fetching tables:", error);
-    return null;
+export const getTableSchemas = async () => {
+  try {
+    const tables = await getTablesList();
+    
+    // Create schema object to store all table schemas
+    const schemas: Record<string, any> = {};
+    
+    // For each table, get its schema
+    for (const table of tables) {
+      const { data, error } = await supabase
+        .from(table as any)
+        .select()
+        .limit(0);
+        
+      if (error) {
+        console.error(`Error fetching schema for ${table}:`, error);
+        continue;
+      }
+      
+      schemas[table] = {
+        columns: Object.keys(data?.[0] || {}),
+      };
+    }
+    
+    return schemas;
+  } catch (error) {
+    console.error("Failed to get table schemas:", error);
+    return {};
   }
-
-  return data?.map(t => t.tablename) || [];
-}
+};

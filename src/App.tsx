@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -25,7 +26,18 @@ import ModernInvoicePage from "./pages/dashboard/ModernInvoicePage";
 import ModernInvoicePreviewPage from "./pages/dashboard/ModernInvoicePreviewPage";
 import ModernReceiptPage from "./pages/dashboard/ModernReceiptPage";
 
-// // Import styles
+// Admin imports
+import AdminLogin from "./components/admin/AdminLogin";
+import AdminLayout from "./components/admin/AdminLayout";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminUsersPage from "./pages/admin/AdminUsersPage";
+import AdminInvoicesPage from "./pages/admin/AdminInvoicesPage";
+import AdminQuotesPage from "./pages/admin/AdminQuotesPage";
+import AdminReceiptsPage from "./pages/admin/AdminReceiptsPage";
+import AdminSubscriptionsPage from "./pages/admin/AdminSubscriptionsPage";
+import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
+
+// Import styles
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./styles/variables.css";
 import "./styles/icons.css";
@@ -70,6 +82,19 @@ const App: React.FC = () => {
           <Route path="/" element={<HomePage />} />
           <Route path="/sign-in" element={<SignIn />} />
           <Route path="/sign-up" element={<SignUp />} />
+
+          {/* Admin Routes */}
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="users" element={<AdminUsersPage />} />
+            <Route path="invoices" element={<AdminInvoicesPage />} />
+            <Route path="quotes" element={<AdminQuotesPage />} />
+            <Route path="receipts" element={<AdminReceiptsPage />} />
+            <Route path="subscriptions" element={<AdminSubscriptionsPage />} />
+            <Route path="settings" element={<AdminSettingsPage />} />
+          </Route>
 
           {/* Protected Routes */}
           <Route path="/dashboard" element={<DashboardLayout />}>
