@@ -461,6 +461,8 @@ export type Database = {
           id: string
           issue_date: string
           notes: string | null
+          payment_amount: number | null
+          payment_percentage: number | null
           project_id: string | null
           quote_number: string
           reference: string | null
@@ -481,6 +483,8 @@ export type Database = {
           id?: string
           issue_date: string
           notes?: string | null
+          payment_amount?: number | null
+          payment_percentage?: number | null
           project_id?: string | null
           quote_number: string
           reference?: string | null
@@ -501,6 +505,8 @@ export type Database = {
           id?: string
           issue_date?: string
           notes?: string | null
+          payment_amount?: number | null
+          payment_percentage?: number | null
           project_id?: string | null
           quote_number?: string
           reference?: string | null
@@ -540,6 +546,7 @@ export type Database = {
           notes: string | null
           payment_method: string
           payment_reference: string | null
+          quote_id: string | null
           receipt_number: string
           reference: string | null
           updated_at: string
@@ -556,6 +563,7 @@ export type Database = {
           notes?: string | null
           payment_method: string
           payment_reference?: string | null
+          quote_id?: string | null
           receipt_number: string
           reference?: string | null
           updated_at?: string
@@ -572,6 +580,7 @@ export type Database = {
           notes?: string | null
           payment_method?: string
           payment_reference?: string | null
+          quote_id?: string | null
           receipt_number?: string
           reference?: string | null
           updated_at?: string
@@ -590,6 +599,13 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipts_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
             referencedColumns: ["id"]
           },
         ]

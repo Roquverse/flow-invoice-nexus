@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
@@ -56,7 +57,7 @@ const Header: React.FC = () => {
       <header
         className={`header-section ${isSticky ? "header-sticky" : ""}`}
         style={{
-          backgroundColor: isSticky ? "#ffffff" : "transparent",
+          backgroundColor: isSticky ? "#ffffff" : "white",
           boxShadow: isSticky ? "0 4px 10px rgba(0, 0, 0, 0.05)" : "none",
           transition: "all 0.3s ease",
         }}
@@ -96,7 +97,7 @@ const Header: React.FC = () => {
                           to="/"
                           onClick={() => scrollToSection("hero")}
                           style={{
-                            color: isSticky ? "#333" : "#000",
+                            color: "#333333",
                             fontWeight: "500",
                           }}
                         >
@@ -109,7 +110,7 @@ const Header: React.FC = () => {
                           to="/"
                           onClick={() => scrollToSection("why-choose-us")}
                           style={{
-                            color: isSticky ? "#333" : "#000",
+                            color: "#333333",
                             fontWeight: "500",
                           }}
                         >
@@ -122,7 +123,7 @@ const Header: React.FC = () => {
                           to="/"
                           onClick={() => scrollToSection("powerful-template")}
                           style={{
-                            color: isSticky ? "#333" : "#000",
+                            color: "#333333",
                             fontWeight: "500",
                           }}
                         >
@@ -135,7 +136,7 @@ const Header: React.FC = () => {
                           to="/"
                           onClick={() => scrollToSection("footer")}
                           style={{
-                            color: isSticky ? "#333" : "#000",
+                            color: "#333333",
                             fontWeight: "500",
                           }}
                         >
@@ -150,7 +151,7 @@ const Header: React.FC = () => {
                             to="/dashboard"
                             className="dashboard-link"
                             style={{
-                              color: isSticky ? "#333" : "#000",
+                              color: "#333333",
                               fontWeight: "500",
                             }}
                           >
@@ -164,7 +165,7 @@ const Header: React.FC = () => {
                               to="/sign-in"
                               className="sign-in-link"
                               style={{
-                                color: isSticky ? "#333" : "#000",
+                                color: "#333333",
                                 fontWeight: "500",
                               }}
                             >

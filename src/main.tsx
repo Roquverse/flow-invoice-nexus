@@ -1,3 +1,4 @@
+
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.tsx";
@@ -26,8 +27,12 @@ import { initCustomScripts } from "./js";
 
 // Initialize all scripts
 const initializeAll = async () => {
-  // Initialize custom scripts
-  await initCustomScripts();
+  try {
+    // Initialize custom scripts
+    await initCustomScripts();
+  } catch (error) {
+    console.error("Error initializing custom scripts:", error);
+  }
 };
 
 // Start initialization

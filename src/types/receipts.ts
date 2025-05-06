@@ -1,3 +1,4 @@
+
 // Receipt entity type
 export interface Receipt {
   id: string;

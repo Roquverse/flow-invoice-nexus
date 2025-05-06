@@ -1,3 +1,4 @@
+
 import React, { useEffect } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import ReceiptForm from "@/components/receipt/ReceiptForm";

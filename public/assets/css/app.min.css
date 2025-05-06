@@ -1,3 +1,4 @@
+
 /* Minimal app styling */
 :root {
   --primary-color: #4f46e5;
@@ -17,4 +18,32 @@ body {
 /* Fix for RTL support */
 html[dir="rtl"] {
   text-align: right;
+}
+
+/* Make sure navigation items are visible */
+.navbar-nav .nav-item .nav-link,
+.header-extra li a {
+  color: #333333 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.header-sticky .nav-link,
+.header-sticky .sign-in-link,
+.header-sticky .dashboard-link {
+  color: #333333 !important;
+}
+
+.header-section:not(.header-sticky) .nav-link,
+.header-section:not(.header-sticky) .sign-in-link,
+.header-section:not(.header-sticky) .dashboard-link {
+  color: #333333 !important;
+}
+
+/* Fix for mobile menu */
+.nav-menu li a, 
+.nav-buttons li a {
+  color: #333333 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
