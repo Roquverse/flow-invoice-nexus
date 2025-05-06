@@ -330,3 +330,63 @@ export const useSettings = () => {
     refresh: loadAllSettings
   };
 };
+
+// Create helper hooks to provide specific parts of the settings
+export const useCompanySettings = () => {
+  const { companySettings, loading, error, updateCompanySettings } = useSettings();
+  
+  return {
+    companySettings,
+    loading,
+    error,
+    updateCompanySettings
+  };
+};
+
+export const useProfileSettings = () => {
+  const { userProfile, loading, error, updateUserProfile } = useSettings();
+  
+  return {
+    profile: userProfile, // Rename to match what components expect
+    loading,
+    error,
+    updateProfile: updateUserProfile
+  };
+};
+
+export const useNotificationSettings = () => {
+  const { notificationPreferences, loading, error, updateNotificationPreferences } = useSettings();
+  
+  return {
+    notificationPreferences,
+    loading,
+    error,
+    updateNotificationPreferences
+  };
+};
+
+export const useSecuritySettings = () => {
+  const { securitySettings, sessionHistory, loading, error, updateSecuritySettings, changePassword } = useSettings();
+  
+  return {
+    securitySettings,
+    sessionHistory,
+    loading,
+    error,
+    updateSecuritySettings,
+    changePassword
+  };
+};
+
+export const useBillingSettings = () => {
+  const { billingSettings, paymentMethods, loading, error, addPaymentMethod, deletePaymentMethod } = useSettings();
+  
+  return {
+    billingSettings,
+    paymentMethods,
+    loading,
+    error,
+    addPaymentMethod,
+    deletePaymentMethod
+  };
+};
