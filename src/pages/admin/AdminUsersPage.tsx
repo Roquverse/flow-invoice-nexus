@@ -1,48 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Search,
-  UserPlus,
-  Edit,
-  Trash2,
-  AlertCircle,
-  Loader2,
-} from "lucide-react";
-import {
-  getAdminUsers,
-  deleteAdminUser,
-  updateAdminUser,
-} from "@/services/adminService";
-import { AdminUser } from "@/types/admin";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
+import { PlusCircle, Search, Trash2, Edit, Check, X } from "lucide-react";
+import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { toast } from "sonner";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { adminService } from "@/services/adminService";
+import { AdminUser } from "@/types/admin";
 
 // Update method names to match admin service exports
 const updateUserStatus = async (userId: string, status: string) => {
@@ -61,7 +30,7 @@ const updateUserStatus = async (userId: string, status: string) => {
 };
 
 const deleteUser = async (userId: string) => {
-  const result = await deleteAdminUser(userId);
+  const result = await adminService.deleteAdminUser(userId);
   return result.success;
 };
 
@@ -81,7 +50,7 @@ const AdminUsersPage: React.FC = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const usersData = await getAdminUsers();
+      const usersData = await adminService.getAdminUsers();
       setUsers(usersData);
     } catch (error) {
       console.error("Error fetching users:", error);

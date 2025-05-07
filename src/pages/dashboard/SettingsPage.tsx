@@ -1,864 +1,1106 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
-import { AlertCircle, Check, CreditCard, ExternalLink, Loader2, Plus } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useProfileSettings } from "@/hooks/useProfileSettings";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { useBillingSettings } from "@/hooks/useBillingSettings";
-import { useSecuritySettings } from "@/hooks/useSecuritySettings";
 import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
+import { useSecuritySettings } from "@/hooks/useSecuritySettings";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { CreditCard, PlusCircle, Trash2, Calendar, RefreshCcw } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import currencies from "@/data/currencies";
+import countryList from "@/data/countries";
+import { format } from "date-fns";
 
+// Define type for tabs
 type TabType = "profile" | "company" | "billing" | "notifications" | "security";
 
 const SettingsPage = () => {
+  // State for active tab
   const [activeTab, setActiveTab] = useState<TabType>("profile");
-  const [openAddPaymentDialog, setOpenAddPaymentDialog] = useState(false);
-  const [newPaymentType, setNewPaymentType] = useState<string>("credit_card");
-  const [newPaymentProvider, setNewPaymentProvider] = useState<string>("");
-  const [newPaymentLastFour, setNewPaymentLastFour] = useState<string>("");
-  const [newPaymentExpiryDate, setNewPaymentExpiryDate] = useState<string>("");
-  const [addingPayment, setAddingPayment] = useState(false);
+  
+  // Hooks for settings
+  const { profile, updateProfile, loading: profileLoading, error: profileError } = useProfileSettings();
+  const { companySettings, updateCompanySettings, loading: companyLoading, error: companyError } = useCompanySettings();
+  const { 
+    billingSettings, 
+    paymentMethods, 
+    loading: billingLoading, 
+    error: billingError,
+    addPaymentMethod,
+    deletePaymentMethod,
+    updateBillingSettings
+  } = useBillingSettings();
+  const { notificationPreferences, loading: notifLoading, error: notifError, updatePreferences } = useNotificationPreferences();
+  const { 
+    securitySettings, 
+    sessionHistory,
+    loading: securityLoading, 
+    error: securityError,
+    fetchSessionHistory,
+    changePassword
+  } = useSecuritySettings();
 
-  // User profile settings state and hooks
-  const { profileSettings, loading: profileLoading, error: profileError, updateProfile } = useProfileSettings();
-  const [firstName, setFirstName] = useState(profileSettings?.first_name || "");
-  const [lastName, setLastName] = useState(profileSettings?.last_name || "");
-  const [email, setEmail] = useState(profileSettings?.email || "");
-  const [phone, setPhone] = useState(profileSettings?.phone || "");
-  const [savingProfile, setSavingProfile] = useState(false);
+  // Form state
+  const [profileFormData, setProfileFormData] = useState({
+    first_name: "",
+    last_name: "",
+    email: "",
+    phone: "",
+    avatar_url: ""
+  });
+  
+  const [companyFormData, setCompanyFormData] = useState({
+    company_name: "",
+    logo_url: "",
+    address: "",
+    city: "",
+    state: "",
+    postal_code: "",
+    country: "",
+    phone: "",
+    email: "",
+    website: "",
+    tax_id: "",
+    vat_number: "",
+    registration_number: "",
+    default_currency: "USD",
+    default_tax_rate: 0,
+    payment_terms: 30,
+    payment_instructions: "",
+    invoice_prefix: "INV-",
+    quote_prefix: "QUO-",
+    receipt_prefix: "REC-",
+    invoice_notes: "",
+    quote_notes: ""
+  });
 
-  // Company settings state and hooks
-  const { companySettings, loading: companyLoading, error: companyError, updateCompanySettings } = useCompanySettings();
-  const [companyName, setCompanyName] = useState(companySettings?.company_name || "");
-  const [industry, setIndustry] = useState(companySettings?.industry || "");
-  const [companyAddress, setCompanyAddress] = useState(companySettings?.address || "");
-  const [companyCity, setCompanyCity] = useState(companySettings?.city || "");
-  const [companyPostalCode, setCompanyPostalCode] = useState(companySettings?.postal_code || "");
-  const [companyCountry, setCompanyCountry] = useState(companySettings?.country || "");
-  const [companyTaxId, setCompanyTaxId] = useState(companySettings?.tax_id || "");
-  const [savingCompany, setSavingCompany] = useState(false);
+  // Payment method dialog state
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [newPaymentMethod, setNewPaymentMethod] = useState({
+    payment_type: "credit_card",
+    provider: "visa",
+    last_four: "",
+    expiry_date: "",
+    is_default: false
+  });
 
-  // Billing settings state and hooks
-  const { billingSettings, paymentMethods, loading: billingLoading, error: billingError, addPaymentMethod, deletePaymentMethod, updateBillingSettings } = useBillingSettings();
-  const [billingName, setBillingName] = useState(billingSettings?.billing_name || "");
-  const [billingEmail, setBillingEmail] = useState(billingSettings?.billing_email || "");
-  const [savingBilling, setSavingBilling] = useState(false);
+  // Password change dialog state
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: ""
+  });
 
-  // Security settings state and hooks
-  const { securitySettings, sessionHistory, loading: securityLoading, error: securityError, fetchSessionHistory, updateSecuritySettings, changePassword } = useSecuritySettings();
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(securitySettings?.two_factor_enabled || false);
-  const [changingPassword, setChangingPassword] = useState(false);
+  // Security settings state
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
 
-  // Notification preferences state and hooks
-  const { notificationPreferences, loading: notificationLoading, error: notificationError, updatePreferences } = useNotificationPreferences();
-  const [invoiceNotifications, setInvoiceNotifications] = useState(notificationPreferences?.invoice_notifications || true);
-  const [clientActivity, setClientActivity] = useState(notificationPreferences?.client_activity || true);
-  const [projectUpdates, setProjectUpdates] = useState(notificationPreferences?.project_updates || false);
-  const [marketingTips, setMarketingTips] = useState(notificationPreferences?.marketing_tips || false);
-  const [emailFrequency, setEmailFrequency] = useState<"immediate" | "daily" | "weekly">(
-    (notificationPreferences?.email_frequency as "immediate" | "daily" | "weekly") || "immediate"
-  );
-  const [savingNotifications, setSavingNotifications] = useState(false);
+  // Notification settings state
+  const [invoiceNotifs, setInvoiceNotifs] = useState(true);
+  const [clientActivity, setClientActivity] = useState(true);
+  const [projectUpdates, setProjectUpdates] = useState(false);
+  const [marketingTips, setMarketingTips] = useState(false);
+  const [emailFrequency, setEmailFrequency] = useState<"immediate" | "daily" | "weekly">("immediate");
 
-  // Handle profile settings update
-  const handleProfileUpdate = async () => {
-    setSavingProfile(true);
-    try {
-      const success = await updateProfile({
-        first_name: firstName,
-        last_name: lastName,
-        phone,
+  // Initialize form data when settings are loaded
+  useEffect(() => {
+    if (profile) {
+      setProfileFormData({
+        first_name: profile.first_name || "",
+        last_name: profile.last_name || "",
+        email: profile.email || "",
+        phone: profile.phone || "",
+        avatar_url: profile.avatar_url || ""
       });
+    }
+  }, [profile]);
 
-      if (success) {
-        toast.success("Profile updated successfully");
-      } else {
-        toast.error("Failed to update profile");
-      }
+  useEffect(() => {
+    if (companySettings) {
+      setCompanyFormData({
+        company_name: companySettings.company_name || "",
+        logo_url: companySettings.logo_url || "",
+        address: companySettings.address || "",
+        city: companySettings.city || "",
+        state: companySettings.state || "",
+        postal_code: companySettings.postal_code || "",
+        country: companySettings.country || "",
+        phone: companySettings.phone || "",
+        email: companySettings.email || "",
+        website: companySettings.website || "",
+        tax_id: companySettings.tax_id || "",
+        vat_number: companySettings.vat_number || "",
+        registration_number: companySettings.registration_number || "",
+        default_currency: companySettings.default_currency || "USD",
+        default_tax_rate: companySettings.default_tax_rate || 0,
+        payment_terms: companySettings.payment_terms || 30,
+        payment_instructions: companySettings.payment_instructions || "",
+        invoice_prefix: companySettings.invoice_prefix || "INV-",
+        quote_prefix: companySettings.quote_prefix || "QUO-",
+        receipt_prefix: companySettings.receipt_prefix || "REC-",
+        invoice_notes: companySettings.invoice_notes || "",
+        quote_notes: companySettings.quote_notes || ""
+      });
+    }
+  }, [companySettings]);
+
+  useEffect(() => {
+    if (notificationPreferences) {
+      setInvoiceNotifs(notificationPreferences.invoice_notifications || false);
+      setClientActivity(notificationPreferences.client_activity || false);
+      setProjectUpdates(notificationPreferences.project_updates || false);
+      setMarketingTips(notificationPreferences.marketing_tips || false);
+      setEmailFrequency(notificationPreferences.email_frequency || "immediate");
+    }
+  }, [notificationPreferences]);
+
+  useEffect(() => {
+    if (securitySettings) {
+      setTwoFactorEnabled(securitySettings.two_factor_enabled || false);
+    }
+    
+    // Fetch session history when security tab is active
+    if (activeTab === "security") {
+      fetchSessionHistory();
+    }
+  }, [securitySettings, activeTab]);
+
+  const handleProfileSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await updateProfile(profileFormData);
+      toast.success("Profile updated successfully");
     } catch (error) {
+      toast.error("Failed to update profile");
       console.error("Error updating profile:", error);
-      toast.error("An error occurred while updating your profile");
-    } finally {
-      setSavingProfile(false);
     }
   };
 
-  // Handle company settings update
-  const handleCompanyUpdate = async () => {
-    setSavingCompany(true);
+  const handleCompanySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
-      const success = await updateCompanySettings({
-        company_name: companyName,
-        industry,
-        address: companyAddress,
-        city: companyCity,
-        postal_code: companyPostalCode,
-        country: companyCountry,
-        tax_id: companyTaxId,
+      await updateCompanySettings({
+        ...companyFormData
       });
-
-      if (success) {
-        toast.success("Company settings updated successfully");
-      } else {
-        toast.error("Failed to update company settings");
-      }
+      toast.success("Company settings updated successfully");
     } catch (error) {
+      toast.error("Failed to update company settings");
       console.error("Error updating company settings:", error);
-      toast.error("An error occurred while updating company settings");
-    } finally {
-      setSavingCompany(false);
     }
   };
 
-  // Handle billing settings update
-  const handleBillingUpdate = async () => {
-    setSavingBilling(true);
+  const handleNotificationSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
-      const success = await updateBillingSettings({
-        billing_name: billingName,
-        billing_email: billingEmail,
-      });
-
-      if (success) {
-        toast.success("Billing settings updated successfully");
-      } else {
-        toast.error("Failed to update billing settings");
-      }
-    } catch (error) {
-      console.error("Error updating billing settings:", error);
-      toast.error("An error occurred while updating billing settings");
-    } finally {
-      setSavingBilling(false);
-    }
-  };
-
-  // Handle adding a payment method
-  const handleAddPaymentMethod = async () => {
-    setAddingPayment(true);
-    try {
-      if (!newPaymentProvider) {
-        toast.error("Please enter a payment provider");
-        return;
-      }
-
-      const success = await addPaymentMethod({
-        payment_type: newPaymentType,
-        provider: newPaymentProvider,
-        last_four: newPaymentLastFour,
-        expiry_date: newPaymentExpiryDate ? new Date(newPaymentExpiryDate).toISOString() : undefined,
-      });
-
-      if (success) {
-        setOpenAddPaymentDialog(false);
-        setNewPaymentType("credit_card");
-        setNewPaymentProvider("");
-        setNewPaymentLastFour("");
-        setNewPaymentExpiryDate("");
-        toast.success("Payment method added successfully");
-      } else {
-        toast.error("Failed to add payment method");
-      }
-    } catch (error) {
-      console.error("Error adding payment method:", error);
-      toast.error("An error occurred while adding the payment method");
-    } finally {
-      setAddingPayment(false);
-    }
-  };
-
-  // Handle deleting a payment method
-  const handleDeletePaymentMethod = async (id: string) => {
-    try {
-      const success = await deletePaymentMethod(id);
-      if (success) {
-        toast.success("Payment method removed successfully");
-      } else {
-        toast.error("Failed to remove payment method");
-      }
-    } catch (error) {
-      console.error("Error removing payment method:", error);
-      toast.error("An error occurred while removing the payment method");
-    }
-  };
-
-  // Handle changing password
-  const handleChangePassword = async () => {
-    if (newPassword !== confirmPassword) {
-      toast.error("New passwords do not match");
-      return;
-    }
-
-    if (newPassword.length < 8) {
-      toast.error("Password must be at least 8 characters long");
-      return;
-    }
-
-    setChangingPassword(true);
-    try {
-      const success = await changePassword(currentPassword, newPassword);
-      if (success) {
-        setCurrentPassword("");
-        setNewPassword("");
-        setConfirmPassword("");
-        toast.success("Password changed successfully");
-      } else {
-        toast.error("Failed to change password");
-      }
-    } catch (error) {
-      console.error("Error changing password:", error);
-      toast.error("An error occurred while changing your password");
-    } finally {
-      setChangingPassword(false);
-    }
-  };
-
-  // Handle toggling two-factor authentication
-  const handleToggleTwoFactor = async () => {
-    try {
-      const newValue = !twoFactorEnabled;
-      const success = await updateSecuritySettings({
-        two_factor_enabled: newValue,
-      });
-
-      if (success) {
-        setTwoFactorEnabled(newValue);
-        toast.success(
-          newValue
-            ? "Two-factor authentication enabled"
-            : "Two-factor authentication disabled"
-        );
-      } else {
-        toast.error("Failed to update two-factor authentication settings");
-      }
-    } catch (error) {
-      console.error("Error updating two-factor authentication:", error);
-      toast.error("An error occurred while updating two-factor authentication");
-    }
-  };
-
-  // Handle notification preferences update
-  const handleNotificationUpdate = async () => {
-    setSavingNotifications(true);
-    try {
-      const success = await updatePreferences({
-        invoice_notifications: invoiceNotifications,
+      const result = await updatePreferences({
+        invoice_notifications: invoiceNotifs,
         client_activity: clientActivity,
         project_updates: projectUpdates,
         marketing_tips: marketingTips,
-        email_frequency: emailFrequency,
+        email_frequency: emailFrequency
       });
-
-      if (success) {
+      
+      if (result) {
         toast.success("Notification preferences updated successfully");
       } else {
         toast.error("Failed to update notification preferences");
       }
     } catch (error) {
+      toast.error("Failed to update notification preferences");
       console.error("Error updating notification preferences:", error);
-      toast.error("An error occurred while updating notification preferences");
-    } finally {
-      setSavingNotifications(false);
     }
   };
 
+  const handleAddPaymentMethod = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const result = await addPaymentMethod(newPaymentMethod);
+      if (result) {
+        toast.success("Payment method added successfully");
+        setPaymentDialogOpen(false);
+        setNewPaymentMethod({
+          payment_type: "credit_card",
+          provider: "visa",
+          last_four: "",
+          expiry_date: "",
+          is_default: false
+        });
+      } else {
+        toast.error("Failed to add payment method");
+      }
+    } catch (error) {
+      toast.error("Failed to add payment method");
+      console.error("Error adding payment method:", error);
+    }
+  };
+
+  const handleDeletePaymentMethod = async (id: string) => {
+    try {
+      const result = await deletePaymentMethod(id);
+      if (result) {
+        toast.success("Payment method deleted successfully");
+      } else {
+        toast.error("Failed to delete payment method");
+      }
+    } catch (error) {
+      toast.error("Failed to delete payment method");
+      console.error("Error deleting payment method:", error);
+    }
+  };
+
+  const handleSaveSecuritySettings = async () => {
+    try {
+      await updateSecuritySettings({
+        two_factor_enabled: twoFactorEnabled
+      });
+      toast.success("Security settings updated successfully");
+    } catch (error) {
+      toast.error("Failed to update security settings");
+      console.error("Error updating security settings:", error);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast.error("New password and confirmation do not match");
+      return;
+    }
+    
+    try {
+      const result = await changePassword(passwordData.currentPassword, passwordData.newPassword);
+      if (result) {
+        toast.success("Password changed successfully");
+        setPasswordDialogOpen(false);
+        setPasswordData({
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: ""
+        });
+      } else {
+        toast.error("Failed to change password");
+      }
+    } catch (error) {
+      toast.error("Failed to change password");
+      console.error("Error changing password:", error);
+    }
+  };
+
+  // Handle tab change
+  const handleTabChange = (value: string) => {
+    setActiveTab(value as TabType);
+  };
+
   return (
-    <div className="container mx-auto py-6">
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-4">
+    <div className="container mx-auto py-8">
+      <h1 className="text-3xl font-bold mb-6">Settings</h1>
+      
+      <Tabs defaultValue="profile" value={activeTab} onValueChange={handleTabChange}>
+        <TabsList className="mb-8">
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="company">Company</TabsTrigger>
           <TabsTrigger value="billing">Billing</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
         </TabsList>
-
-        {/* Profile Settings Tab */}
-        <TabsContent value="profile" className="space-y-4">
+        
+        {/* Profile Settings */}
+        <TabsContent value="profile">
           <Card>
             <CardHeader>
               <CardTitle>Profile Settings</CardTitle>
+              <CardDescription>
+                Manage your personal information
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {profileError && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>{profileError.message}</AlertDescription>
-                </Alert>
-              )}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="firstName">First Name</Label>
-                  <Input
-                    type="text"
-                    id="firstName"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                  />
+            <CardContent>
+              <form onSubmit={handleProfileSubmit}>
+                <div className="flex items-center mb-8">
+                  <Avatar className="h-20 w-20">
+                    <AvatarImage src={profileFormData.avatar_url} alt="Profile" />
+                    <AvatarFallback>
+                      {`${profileFormData.first_name?.charAt(0) || ''}${profileFormData.last_name?.charAt(0) || ''}`}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="ml-4">
+                    <Input
+                      id="avatar_url"
+                      type="text"
+                      placeholder="Avatar URL"
+                      value={profileFormData.avatar_url}
+                      onChange={(e) => setProfileFormData({ ...profileFormData, avatar_url: e.target.value })}
+                      className="mb-2"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Enter a URL for your profile image
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="lastName">Last Name</Label>
-                  <Input
-                    type="text"
-                    id="lastName"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                  />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <Label htmlFor="first_name">First Name</Label>
+                    <Input
+                      id="first_name"
+                      value={profileFormData.first_name}
+                      onChange={(e) => setProfileFormData({ ...profileFormData, first_name: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="last_name">Last Name</Label>
+                    <Input
+                      id="last_name"
+                      value={profileFormData.last_name}
+                      onChange={(e) => setProfileFormData({ ...profileFormData, last_name: e.target.value })}
+                    />
+                  </div>
                 </div>
-              </div>
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  type="email"
-                  id="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled
-                />
-              </div>
-              <div>
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  type="tel"
-                  id="phone"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                />
-              </div>
-              <Button onClick={handleProfileUpdate} disabled={savingProfile}>
-                {savingProfile ? (
-                  <>
-                    Saving <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                  </>
-                ) : (
-                  "Update Profile"
-                )}
-              </Button>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                  <div>
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={profileFormData.email}
+                      onChange={(e) => setProfileFormData({ ...profileFormData, email: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="phone">Phone</Label>
+                    <Input
+                      id="phone"
+                      value={profileFormData.phone}
+                      onChange={(e) => setProfileFormData({ ...profileFormData, phone: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <Button type="submit" disabled={profileLoading}>
+                  {profileLoading ? "Saving..." : "Save Changes"}
+                </Button>
+              </form>
             </CardContent>
           </Card>
         </TabsContent>
-
-        {/* Company Settings Tab */}
-        <TabsContent value="company" className="space-y-4">
+        
+        {/* Company Settings */}
+        <TabsContent value="company">
           <Card>
             <CardHeader>
               <CardTitle>Company Settings</CardTitle>
+              <CardDescription>
+                Manage your company information and defaults
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {companyError && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>{companyError.message}</AlertDescription>
-                </Alert>
-              )}
-              <div>
-                <Label htmlFor="companyName">Company Name</Label>
-                <Input
-                  type="text"
-                  id="companyName"
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="industry">Industry</Label>
-                <Input
-                  type="text"
-                  id="industry"
-                  value={industry}
-                  onChange={(e) => setIndustry(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="companyAddress">Address</Label>
-                <Input
-                  type="text"
-                  id="companyAddress"
-                  value={companyAddress}
-                  onChange={(e) => setCompanyAddress(e.target.value)}
-                />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="companyCity">City</Label>
-                  <Input
-                    type="text"
-                    id="companyCity"
-                    value={companyCity}
-                    onChange={(e) => setCompanyCity(e.target.value)}
-                  />
+            <CardContent>
+              <form onSubmit={handleCompanySubmit}>
+                <div className="mb-8">
+                  <h3 className="text-lg font-medium mb-4">Company Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="company_name">Company Name</Label>
+                      <Input
+                        id="company_name"
+                        value={companyFormData.company_name}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, company_name: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="logo_url">Logo URL</Label>
+                      <Input
+                        id="logo_url"
+                        value={companyFormData.logo_url}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, logo_url: e.target.value })}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="companyPostalCode">Postal Code</Label>
-                  <Input
-                    type="text"
-                    id="companyPostalCode"
-                    value={companyPostalCode}
-                    onChange={(e) => setCompanyPostalCode(e.target.value)}
-                  />
+
+                <div className="mb-8">
+                  <h3 className="text-lg font-medium mb-4">Address Information</h3>
+                  <div className="grid grid-cols-1 gap-4 mb-4">
+                    <div>
+                      <Label htmlFor="address">Street Address</Label>
+                      <Input
+                        id="address"
+                        value={companyFormData.address}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, address: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="city">City</Label>
+                      <Input
+                        id="city"
+                        value={companyFormData.city}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, city: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="state">State/Province</Label>
+                      <Input
+                        id="state"
+                        value={companyFormData.state}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, state: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="postal_code">Postal Code</Label>
+                      <Input
+                        id="postal_code"
+                        value={companyFormData.postal_code}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, postal_code: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <Label htmlFor="country">Country</Label>
+                    <Select 
+                      value={companyFormData.country}
+                      onValueChange={(value) => setCompanyFormData({ ...companyFormData, country: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a country" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {countryList.map((country) => (
+                          <SelectItem key={country.code} value={country.code}>
+                            {country.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="companyCountry">Country</Label>
-                  <Input
-                    type="text"
-                    id="companyCountry"
-                    value={companyCountry}
-                    onChange={(e) => setCompanyCountry(e.target.value)}
-                  />
+
+                <div className="mb-8">
+                  <h3 className="text-lg font-medium mb-4">Contact Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="company_phone">Phone</Label>
+                      <Input
+                        id="company_phone"
+                        value={companyFormData.phone}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, phone: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="company_email">Email</Label>
+                      <Input
+                        id="company_email"
+                        value={companyFormData.email}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, email: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="website">Website</Label>
+                      <Input
+                        id="website"
+                        value={companyFormData.website}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, website: e.target.value })}
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div>
-                <Label htmlFor="companyTaxId">Tax ID</Label>
-                <Input
-                  type="text"
-                  id="companyTaxId"
-                  value={companyTaxId}
-                  onChange={(e) => setCompanyTaxId(e.target.value)}
-                />
-              </div>
-              <Button onClick={handleCompanyUpdate} disabled={savingCompany}>
-                {savingCompany ? (
-                  <>
-                    Saving <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                  </>
-                ) : (
-                  "Update Company"
-                )}
-              </Button>
+
+                <div className="mb-8">
+                  <h3 className="text-lg font-medium mb-4">Registration Details</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="tax_id">Tax ID</Label>
+                      <Input
+                        id="tax_id"
+                        value={companyFormData.tax_id}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, tax_id: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="vat_number">VAT Number</Label>
+                      <Input
+                        id="vat_number"
+                        value={companyFormData.vat_number}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, vat_number: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="registration_number">Registration Number</Label>
+                      <Input
+                        id="registration_number"
+                        value={companyFormData.registration_number}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, registration_number: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mb-8">
+                  <h3 className="text-lg font-medium mb-4">Default Settings</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                      <Label htmlFor="default_currency">Currency</Label>
+                      <Select 
+                        value={companyFormData.default_currency}
+                        onValueChange={(value) => setCompanyFormData({ ...companyFormData, default_currency: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select currency" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {currencies.map((currency) => (
+                            <SelectItem key={currency.code} value={currency.code}>
+                              {currency.code} - {currency.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="default_tax_rate">Default Tax Rate (%)</Label>
+                      <Input
+                        id="default_tax_rate"
+                        type="number"
+                        step="0.01"
+                        value={companyFormData.default_tax_rate}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, default_tax_rate: parseFloat(e.target.value) || 0 })}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="payment_terms">Payment Terms (Days)</Label>
+                      <Input
+                        id="payment_terms"
+                        type="number"
+                        value={companyFormData.payment_terms}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, payment_terms: parseInt(e.target.value) || 0 })}
+                      />
+                    </div>
+                  </div>
+                  <div className="mb-4">
+                    <Label htmlFor="payment_instructions">Payment Instructions</Label>
+                    <Input
+                      id="payment_instructions"
+                      value={companyFormData.payment_instructions}
+                      onChange={(e) => setCompanyFormData({ ...companyFormData, payment_instructions: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="mb-8">
+                  <h3 className="text-lg font-medium mb-4">Document Settings</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                      <Label htmlFor="invoice_prefix">Invoice Prefix</Label>
+                      <Input
+                        id="invoice_prefix"
+                        value={companyFormData.invoice_prefix}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, invoice_prefix: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="quote_prefix">Quote Prefix</Label>
+                      <Input
+                        id="quote_prefix"
+                        value={companyFormData.quote_prefix}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, quote_prefix: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="receipt_prefix">Receipt Prefix</Label>
+                      <Input
+                        id="receipt_prefix"
+                        value={companyFormData.receipt_prefix}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, receipt_prefix: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="invoice_notes">Default Invoice Notes</Label>
+                      <Input
+                        id="invoice_notes"
+                        value={companyFormData.invoice_notes}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, invoice_notes: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="quote_notes">Default Quote Notes</Label>
+                      <Input
+                        id="quote_notes"
+                        value={companyFormData.quote_notes}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, quote_notes: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Button type="submit" disabled={companyLoading}>
+                  {companyLoading ? "Saving..." : "Save Changes"}
+                </Button>
+              </form>
             </CardContent>
           </Card>
         </TabsContent>
-
-        {/* Billing Settings Tab */}
-        <TabsContent value="billing" className="space-y-4">
+        
+        {/* Billing Settings */}
+        <TabsContent value="billing">
           <Card>
             <CardHeader>
               <CardTitle>Billing Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {billingError && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>{billingError.message}</AlertDescription>
-                </Alert>
-              )}
-              <div>
-                <Label htmlFor="billingName">Billing Name</Label>
-                <Input
-                  type="text"
-                  id="billingName"
-                  value={billingName}
-                  onChange={(e) => setBillingName(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="billingEmail">Billing Email</Label>
-                <Input
-                  type="email"
-                  id="billingEmail"
-                  value={billingEmail}
-                  onChange={(e) => setBillingEmail(e.target.value)}
-                />
-              </div>
-              <Button onClick={handleBillingUpdate} disabled={savingBilling}>
-                {savingBilling ? (
-                  <>
-                    Saving <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                  </>
-                ) : (
-                  "Update Billing"
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Payment Methods</CardTitle>
+              <CardDescription>
+                Manage your payment methods and subscription
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              {billingLoading ? (
-                <div className="flex justify-center items-center h-24">
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                </div>
-              ) : paymentMethods.length === 0 ? (
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  No payment methods added yet.
-                </Alert>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Provider</TableHead>
-                      <TableHead>Last Four</TableHead>
-                      <TableHead>Expiry Date</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+              <div className="mb-8">
+                <h3 className="text-lg font-medium mb-4">Payment Methods</h3>
+                {paymentMethods && paymentMethods.length > 0 ? (
+                  <div className="space-y-4">
                     {paymentMethods.map((method) => (
-                      <TableRow key={method.id}>
-                        <TableCell>{method.payment_type}</TableCell>
-                        <TableCell>{method.provider}</TableCell>
-                        <TableCell>{method.last_four}</TableCell>
-                        <TableCell>
-                          {method.expiry_date
-                            ? new Date(method.expiry_date).toLocaleDateString()
-                            : "N/A"}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeletePaymentMethod(method.id)}
-                          >
-                            Remove
-                          </Button>
-                        </TableCell>
-                      </TableRow>
+                      <div key={method.id} className="flex items-center justify-between p-4 border rounded-md">
+                        <div className="flex items-center">
+                          <CreditCard className="h-5 w-5 mr-2" />
+                          <div>
+                            <p className="font-medium capitalize">{method.provider}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {method.payment_type} •••• {method.last_four} 
+                              {method.expiry_date ? ` • Expires ${method.expiry_date}` : ''}
+                              {method.is_default ? ' • Default' : ''}
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeletePaymentMethod(method.id!)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     ))}
-                  </TableBody>
-                </Table>
-              )}
-
-              <Button
-                variant="outline"
-                onClick={() => setOpenAddPaymentDialog(true)}
-                className="mt-4"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Payment Method
-              </Button>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground mb-4">No payment methods added yet.</p>
+                )}
+                
+                <Button 
+                  variant="outline" 
+                  className="mt-4"
+                  onClick={() => setPaymentDialogOpen(true)}
+                >
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  Add Payment Method
+                </Button>
+              </div>
+              
+              <Separator className="my-6" />
+              
+              <div className="mb-4">
+                <h3 className="text-lg font-medium mb-4">Subscription Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Current Plan</Label>
+                    <p className="text-lg font-medium mt-1">
+                      {billingSettings?.subscription_plan || "Free Plan"}
+                    </p>
+                  </div>
+                  <div>
+                    <Label>Status</Label>
+                    <p className="text-lg font-medium mt-1">
+                      {billingSettings?.subscription_status || "Active"}
+                    </p>
+                  </div>
+                  <div>
+                    <Label>Next Payment</Label>
+                    <p className="text-lg font-medium mt-1">
+                      {billingSettings?.subscription_renewal_date ? 
+                        new Date(billingSettings.subscription_renewal_date).toLocaleDateString() : 
+                        "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <Label>Billing Name</Label>
+                    <p className="text-lg font-medium mt-1">
+                      {billingSettings?.billing_name || "N/A"}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <Button variant="outline">
+                    Manage Subscription
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          {/* Add Payment Method Dialog */}
-          <Dialog open={openAddPaymentDialog} onOpenChange={setOpenAddPaymentDialog}>
+          {/* Payment Method Dialog */}
+          <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Add Payment Method</DialogTitle>
-                <DialogDescription>
-                  Add a new payment method to your account.
-                </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="paymentType" className="text-right">
-                    Type
-                  </Label>
-                  <Select
-                    value={newPaymentType}
-                    onValueChange={setNewPaymentType}
-                    className="col-span-3"
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="credit_card">Credit Card</SelectItem>
-                      <SelectItem value="paypal">PayPal</SelectItem>
-                      <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="paymentProvider" className="text-right">
-                    Provider
-                  </Label>
-                  <Input
-                    id="paymentProvider"
-                    value={newPaymentProvider}
-                    onChange={(e) => setNewPaymentProvider(e.target.value)}
-                    className="col-span-3"
-                  />
-                </div>
-                {newPaymentType === "credit_card" && (
-                  <>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="paymentLastFour" className="text-right">
-                        Last Four Digits
-                      </Label>
-                      <Input
-                        id="paymentLastFour"
-                        value={newPaymentLastFour}
-                        onChange={(e) => setNewPaymentLastFour(e.target.value)}
-                        className="col-span-3"
-                      />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="paymentExpiryDate" className="text-right">
-                        Expiry Date
-                      </Label>
-                      <Input
-                        type="date"
-                        id="paymentExpiryDate"
-                        value={newPaymentExpiryDate}
-                        onChange={(e) => setNewPaymentExpiryDate(e.target.value)}
-                        className="col-span-3"
-                      />
-                    </div>
-                  </>
-                )}
-              </div>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setOpenAddPaymentDialog(false)}
-                >
-                  Cancel
-                </Button>
-                <Button onClick={handleAddPaymentMethod} disabled={addingPayment}>
-                  {addingPayment ? (
+              <form onSubmit={handleAddPaymentMethod}>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="payment_type" className="text-right">
+                      Type
+                    </Label>
+                    <Select 
+                      value={newPaymentMethod.payment_type}
+                      onValueChange={(value) => setNewPaymentMethod({ ...newPaymentMethod, payment_type: value })}
+                    >
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="credit_card">Credit Card</SelectItem>
+                        <SelectItem value="paypal">PayPal</SelectItem>
+                        <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="provider" className="text-right">
+                      Provider
+                    </Label>
+                    <Select 
+                      value={newPaymentMethod.provider}
+                      onValueChange={(value) => setNewPaymentMethod({ ...newPaymentMethod, provider: value })}
+                    >
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Select provider" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="visa">Visa</SelectItem>
+                        <SelectItem value="mastercard">Mastercard</SelectItem>
+                        <SelectItem value="amex">American Express</SelectItem>
+                        <SelectItem value="discover">Discover</SelectItem>
+                        <SelectItem value="paypal">PayPal</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {newPaymentMethod.payment_type === "credit_card" && (
                     <>
-                      Adding <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="last_four" className="text-right">
+                          Last 4 Digits
+                        </Label>
+                        <Input
+                          id="last_four"
+                          value={newPaymentMethod.last_four}
+                          onChange={(e) => setNewPaymentMethod({ ...newPaymentMethod, last_four: e.target.value })}
+                          className="col-span-3"
+                          maxLength={4}
+                        />
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="expiry_date" className="text-right">
+                          Expiry (MM/YY)
+                        </Label>
+                        <Input
+                          id="expiry_date"
+                          value={newPaymentMethod.expiry_date}
+                          onChange={(e) => setNewPaymentMethod({ ...newPaymentMethod, expiry_date: e.target.value })}
+                          className="col-span-3"
+                          placeholder="MM/YY"
+                        />
+                      </div>
                     </>
-                  ) : (
-                    "Add Payment"
                   )}
-                </Button>
-              </DialogFooter>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="is_default" className="text-right">
+                      Default
+                    </Label>
+                    <div className="flex items-center space-x-2 col-span-3">
+                      <Switch
+                        id="is_default"
+                        checked={newPaymentMethod.is_default}
+                        onCheckedChange={(value) => setNewPaymentMethod({ ...newPaymentMethod, is_default: value })}
+                      />
+                      <Label htmlFor="is_default">Set as default payment method</Label>
+                    </div>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="submit">Add Payment Method</Button>
+                </DialogFooter>
+              </form>
             </DialogContent>
           </Dialog>
         </TabsContent>
-
-        {/* Notification Preferences Tab */}
-        <TabsContent value="notifications" className="space-y-4">
+        
+        {/* Notification Preferences */}
+        <TabsContent value="notifications">
           <Card>
             <CardHeader>
               <CardTitle>Notification Preferences</CardTitle>
+              <CardDescription>
+                Manage how you receive notifications
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {notificationError && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>{notificationError.message}</AlertDescription>
-                </Alert>
-              )}
-              <div>
-                <Label htmlFor="invoiceNotifications" className="flex items-center">
-                  <Switch
-                    id="invoiceNotifications"
-                    checked={invoiceNotifications}
-                    onCheckedChange={setInvoiceNotifications}
-                  />
-                  <span className="ml-2">Invoice Notifications</span>
-                </Label>
-              </div>
-              <div>
-                <Label htmlFor="clientActivity" className="flex items-center">
-                  <Switch
-                    id="clientActivity"
-                    checked={clientActivity}
-                    onCheckedChange={setClientActivity}
-                  />
-                  <span className="ml-2">Client Activity</span>
-                </Label>
-              </div>
-              <div>
-                <Label htmlFor="projectUpdates" className="flex items-center">
-                  <Switch
-                    id="projectUpdates"
-                    checked={projectUpdates}
-                    onCheckedChange={setProjectUpdates}
-                  />
-                  <span className="ml-2">Project Updates</span>
-                </Label>
-              </div>
-              <div>
-                <Label htmlFor="marketingTips" className="flex items-center">
-                  <Switch
-                    id="marketingTips"
-                    checked={marketingTips}
-                    onCheckedChange={setMarketingTips}
-                  />
-                  <span className="ml-2">Marketing Tips</span>
-                </Label>
-              </div>
-              <div>
-                <Label htmlFor="emailFrequency">Email Frequency</Label>
-                <Select
-                  value={emailFrequency}
-                  onValueChange={(value) =>
-                    setEmailFrequency(value as "immediate" | "daily" | "weekly")
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select frequency" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="immediate">Immediate</SelectItem>
-                    <SelectItem value="daily">Daily</SelectItem>
-                    <SelectItem value="weekly">Weekly</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button onClick={handleNotificationUpdate} disabled={savingNotifications}>
-                {savingNotifications ? (
-                  <>
-                    Saving <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                  </>
-                ) : (
-                  "Update Notifications"
-                )}
-              </Button>
+            <CardContent>
+              <form onSubmit={handleNotificationSubmit}>
+                <div className="mb-8">
+                  <h3 className="text-lg font-medium mb-4">Email Notifications</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="invoice_notifications" className="text-base font-medium">
+                          Invoice Notifications
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                          Receive notifications about invoice updates and payments
+                        </p>
+                      </div>
+                      <Switch
+                        id="invoice_notifications"
+                        checked={invoiceNotifs}
+                        onCheckedChange={setInvoiceNotifs}
+                      />
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="client_activity" className="text-base font-medium">
+                          Client Activity
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                          Get notifications when clients view or pay invoices
+                        </p>
+                      </div>
+                      <Switch
+                        id="client_activity"
+                        checked={clientActivity}
+                        onCheckedChange={setClientActivity}
+                      />
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="project_updates" className="text-base font-medium">
+                          Project Updates
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                          Receive notifications about project milestones and updates
+                        </p>
+                      </div>
+                      <Switch
+                        id="project_updates"
+                        checked={projectUpdates}
+                        onCheckedChange={setProjectUpdates}
+                      />
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="marketing_tips" className="text-base font-medium">
+                          Marketing & Tips
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                          Receive tips, updates, and marketing communications
+                        </p>
+                      </div>
+                      <Switch
+                        id="marketing_tips"
+                        checked={marketingTips}
+                        onCheckedChange={setMarketingTips}
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mb-8">
+                  <h3 className="text-lg font-medium mb-4">Email Digest Frequency</h3>
+                  <div className="grid gap-4">
+                    <div className="flex flex-col">
+                      <Label htmlFor="email_frequency" className="mb-2">
+                        Frequency
+                      </Label>
+                      <Select 
+                        value={emailFrequency}
+                        onValueChange={(value: "immediate" | "daily" | "weekly") => setEmailFrequency(value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select frequency" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="immediate">Immediate</SelectItem>
+                          <SelectItem value="daily">Daily Digest</SelectItem>
+                          <SelectItem value="weekly">Weekly Digest</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        {emailFrequency === "immediate" && "Receive individual emails immediately as events happen"}
+                        {emailFrequency === "daily" && "Receive a daily summary of all notifications"}
+                        {emailFrequency === "weekly" && "Receive a weekly summary of all notifications"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <Button type="submit" disabled={notifLoading}>
+                  {notifLoading ? "Saving..." : "Save Preferences"}
+                </Button>
+              </form>
             </CardContent>
           </Card>
         </TabsContent>
-
-        {/* Security Settings Tab */}
-        <TabsContent value="security" className="space-y-4">
-          <Card>
+        
+        {/* Security Settings */}
+        <TabsContent value="security">
+          <Card className="mb-8">
             <CardHeader>
-              <CardTitle>Security Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {securityError && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>{securityError.message}</AlertDescription>
-                </Alert>
-              )}
-              <div>
-                <Label htmlFor="currentPassword">Current Password</Label>
-                <Input
-                  type="password"
-                  id="currentPassword"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="newPassword">New Password</Label>
-                <Input
-                  type="password"
-                  id="newPassword"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                <Input
-                  type="password"
-                  id="confirmPassword"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                />
-              </div>
-              <Button onClick={handleChangePassword} disabled={changingPassword}>
-                {changingPassword ? (
-                  <>
-                    Changing <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                  </>
-                ) : (
-                  "Change Password"
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Two-Factor Authentication</CardTitle>
+              <CardTitle>Account Security</CardTitle>
+              <CardDescription>
+                Manage your account security settings
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
+              <div className="space-y-6">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="twoFactor">Enable Two-Factor Authentication</Label>
+                  <div>
+                    <h3 className="text-base font-medium">Two-Factor Authentication</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Add an extra layer of security to your account
+                    </p>
+                  </div>
                   <Switch
-                    id="twoFactor"
+                    id="two_factor"
                     checked={twoFactorEnabled}
-                    onCheckedChange={handleToggleTwoFactor}
+                    onCheckedChange={(value) => setTwoFactorEnabled(value)}
                   />
                 </div>
-                <p className="text-sm text-gray-500">
-                  Enhance your account security by requiring a verification code from
-                  your authenticator app in addition to your password.
-                </p>
+                
+                <Separator />
+                
+                <div>
+                  <h3 className="text-base font-medium mb-2">Password</h3>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        Last changed: {securitySettings?.last_password_change ? 
+                          new Date(securitySettings.last_password_change).toLocaleDateString() : 
+                          "Never"}
+                      </p>
+                    </div>
+                    <Button 
+                      variant="outline"
+                      onClick={() => setPasswordDialogOpen(true)}
+                    >
+                      <RefreshCcw className="h-4 w-4 mr-2" />
+                      Change Password
+                    </Button>
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                <div className="flex justify-end">
+                  <Button onClick={handleSaveSecuritySettings} disabled={securityLoading}>
+                    {securityLoading ? "Saving..." : "Save Security Settings"}
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
-
+          
           <Card>
             <CardHeader>
               <CardTitle>Session History</CardTitle>
+              <CardDescription>
+                View your recent login activity
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              {securityLoading ? (
-                <div className="flex justify-center items-center h-24">
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                </div>
-              ) : sessionHistory.length === 0 ? (
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  No session history found.
-                </Alert>
-              ) : (
+              <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Login At</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Device / Browser</TableHead>
                       <TableHead>IP Address</TableHead>
-                      <TableHead>User Agent</TableHead>
+                      <TableHead>Location</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {sessionHistory.map((session) => (
-                      <TableRow key={session.id}>
-                        <TableCell>
-                          {new Date(session.login_at).toLocaleString()}
-                        </TableCell>
-                        <TableCell>{session.ip_address}</TableCell>
-                        <TableCell>
-                          <a
-                            href={`https://whois.domaintools.com/${session.ip_address}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-500 hover:underline"
-                          >
-                            {session.user_agent}
-                            <ExternalLink className="inline-block ml-1 h-4 w-4" />
-                          </a>
-                        </TableCell>
+                    {sessionHistory && sessionHistory.length > 0 ? (
+                      sessionHistory.map((session) => (
+                        <TableRow key={session.id}>
+                          <TableCell>
+                            {new Date(session.login_at).toLocaleDateString()} {new Date(session.login_at).toLocaleTimeString()}
+                          </TableCell>
+                          <TableCell>
+                            {session.device} / {session.browser} / {session.os}
+                          </TableCell>
+                          <TableCell>{session.ip_address}</TableCell>
+                          <TableCell>{session.location || "Unknown"}</TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center">No session history available</TableCell>
                       </TableRow>
-                    ))}
+                    )}
                   </TableBody>
                 </Table>
-              )}
+              </div>
             </CardContent>
           </Card>
+          
+          {/* Password Change Dialog */}
+          <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Change Password</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleChangePassword}>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="currentPassword">Current Password</Label>
+                    <Input
+                      id="currentPassword"
+                      type="password"
+                      value={passwordData.currentPassword}
+                      onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="newPassword">New Password</Label>
+                    <Input
+                      id="newPassword"
+                      type="password"
+                      value={passwordData.newPassword}
+                      onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      value={passwordData.confirmPassword}
+                      onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="submit">Change Password</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
       </Tabs>
     </div>
