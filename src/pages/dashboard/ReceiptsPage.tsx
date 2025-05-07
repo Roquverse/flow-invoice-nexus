@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,7 @@ import {
 } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search, Download, Eye, Edit, Trash2, Plus } from 'lucide-react';
-import { getReceipts, getReceiptById } from '@/services/receiptService';
+import { getReceipts, getReceiptById, deleteReceipt } from '@/services/receiptService';
 import { getClientById } from '@/services/clientService';
 import { invoiceService } from '@/services/invoiceService';
 import { getQuoteById } from '@/services/quoteService';
@@ -42,11 +43,16 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
+interface ReceiptWithClientDetails extends Receipt {
+  client_name?: string;
+  client_email?: string;
+}
+
 const ReceiptsPage: React.FC = () => {
-  const [receipts, setReceipts] = useState<Receipt[]>([]);
+  const [receipts, setReceipts] = useState<ReceiptWithClientDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
+  const [selectedReceipt, setSelectedReceipt] = useState<ReceiptWithClientDetails | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
@@ -65,7 +71,18 @@ const ReceiptsPage: React.FC = () => {
     setLoading(true);
     try {
       const receiptsData = await getReceipts();
-      setReceipts(receiptsData);
+      // Fetch client data for each receipt to display client name and email
+      const receiptsWithClientDetails = await Promise.all(
+        receiptsData.map(async (receipt) => {
+          const client = await getClientById(receipt.client_id);
+          return {
+            ...receipt,
+            client_name: client ? `${client.business_name}` : 'Unknown Client',
+            client_email: client ? client.email || 'No Email' : 'No Email',
+          };
+        })
+      );
+      setReceipts(receiptsWithClientDetails);
     } catch (error) {
       console.error('Error fetching receipts:', error);
       toast.error('Failed to fetch receipts');
@@ -74,7 +91,7 @@ const ReceiptsPage: React.FC = () => {
     }
   };
 
-  const handleRowClick = async (receipt: Receipt) => {
+  const handleRowClick = async (receipt: ReceiptWithClientDetails) => {
     setSelectedReceipt(receipt);
     setOpen(true);
 
@@ -101,16 +118,34 @@ const ReceiptsPage: React.FC = () => {
     }
   };
 
+  const handleDeleteReceipt = async () => {
+    if (!selectedReceipt) return;
+    
+    try {
+      const success = await deleteReceipt(selectedReceipt.id);
+      if (success) {
+        toast.success('Receipt deleted successfully');
+        setOpenDeleteAlert(false);
+        fetchReceipts();
+      } else {
+        toast.error('Failed to delete receipt');
+      }
+    } catch (error) {
+      console.error('Error deleting receipt:', error);
+      toast.error('An error occurred while deleting the receipt');
+    }
+  };
+
   const filteredReceipts = receipts.filter((receipt) => {
     const searchTerm = searchQuery.toLowerCase();
     return (
       receipt.receipt_number.toLowerCase().includes(searchTerm) ||
-      receipt.client_name.toLowerCase().includes(searchTerm) ||
-      receipt.client_email.toLowerCase().includes(searchTerm)
+      (receipt.client_name?.toLowerCase() || '').includes(searchTerm) ||
+      (receipt.client_email?.toLowerCase() || '').includes(searchTerm)
     );
   });
   
-  const downloadReceiptPDF = async (receipt: Receipt, client: any) => {
+  const downloadReceiptPDF = async (receipt: Receipt, client: Client) => {
     if (!previewRef.current) {
       toast.error("Preview component not loaded properly.");
       return;
@@ -242,14 +277,14 @@ const ReceiptsPage: React.FC = () => {
               </div>
 
               <div className="border rounded-lg p-4 bg-white shadow-md">
-                {/* Receipt Preview */}
-                <ReceiptPreview
-                  ref={previewRef}
-                  receipt={selectedReceipt}
-                  client={selectedClient}
-                  invoice={selectedInvoice}
-                  quote={selectedQuote}
-                />
+                <div ref={previewRef}>
+                  <ReceiptPreview
+                    receipt={selectedReceipt}
+                    client={selectedClient}
+                    invoice={selectedInvoice}
+                    quote={selectedQuote}
+                  />
+                </div>
               </div>
             </div>
           )}
@@ -267,7 +302,7 @@ const ReceiptsPage: React.FC = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
+            <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={handleDeleteReceipt}>Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

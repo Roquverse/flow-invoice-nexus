@@ -46,7 +46,18 @@ import {
 
 // Update method names to match admin service exports
 const updateUserStatus = async (userId: string, status: string) => {
-  return await updateAdminUser(userId, { status });
+  // The status property doesn't exist in AdminUser type, so we need to update the field using a custom approach
+  try {
+    const { data, error } = await supabase
+      .from('admin_users')
+      .update({ status }) // Use the field directly in the update
+      .eq('id', userId);
+      
+    return !error;
+  } catch (error) {
+    console.error("Error updating status:", error);
+    return false;
+  }
 };
 
 const deleteUser = async (userId: string) => {

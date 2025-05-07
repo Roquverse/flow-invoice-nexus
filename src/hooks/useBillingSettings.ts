@@ -5,7 +5,7 @@ import { useSettings } from "@/hooks/useSettings";
 import { BillingFormData, PaymentMethod } from "@/types/settings";
 
 export const useBillingSettings = () => {
-  const { billingSettings, updateBillingSettings, loading, error } = useSettings();
+  const { billingSettings, updateBillingSettings: updateBilling, loading, error } = useSettings();
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
 
   useEffect(() => {
@@ -88,6 +88,17 @@ export const useBillingSettings = () => {
       return true;
     } catch (error) {
       console.error("Error deleting payment method:", error);
+      return false;
+    }
+  };
+
+  // Create a wrapper function for updateBillingSettings to ensure it's accessible
+  const updateBillingSettings = async (data: BillingFormData): Promise<boolean> => {
+    try {
+      await updateBilling(data);
+      return true;
+    } catch (error) {
+      console.error("Error updating billing settings:", error);
       return false;
     }
   };

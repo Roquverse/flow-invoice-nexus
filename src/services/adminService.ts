@@ -1,37 +1,6 @@
-
 import { supabase } from "@/integrations/supabase/client";
-import bcrypt from 'bcryptjs';
-
-// Admin types - should be moved to types/admin.ts in a refactor
-interface AdminUser {
-  id: string;
-  username: string;
-  email: string;
-  role: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-  last_login?: string | null;
-}
-
-interface AdminLoginRequest {
-  username: string;
-  password: string;
-}
-
-interface AdminLoginResponse {
-  success: boolean;
-  user?: AdminUser;
-  message?: string;
-  error?: Error;
-}
-
-interface AdminUserCreateRequest {
-  username: string;
-  password: string;
-  email: string;
-  role?: string;
-}
+import * as bcrypt from 'bcryptjs';
+import { AdminUser, AdminLoginRequest, AdminLoginResponse, AdminUserCreateRequest, AdminDashboardStats } from "@/types/admin";
 
 // Helper function to hash passwords
 const hashPassword = async (password: string): Promise<{ hash: string, salt: string }> => {
@@ -163,6 +132,32 @@ export const createAdminUser = async (userData: AdminUserCreateRequest): Promise
   }
 };
 
+// Get all users (client app users, not admin users)
+export const getAppUsers = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    // Format user data for display - fix user_id issue
+    return data.map(user => ({
+      id: user.id,
+      name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Unknown',
+      email: user.email,
+      created_at: user.created_at,
+      avatar_url: user.avatar_url || null,
+    }));
+  } catch (error) {
+    console.error("Error fetching app users:", error);
+    return [];
+  }
+};
+
 // Get all users with formatted data
 export const getAdminUsers = async (): Promise<AdminUser[]> => {
   try {
@@ -214,17 +209,21 @@ export const getAdminUserById = async (id: string): Promise<AdminUser | null> =>
   }
 };
 
-// Update admin user
+// Update admin user - handle status field separately
 export const updateAdminUser = async (id: string, userData: Partial<AdminUser>): Promise<{ success: boolean, message: string }> => {
   try {
+    // Extract status if it exists
+    const { status, ...updateData } = userData as any;
+
     // Don't allow updating password through this function
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password_hash, salt, ...updateData } = userData;
+    const { password_hash, salt, ...cleanedData } = updateData;
 
     const { error } = await supabase
       .from('admin_users')
       .update({
-        ...updateData,
+        ...cleanedData,
+        ...(status && { status }), // Add status if it exists
         updated_at: new Date().toISOString()
       })
       .eq('id', id);
@@ -305,7 +304,7 @@ export const deleteAdminUser = async (id: string): Promise<{ success: boolean, m
 };
 
 // Functions for admin dashboard
-export const getAdminDashboardStats = async () => {
+export const getAdminDashboardStats = async (): Promise<AdminDashboardStats> => {
   // This would be replaced with actual stats collection
   return {
     userCount: 0,
@@ -314,32 +313,6 @@ export const getAdminDashboardStats = async () => {
     receiptCount: 0,
     recentActivity: []
   };
-};
-
-// Get all users (client app users, not admin users)
-export const getAppUsers = async () => {
-  try {
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      throw error;
-    }
-
-    // Format user data for display
-    return data.map(user => ({
-      id: user.id,
-      name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Unknown',
-      email: user.email,
-      created_at: user.created_at,
-      avatar_url: user.avatar_url || null,
-    }));
-  } catch (error) {
-    console.error("Error fetching app users:", error);
-    return [];
-  }
 };
 
 // Get all invoices for admin

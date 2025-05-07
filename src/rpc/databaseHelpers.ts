@@ -54,7 +54,7 @@ export async function getTableColumns(tableName: AllowedTable): Promise<any[]> {
     // For demonstration purposes, we're returning a simplified structure
     // In a real app, you would query PostgreSQL information_schema
     const { data, error } = await supabase
-      .from(tableName)
+      .from(tableName as any)
       .select('*')
       .limit(1);
     
@@ -87,7 +87,7 @@ export async function getAllTables(): Promise<string[]> {
 export async function getSampleTableData(tableName: AllowedTable): Promise<any[]> {
   try {
     const { data, error } = await supabase
-      .from(tableName)
+      .from(tableName as any)
       .select('*')
       .limit(10);
     

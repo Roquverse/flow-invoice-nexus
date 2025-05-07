@@ -31,4 +31,4 @@ export interface ReceiptDisplay {
 }
 
 // Export Receipt from receipts.ts to avoid duplicate definitions
-export { Receipt, ReceiptFormData } from './receipts';
+export type { Receipt, ReceiptFormData } from './receipts';

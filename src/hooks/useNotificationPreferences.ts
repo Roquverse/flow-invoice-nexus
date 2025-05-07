@@ -17,8 +17,8 @@ export const useNotificationPreferences = () => {
         throw new Error('Invalid email frequency value');
       }
       
-      const result = await updateNotificationPreferences(preferences);
-      return result;
+      await updateNotificationPreferences(preferences);
+      return true;
     } catch (error) {
       console.error("Error updating notification preferences:", error);
       return false;
