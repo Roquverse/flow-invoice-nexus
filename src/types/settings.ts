@@ -1,3 +1,4 @@
+
 // Define the types for the settings module
 
 export interface CompanySettings {
