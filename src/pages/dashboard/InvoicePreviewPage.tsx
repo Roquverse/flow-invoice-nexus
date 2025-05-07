@@ -8,7 +8,7 @@ import InvoicePreview from "@/components/invoice/InvoicePreview";
 import { downloadPDF } from "@/utils/pdf";
 import { invoiceService } from "@/services/invoiceService";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCompanySettings } from "@/hooks/useSettings";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { toast } from "sonner";
 import "@/styles/invoice.css";
 

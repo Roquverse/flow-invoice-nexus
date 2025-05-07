@@ -8,7 +8,7 @@ import { Client } from "@/types/clients";
 import QuotePreview from "@/components/quote/QuotePreview";
 import { downloadPDF } from "@/utils/pdf";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCompanySettings } from "@/hooks/useSettings";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { toast } from "sonner";
 import "@/styles/invoice.css";
 

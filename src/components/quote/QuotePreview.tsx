@@ -3,7 +3,7 @@ import { Quote, QuoteItem } from "@/types/quotes";
 import { Client } from "@/types/clients";
 import { formatCurrency } from "@/utils/formatters";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCompanySettings } from "@/hooks/useSettings";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import "@/styles/invoice.css"; // Reuse invoice styles for consistency
 import { useNavigate } from "react-router-dom";
 

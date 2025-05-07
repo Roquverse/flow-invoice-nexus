@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -291,9 +290,19 @@ export const useSettings = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return false;
 
+      // Ensure required fields are present
+      const paymentMethodData = { 
+        user_id: session.user.id,
+        payment_type: paymentData.payment_type || 'credit_card',
+        provider: paymentData.provider || 'visa',
+        last_four: paymentData.last_four || '0000',
+        is_default: paymentData.is_default || false,
+        ...paymentData
+      };
+
       const { error } = await supabase
         .from('payment_methods')
-        .insert({ user_id: session.user.id, ...paymentData });
+        .insert(paymentMethodData);
 
       if (error) throw error;
 

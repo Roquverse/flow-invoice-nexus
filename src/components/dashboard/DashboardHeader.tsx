@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Bell, Menu, Search, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,7 +15,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useInvoices } from "@/hooks/useInvoices";
-import { useProfileSettings } from "@/hooks/useSettings";
+import { useProfileSettings } from "@/hooks/useProfileSettings";
 import { formatDate } from "@/utils/formatters";
 import "@/styles/dashboard.css";
 

@@ -530,6 +530,27 @@ export async function updateUserStatus(
   }
 }
 
+// Update user profile
+export const updateUserProfile = async (profileData: any): Promise<any> => {
+  try {
+    const { data, error } = await supabase
+      .from("user_profiles")
+      .update(profileData)
+      .eq("id", profileData.id)
+      .select();
+
+    if (error) {
+      console.error("Error updating user profile:", error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Error updating user profile:", error);
+    return null;
+  }
+};
+
 // Delete user
 export async function deleteUser(userId: string) {
   try {

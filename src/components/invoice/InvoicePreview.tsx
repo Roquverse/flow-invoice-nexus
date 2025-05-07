@@ -3,7 +3,7 @@ import { Invoice, InvoiceItem } from "@/types/invoices";
 import { Client } from "@/types/clients";
 import { formatCurrency } from "@/utils/formatters";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCompanySettings } from "@/hooks/useSettings";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import "@/styles/invoice.css";
 
 interface InvoicePreviewProps {
