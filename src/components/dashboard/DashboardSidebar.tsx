@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
@@ -15,7 +14,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useCompanySettings } from "@/hooks/useSettings";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import "@/styles/dashboard.css";
 
 interface SidebarLinkProps {
