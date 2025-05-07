@@ -28,7 +28,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useReceipts } from "@/hooks/useReceipts";
-import { Receipt } from "@/types";
+import { Receipt } from "@/types/receipts";
 import { formatCurrency } from "@/utils/formatters";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import {
@@ -131,7 +131,7 @@ const ReceiptsPage: React.FC = () => {
 
     try {
       await downloadPDF(
-        previewRef,
+        previewRef.current,
         previewClient.business_name.replace(/\s+/g, "-").toLowerCase(),
         "receipt",
         selectedReceipt.receipt_number
@@ -178,6 +178,7 @@ const ReceiptsPage: React.FC = () => {
 
   return (
     <div className="p-6">
+      {/* Header section */}
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Receipts</h1>
@@ -190,6 +191,7 @@ const ReceiptsPage: React.FC = () => {
         </Link>
       </div>
 
+      {/* Search input */}
       <div className="mb-6">
         <Input
           placeholder="Search receipts..."
@@ -199,6 +201,7 @@ const ReceiptsPage: React.FC = () => {
         />
       </div>
 
+      {/* Loading state */}
       {loading ? (
         <div className="flex justify-center items-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-gray-500" />

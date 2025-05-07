@@ -1,581 +1,427 @@
+
 import { supabase } from "@/integrations/supabase/client";
+import bcrypt from 'bcryptjs';
 
-// Define types for admin data
-export interface AdminUser {
+// Admin types - should be moved to types/admin.ts in a refactor
+interface AdminUser {
   id: string;
-  email: string;
   username: string;
-  role: string;
-  created_at: string;
-  last_login?: string;
-  status: "active" | "inactive" | "suspended";
-}
-
-interface UserProfile {
-  id: string;
-  first_name: string | null;
-  last_name: string | null;
   email: string;
-  phone: string | null;
-  avatar_url: string | null;
+  role: string;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
+  last_login?: string | null;
 }
 
-interface CompanySetting {
-  user_id: string;
-  company_name: string | null;
+interface AdminLoginRequest {
+  username: string;
+  password: string;
 }
 
-export interface AdminStats {
-  totalUsers: number;
-  activeUsers: number;
-  newUsers: number;
-  totalInvoices: number;
-  paidInvoices: number;
-  overdueInvoices: number;
-  totalQuotes: number;
-  acceptedQuotes: number;
-  pendingQuotes: number;
-  rejectedQuotes: number;
-  averageInvoiceAmount: number;
-  totalRevenue: number;
-  totalSubscriptions: number;
-  activeSubscriptions: number;
-  trialSubscriptions: number;
-  cancelledSubscriptions: number;
+interface AdminLoginResponse {
+  success: boolean;
+  user?: AdminUser;
+  message?: string;
+  error?: Error;
 }
 
-export interface AdminDashboardStats {
-  totalUsers: number;
-  activeUsers: number;
-  newUsers: number;
-  totalInvoices: number;
-  paidInvoices: number;
-  overdueInvoices: number;
-  totalQuotes: number;
-  acceptedQuotes: number;
-  pendingQuotes: number;
-  rejectedQuotes: number;
-  averageInvoiceAmount: number;
-  totalRevenue: number;
-  totalSubscriptions: number;
-  activeSubscriptions: number;
-  trialSubscriptions: number;
-  cancelledSubscriptions: number;
+interface AdminUserCreateRequest {
+  username: string;
+  password: string;
+  email: string;
+  role?: string;
 }
 
-// User Management
-export async function getAdminUsers(): Promise<AdminUser[]> {
+// Helper function to hash passwords
+const hashPassword = async (password: string): Promise<{ hash: string, salt: string }> => {
+  const salt = await bcrypt.genSalt(10);
+  const hash = await bcrypt.hash(password, salt);
+  return { hash, salt };
+};
+
+// Verify password
+const verifyPassword = async (password: string, hash: string): Promise<boolean> => {
+  return await bcrypt.compare(password, hash);
+};
+
+// Admin login
+export const adminLogin = async (credentials: AdminLoginRequest): Promise<AdminLoginResponse> => {
   try {
-    // Get regular users first
-    const { data: regularUsers, error: userError } = await supabase
-      .from("user_profiles")
-      .select(
-        `
-        id,
-        first_name,
-        last_name,
-        email,
-        phone,
-        avatar_url,
-        created_at
-      `
-      )
-      .order("created_at", { ascending: false });
-
-    if (userError) {
-      console.error("Error fetching users:", userError);
-      return [];
-    }
-
-    // Get admin user IDs to exclude
-    const { data: adminUsers, error: adminError } = await supabase
-      .from("admin_users")
-      .select("id");
-
-    if (adminError) {
-      console.error("Error fetching admin users:", adminError);
-      return [];
-    }
-
-    const adminIds = new Set(adminUsers?.map((user) => user.id) || []);
-
-    // Filter out admin users
-    const filteredUsers =
-      regularUsers?.filter((user) => !adminIds.has(user.id)) || [];
-
-    // Get company settings for these users
-    const { data: companySettings, error: companyError } = await supabase
-      .from("company_settings")
-      .select("user_id, company_name")
-      .in(
-        "user_id",
-        filteredUsers.map((user) => user.id)
-      );
-
-    if (companyError) {
-      console.error("Error fetching company settings:", companyError);
-      return [];
-    }
-
-    // Create a map of user_id to company_name
-    const companyMap = new Map(
-      companySettings?.map((setting) => [
-        setting.user_id,
-        setting.company_name,
-      ]) || []
-    );
-
-    return filteredUsers.map((user: UserProfile) => ({
-      id: user.id,
-      email: user.email,
-      username:
-        companyMap.get(user.id) ||
-        `${user.first_name || ""} ${user.last_name || ""}`.trim() ||
-        "Unnamed User",
-      role: "user",
-      created_at: user.created_at,
-      last_login: null,
-      status: "active",
-    }));
-  } catch (e) {
-    console.error("Error accessing users:", e);
-    return [];
-  }
-}
-
-export const getAdminDashboardStats =
-  async (): Promise<AdminDashboardStats> => {
-    try {
-      // Get total users count (excluding admin users)
-      const { count: totalUsers, error: usersError } = await supabase
-        .from("user_profiles")
-        .select("*", { count: "exact", head: true })
-        .not(
-          "id",
-          "in",
-          (
-            await supabase.from("admin_users").select("id")
-          ).data?.map((u) => u.id) || []
-        );
-
-      if (usersError) throw usersError;
-
-      // Get active users (users who have logged in within the last 30 days, excluding admins)
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-      const { count: activeUsers, error: activeUsersError } = await supabase
-        .from("session_history")
-        .select("user_id", { count: "exact", head: true })
-        .gte("login_at", thirtyDaysAgo.toISOString())
-        .not(
-          "user_id",
-          "in",
-          (
-            await supabase.from("admin_users").select("id")
-          ).data?.map((u) => u.id) || []
-        );
-
-      if (activeUsersError) throw activeUsersError;
-
-      // Get new users (users who registered in the last 30 days, excluding admins)
-      const { count: newUsers, error: newUsersError } = await supabase
-        .from("user_profiles")
-        .select("*", { count: "exact", head: true })
-        .gte("created_at", thirtyDaysAgo.toISOString())
-        .not(
-          "id",
-          "in",
-          (
-            await supabase.from("admin_users").select("id")
-          ).data?.map((u) => u.id) || []
-        );
-
-      if (newUsersError) throw newUsersError;
-
-      // Get subscription stats (excluding admin users)
-      const { data: subscriptionStats, error: subscriptionError } =
-        await supabase
-          .from("billing_settings")
-          .select("subscription_status, user_id")
-          .not(
-            "user_id",
-            "in",
-            (
-              await supabase.from("admin_users").select("id")
-            ).data?.map((u) => u.id) || []
-          );
-
-      if (subscriptionError) throw subscriptionError;
-
-      const subscriptionCounts = subscriptionStats.reduce(
-        (acc, curr) => {
-          acc.totalSubscriptions++;
-          if (curr.subscription_status === "active") acc.activeSubscriptions++;
-          if (curr.subscription_status === "trial") acc.trialSubscriptions++;
-          if (curr.subscription_status === "cancelled")
-            acc.cancelledSubscriptions++;
-          return acc;
-        },
-        {
-          totalSubscriptions: 0,
-          activeSubscriptions: 0,
-          trialSubscriptions: 0,
-          cancelledSubscriptions: 0,
-        }
-      );
-
-      // For now, return mock data for invoices and quotes
-      // TODO: Implement real data fetching when those tables are created
-      return {
-        totalUsers: totalUsers || 0,
-        activeUsers: activeUsers || 0,
-        newUsers: newUsers || 0,
-        totalInvoices: 0,
-        paidInvoices: 0,
-        overdueInvoices: 0,
-        totalQuotes: 0,
-        acceptedQuotes: 0,
-        pendingQuotes: 0,
-        rejectedQuotes: 0,
-        averageInvoiceAmount: 0,
-        totalRevenue: 0,
-        ...subscriptionCounts,
-      };
-    } catch (error) {
-      console.error("Error fetching admin dashboard stats:", error);
-      throw error;
-    }
-  };
-
-// Invoice management for admin
-export async function getAdminInvoices() {
-  try {
-    const { data: invoices, error } = await supabase
-      .from("invoices")
-      .select(
-        `
-        *,
-        clients!client_id (
-          id,
-          business_name,
-          contact_name,
-          email
-        ),
-        invoice_items (
-          id,
-          description,
-          quantity,
-          unit_price,
-          amount
-        )
-      `
-      )
-      .order("created_at", { ascending: false });
+    // Get admin user by username
+    const { data: adminUser, error } = await supabase
+      .from('admin_users')
+      .select('*')
+      .eq('username', credentials.username)
+      .maybeSingle();
 
     if (error) {
-      console.error("Error fetching invoices:", error);
-      return [];
+      return { success: false, message: error.message, error };
     }
 
-    // Get user profiles for the invoices
-    const userIds = [
-      ...new Set(invoices?.map((invoice) => invoice.user_id) || []),
-    ];
-    const { data: userProfiles, error: userError } = await supabase
-      .from("user_profiles")
-      .select("id, first_name, last_name, email")
-      .in("id", userIds);
-
-    if (userError) {
-      console.error("Error fetching user profiles:", userError);
-      return [];
+    if (!adminUser) {
+      return { success: false, message: "Invalid username or password" };
     }
 
-    // Create a map of user_id to user profile
-    const userMap = new Map(userProfiles?.map((user) => [user.id, user]) || []);
+    // Verify password
+    const isPasswordValid = await verifyPassword(credentials.password, adminUser.password_hash);
 
-    return (
-      invoices?.map((invoice) => ({
-        ...invoice,
-        status: invoice.status as
-          | "draft"
-          | "sent"
-          | "viewed"
-          | "paid"
-          | "overdue"
-          | "cancelled",
-        client: invoice.clients,
-        user: userMap.get(invoice.user_id),
-        items: invoice.invoice_items,
-      })) || []
-    );
-  } catch (e) {
-    console.error("Error accessing invoices:", e);
-    return [];
+    if (!isPasswordValid) {
+      return { success: false, message: "Invalid username or password" };
+    }
+
+    if (!adminUser.is_active) {
+      return { success: false, message: "User account is inactive" };
+    }
+
+    // Update last login timestamp
+    await supabase
+      .from('admin_users')
+      .update({ last_login: new Date().toISOString() })
+      .eq('id', adminUser.id);
+
+    // Return cleaned user object (without password hash and salt)
+    const { password_hash, salt, ...safeUserData } = adminUser;
+
+    return {
+      success: true,
+      user: safeUserData as AdminUser
+    };
+  } catch (error) {
+    console.error("Error during admin login:", error);
+    return { 
+      success: false, 
+      message: "An error occurred during login",
+      error: error instanceof Error ? error : new Error("Unknown error")
+    };
   }
-}
-
-// Quote management for admin
-export async function getAdminQuotes() {
-  try {
-    const { data: quotes, error } = await supabase
-      .from("quotes")
-      .select(
-        `
-        *,
-        clients!client_id (
-          id,
-          business_name,
-          contact_name,
-          email
-        ),
-        quote_items (
-          id,
-          description,
-          quantity,
-          unit_price,
-          amount
-        )
-      `
-      )
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      console.error("Error fetching quotes:", error);
-      return [];
-    }
-
-    // Get user profiles for the quotes
-    const userIds = [...new Set(quotes?.map((quote) => quote.user_id) || [])];
-    const { data: userProfiles, error: userError } = await supabase
-      .from("user_profiles")
-      .select("id, first_name, last_name, email")
-      .in("id", userIds);
-
-    if (userError) {
-      console.error("Error fetching user profiles:", userError);
-      return [];
-    }
-
-    // Create a map of user_id to user profile
-    const userMap = new Map(userProfiles?.map((user) => [user.id, user]) || []);
-
-    return (
-      quotes?.map((quote) => ({
-        ...quote,
-        status: quote.status as
-          | "draft"
-          | "sent"
-          | "viewed"
-          | "accepted"
-          | "rejected"
-          | "expired",
-        client: quote.clients,
-        user: userMap.get(quote.user_id),
-        items: quote.quote_items,
-      })) || []
-    );
-  } catch (e) {
-    console.error("Error accessing quotes:", e);
-    return [];
-  }
-}
-
-// Receipt management for admin
-export async function getAdminReceipts() {
-  try {
-    const { data: receipts, error } = await supabase
-      .from("receipts")
-      .select(
-        `
-        *,
-        clients!client_id (
-          id,
-          business_name,
-          contact_name,
-          email
-        )
-      `
-      )
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      console.error("Error fetching receipts:", error);
-      return [];
-    }
-
-    // Get user profiles for the receipts
-    const userIds = [
-      ...new Set(receipts?.map((receipt) => receipt.user_id) || []),
-    ];
-    const { data: userProfiles, error: userError } = await supabase
-      .from("user_profiles")
-      .select("id, first_name, last_name, email")
-      .in("id", userIds);
-
-    if (userError) {
-      console.error("Error fetching user profiles:", userError);
-      return [];
-    }
-
-    // Create a map of user_id to user profile
-    const userMap = new Map(userProfiles?.map((user) => [user.id, user]) || []);
-
-    return (
-      receipts?.map((receipt) => ({
-        ...receipt,
-        client: receipt.clients,
-        user: userMap.get(receipt.user_id),
-      })) || []
-    );
-  } catch (e) {
-    console.error("Error accessing receipts:", e);
-    return [];
-  }
-}
-
-// Subscription management (mock data for now)
-export async function getAdminSubscriptions() {
-  try {
-    // In a real app, you would fetch from a subscriptions table
-    // This is a placeholder for mock data
-    const { data: users } = await supabase
-      .from("user_profiles")
-      .select("*")
-      .limit(20);
-
-    if (!users) return [];
-
-    // Generate mock subscription data based on real users
-    return users.map((user, index) => ({
-      id: `sub-${index + 1}`,
-      user_id: user.user_id,
-      username: user.display_name,
-      email: user.email,
-      plan:
-        index % 3 === 0 ? "premium" : index % 3 === 1 ? "standard" : "basic",
-      status:
-        index % 4 === 0 ? "trial" : index % 10 === 0 ? "cancelled" : "active",
-      started_at: user.created_at,
-      renewal_date: new Date(
-        new Date().setDate(new Date().getDate() + 30 * ((index % 6) + 1))
-      ).toISOString(),
-      amount: index % 3 === 0 ? 49.99 : index % 3 === 1 ? 24.99 : 9.99,
-    }));
-  } catch (e) {
-    console.error("Error accessing subscriptions:", e);
-    return [];
-  }
-}
+};
 
 // Create admin user
-export async function createAdminUser(userData: Partial<AdminUser>) {
+export const createAdminUser = async (userData: AdminUserCreateRequest): Promise<{ success: boolean, message: string, user?: AdminUser }> => {
   try {
+    // Check if username already exists
+    const { data: existingUser } = await supabase
+      .from('admin_users')
+      .select('id')
+      .eq('username', userData.username)
+      .maybeSingle();
+
+    if (existingUser) {
+      return { success: false, message: "Username already exists" };
+    }
+
+    // Check if email already exists
+    const { data: existingEmail } = await supabase
+      .from('admin_users')
+      .select('id')
+      .eq('email', userData.email)
+      .maybeSingle();
+
+    if (existingEmail) {
+      return { success: false, message: "Email already exists" };
+    }
+
+    // Hash password
+    const { hash, salt } = await hashPassword(userData.password);
+
+    // Insert new user with proper field structure
     const { data, error } = await supabase
-      .from("admin_users")
+      .from('admin_users')
       .insert({
         username: userData.username,
         email: userData.email,
-        role: userData.role || "admin",
+        password_hash: hash,
+        salt: salt,
+        role: userData.role || 'admin',
         is_active: true,
         created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       })
       .select()
       .single();
 
     if (error) {
       console.error("Error creating admin user:", error);
-      return null;
+      return { success: false, message: error.message };
     }
 
-    return data;
-  } catch (e) {
-    console.error("Error creating admin user:", e);
-    return null;
+    // Return cleaned user object
+    const { password_hash: _, salt: __, ...safeUserData } = data;
+
+    return {
+      success: true,
+      message: "Admin user created successfully",
+      user: safeUserData as AdminUser
+    };
+  } catch (error) {
+    console.error("Error creating admin user:", error);
+    return { 
+      success: false, 
+      message: "An error occurred while creating the user"
+    };
   }
-}
+};
 
-// Update user status
-export async function updateUserStatus(
-  userId: string,
-  status: "active" | "inactive" | "suspended"
-) {
-  try {
-    // Try admin users table first
-    let { error } = await supabase
-      .from("admin_users")
-      .update({ is_active: status === "active" })
-      .eq("id", userId);
-
-    if (error) {
-      // If that fails, try user_profiles
-      ({ error } = await supabase
-        .from("user_profiles")
-        .update({ status })
-        .eq("user_id", userId));
-    }
-
-    if (error) {
-      console.error("Error updating user status:", error);
-      return false;
-    }
-
-    return true;
-  } catch (e) {
-    console.error("Error updating user status:", e);
-    return false;
-  }
-}
-
-// Update user profile
-export const updateUserProfile = async (profileData: any): Promise<any> => {
+// Get all users with formatted data
+export const getAdminUsers = async (): Promise<AdminUser[]> => {
   try {
     const { data, error } = await supabase
-      .from("user_profiles")
-      .update(profileData)
-      .eq("id", profileData.id)
-      .select();
+      .from('admin_users')
+      .select('*')
+      .order('created_at', { ascending: false });
 
     if (error) {
-      console.error("Error updating user profile:", error);
-      return null;
+      throw error;
     }
 
-    return data;
+    // Clean user data before returning (remove password hashes)
+    return data.map(user => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password_hash, salt, ...safeUser } = user;
+      return safeUser as AdminUser;
+    });
   } catch (error) {
-    console.error("Error updating user profile:", error);
+    console.error("Error fetching admin users:", error);
+    return [];
+  }
+};
+
+// Get admin user by ID
+export const getAdminUserById = async (id: string): Promise<AdminUser | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('admin_users')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    // Clean user data before returning
+    if (data) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password_hash, salt, ...safeUser } = data;
+      return safeUser as AdminUser;
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Error fetching admin user:", error);
     return null;
   }
 };
 
-// Delete user
-export async function deleteUser(userId: string) {
+// Update admin user
+export const updateAdminUser = async (id: string, userData: Partial<AdminUser>): Promise<{ success: boolean, message: string }> => {
   try {
-    // Try admin_users first
-    let { error } = await supabase
-      .from("admin_users")
-      .delete()
-      .eq("id", userId);
+    // Don't allow updating password through this function
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password_hash, salt, ...updateData } = userData;
+
+    const { error } = await supabase
+      .from('admin_users')
+      .update({
+        ...updateData,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id);
 
     if (error) {
-      // Then try user_profiles
-      ({ error } = await supabase
-        .from("user_profiles")
-        .delete()
-        .eq("user_id", userId));
+      return { success: false, message: error.message };
     }
 
-    if (error) {
-      console.error("Error deleting user:", error);
-      return false;
-    }
-
-    return true;
-  } catch (e) {
-    console.error("Error deleting user:", e);
-    return false;
+    return { success: true, message: "User updated successfully" };
+  } catch (error) {
+    console.error("Error updating admin user:", error);
+    return { success: false, message: "An error occurred while updating the user" };
   }
-}
+};
+
+// Change admin user password
+export const changeAdminPassword = async (id: string, currentPassword: string, newPassword: string): Promise<{ success: boolean, message: string }> => {
+  try {
+    // Get current user data
+    const { data: user, error: fetchError } = await supabase
+      .from('admin_users')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !user) {
+      return { success: false, message: "User not found" };
+    }
+
+    // Verify current password
+    const isPasswordValid = await verifyPassword(currentPassword, user.password_hash);
+    
+    if (!isPasswordValid) {
+      return { success: false, message: "Current password is incorrect" };
+    }
+
+    // Hash new password
+    const { hash, salt } = await hashPassword(newPassword);
+
+    // Update password
+    const { error } = await supabase
+      .from('admin_users')
+      .update({
+        password_hash: hash,
+        salt: salt,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id);
+
+    if (error) {
+      return { success: false, message: error.message };
+    }
+
+    return { success: true, message: "Password changed successfully" };
+  } catch (error) {
+    console.error("Error changing admin password:", error);
+    return { success: false, message: "An error occurred while changing the password" };
+  }
+};
+
+// Delete admin user
+export const deleteAdminUser = async (id: string): Promise<{ success: boolean, message: string }> => {
+  try {
+    const { error } = await supabase
+      .from('admin_users')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      return { success: false, message: error.message };
+    }
+
+    return { success: true, message: "User deleted successfully" };
+  } catch (error) {
+    console.error("Error deleting admin user:", error);
+    return { success: false, message: "An error occurred while deleting the user" };
+  }
+};
+
+// Functions for admin dashboard
+export const getAdminDashboardStats = async () => {
+  // This would be replaced with actual stats collection
+  return {
+    userCount: 0,
+    invoiceCount: 0,
+    quoteCount: 0,
+    receiptCount: 0,
+    recentActivity: []
+  };
+};
+
+// Get all users (client app users, not admin users)
+export const getAppUsers = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    // Format user data for display
+    return data.map(user => ({
+      id: user.id,
+      name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Unknown',
+      email: user.email,
+      created_at: user.created_at,
+      avatar_url: user.avatar_url || null,
+    }));
+  } catch (error) {
+    console.error("Error fetching app users:", error);
+    return [];
+  }
+};
+
+// Get all invoices for admin
+export const getAdminInvoices = async () => {
+  try {
+    // Join invoices with clients to get client data
+    const { data, error } = await supabase
+      .from('invoices')
+      .select(`
+        *,
+        clients(business_name, contact_name, email)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("Error fetching admin invoices:", error);
+    return [];
+  }
+};
+
+// Get all quotes for admin
+export const getAdminQuotes = async () => {
+  try {
+    // Join quotes with clients to get client data
+    const { data, error } = await supabase
+      .from('quotes')
+      .select(`
+        *,
+        clients(business_name, contact_name, email)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("Error fetching admin quotes:", error);
+    return [];
+  }
+};
+
+// Get all receipts for admin
+export const getAdminReceipts = async () => {
+  try {
+    // Join receipts with clients to get client data
+    const { data, error } = await supabase
+      .from('receipts')
+      .select(`
+        *,
+        clients(business_name, contact_name, email)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("Error fetching admin receipts:", error);
+    return [];
+  }
+};
+
+export default {
+  adminLogin,
+  createAdminUser,
+  getAdminUsers,
+  getAdminUserById,
+  updateAdminUser,
+  changeAdminPassword,
+  deleteAdminUser,
+  getAdminDashboardStats,
+  getAppUsers,
+  getAdminInvoices,
+  getAdminQuotes,
+  getAdminReceipts
+};

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -6,7 +7,7 @@ import { getReceiptById } from '@/services/receiptService';
 import { getClientById } from '@/services/clientService';
 import { invoiceService } from '@/services/invoiceService';
 import { getQuoteById } from '@/services/quoteService';
-import { Receipt } from '@/types';
+import { Receipt } from '@/types/receipts';
 import { downloadPDF } from '@/utils/pdf';
 import { ReceiptPreview } from '@/components/receipt/ReceiptPreview';
 import { Client } from '@/types/clients';
@@ -43,6 +44,7 @@ const ReceiptPreviewPage: React.FC = () => {
           return;
         }
 
+        // Using the correct type - TypeScript will infer the correct type from getReceiptById
         setReceipt(fetchedReceipt);
 
         const fetchedClient = await getClientById(fetchedReceipt.client_id);
@@ -80,7 +82,7 @@ const ReceiptPreviewPage: React.FC = () => {
 
     try {
       await downloadPDF(
-        previewRef,
+        previewRef.current,
         client.business_name.replace(/\s+/g, '-').toLowerCase(),
         'receipt',
         receipt.receipt_number

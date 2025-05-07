@@ -1,168 +1,117 @@
 
 import React, { useState, useEffect } from "react";
-import { supabase } from "../integrations/supabase/client";
-import { getAllTables, getTableColumns, getSampleTableData } from "../rpc/databaseHelpers";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getAllTables, getSampleTableData, getTableColumns } from "@/rpc/databaseHelpers";
 
-type TableColumn = {
-  name: string;
-  type: string;
-  is_nullable: boolean;
-};
-
-type TableInfo = {
-  name: string;
-  columns: TableColumn[];
-  rows: any[];
-};
-
-export default function DebugDatabase() {
-  const [tables, setTables] = useState<TableInfo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedTable, setSelectedTable] = useState<string | null>(null);
+const DebugDatabase = () => {
+  const [tables, setTables] = useState<string[]>([]);
+  const [selectedTable, setSelectedTable] = useState<string>("");
+  const [tableData, setTableData] = useState<any[]>([]);
+  const [columns, setColumns] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    async function fetchTables() {
+    const loadTables = async () => {
       try {
-        // Get list of tables from the schema
         const tableNames = await getAllTables();
-        
-        if (!tableNames) {
-          throw new Error("Could not fetch tables");
-        }
-        
-        // For each table, get info and first few rows
-        const tablesInfo: TableInfo[] = [];
-        
-        for (const tableName of tableNames) {
-          // Get columns info
-          const columnsData = await getTableColumns(tableName);
-          
-          if (!columnsData) {
-            console.error(`Error fetching columns for ${tableName}`);
-            continue;
-          }
-          
-          // Get rows (first 5)
-          const rows = await getSampleTableData(tableName, 5);
-            
-          if (!rows) {
-            console.error(`Error fetching rows for ${tableName}`);
-            continue;
-          }
-          
-          tablesInfo.push({
-            name: tableName,
-            columns: columnsData || [],
-            rows: rows || []
-          });
-        }
-        
-        setTables(tablesInfo);
-      } catch (err) {
-        console.error("Error fetching database info:", err);
-        setError(err instanceof Error ? err.message : "Unknown error");
-      } finally {
-        setLoading(false);
+        setTables(tableNames);
+      } catch (error) {
+        console.error("Error loading tables:", error);
       }
-    }
-    
-    fetchTables();
+    };
+
+    loadTables();
   }, []);
 
-  const handleTableClick = (tableName: string) => {
+  const handleTableSelect = async (tableName: string) => {
     setSelectedTable(tableName);
+    setLoading(true);
+    
+    try {
+      // Fixed here: removed the second argument
+      const columnData = await getTableColumns(tableName);
+      setColumns(columnData);
+      
+      const data = await getSampleTableData(tableName);
+      setTableData(data);
+    } catch (error) {
+      console.error(`Error loading data for table ${tableName}:`, error);
+      setTableData([]);
+      setColumns([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  if (loading) return <div>Loading database info...</div>;
-  if (error) return <div>Error: {error}</div>;
-
-  const selectedTableInfo = tables.find(t => t.name === selectedTable);
-
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Database Debug</h1>
-      
-      <div className="flex gap-4">
-        <div className="w-1/4">
-          <h2 className="text-xl font-semibold mb-2">Tables</h2>
-          <ul className="border rounded p-2">
-            {tables.map((table) => (
-              <li 
-                key={table.name} 
-                className={`p-2 cursor-pointer hover:bg-gray-100 ${selectedTable === table.name ? 'bg-gray-200' : ''}`}
-                onClick={() => handleTableClick(table.name)}
-              >
-                {table.name}
-              </li>
-            ))}
-          </ul>
+    <Card>
+      <CardHeader>
+        <CardTitle>Database Explorer</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="mb-4">
+          <Select onValueChange={handleTableSelect} value={selectedTable}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select a table" />
+            </SelectTrigger>
+            <SelectContent>
+              {tables.map((table) => (
+                <SelectItem key={table} value={table}>
+                  {table}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        
-        <div className="w-3/4">
-          {selectedTableInfo ? (
-            <>
-              <h2 className="text-xl font-semibold mb-2">Table: {selectedTableInfo.name}</h2>
-              
-              <div className="mb-4">
-                <h3 className="font-medium mb-1">Columns</h3>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full border">
-                    <thead>
-                      <tr className="bg-gray-50">
-                        <th className="border p-2">Name</th>
-                        <th className="border p-2">Type</th>
-                        <th className="border p-2">Nullable</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {selectedTableInfo.columns && selectedTableInfo.columns.map((column, i) => (
-                        <tr key={i}>
-                          <td className="border p-2">{column.name}</td>
-                          <td className="border p-2">{column.type}</td>
-                          <td className="border p-2">{column.is_nullable ? "Yes" : "No"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              
-              <div>
-                <h3 className="font-medium mb-1">Sample Data (First 5 rows)</h3>
-                <div className="overflow-x-auto">
-                  {selectedTableInfo.rows && selectedTableInfo.rows.length > 0 ? (
-                    <table className="min-w-full border">
-                      <thead>
-                        <tr className="bg-gray-50">
-                          {Object.keys(selectedTableInfo.rows[0]).map((key) => (
-                            <th key={key} className="border p-2">{key}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {selectedTableInfo.rows.map((row, i) => (
-                          <tr key={i}>
-                            {Object.values(row).map((value: any, j) => (
-                              <td key={j} className="border p-2">
-                                {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  ) : (
-                    <p>No data available</p>
-                  )}
-                </div>
-              </div>
-            </>
-          ) : (
-            <p>Select a table to view details</p>
-          )}
-        </div>
-      </div>
-    </div>
+
+        {loading ? (
+          <div className="text-center py-4">Loading...</div>
+        ) : selectedTable ? (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableCaption>Sample data from {selectedTable}</TableCaption>
+              <TableHeader>
+                <TableRow>
+                  {columns.map((column, index) => (
+                    <TableHead key={index}>{column.column_name}</TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {tableData.map((row, rowIndex) => (
+                  <TableRow key={rowIndex}>
+                    {columns.map((column, colIndex) => (
+                      <TableCell key={colIndex}>
+                        {JSON.stringify(row[column.column_name])}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        ) : (
+          <div className="text-center py-4">Select a table to view data</div>
+        )}
+      </CardContent>
+    </Card>
   );
-}
+};
+
+export default DebugDatabase;
