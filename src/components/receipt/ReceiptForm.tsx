@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,7 @@ import { useReceipts } from "@/hooks/useReceipts";
 import { useClients } from "@/hooks/useClients";
 import { useInvoices } from "@/hooks/useInvoices";
 import { useQuotes } from "@/hooks/useQuotes";
-import { Receipt } from "@/types/receipts";
+import { Receipt } from "@/types";
 import { Invoice } from "@/types/invoices";
 import { Quote } from "@/types/quotes";
 import { Client } from "@/types/clients";
@@ -33,7 +34,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { getClientById } from "@/services/clientService";
 import { invoiceService } from "@/services/invoiceService";
 import { getQuoteById } from "@/services/quoteService";
-import ReceiptPreview from "./ReceiptPreview";
+import { ReceiptPreview } from "./ReceiptPreview";
 import { downloadPDF } from "@/utils/pdf";
 import { toast } from "sonner";
 import {

@@ -18,7 +18,7 @@ import { invoiceService } from "@/services/invoiceService";
 import { projectService } from "@/services/projectService";
 import { useClients } from "@/hooks/useClients";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCompanySettings } from "@/hooks/useSettings";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import {
   InvoiceFormData,
   InvoiceItemFormData,

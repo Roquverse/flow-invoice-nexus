@@ -1,23 +1,26 @@
 
-import { useSettings } from "./useSettings";
-import { UserProfile } from "@/types/settings";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useSettings } from "@/hooks/useSettings";
+
+export type UserProfile = {
+  id?: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  phone?: string;
+  avatar_url?: string;
+  created_at?: string;
+  updated_at?: string;
+};
 
 export const useProfileSettings = () => {
-  const { userProfile, loading, error, updateUserProfile } = useSettings();
+  const { userProfile, updateUserProfile, loading, error } = useSettings();
 
   return {
-    profile: userProfile || {
-      id: "",
-      email: "",
-      first_name: "",
-      last_name: "",
-      phone: "",
-      avatar_url: "",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-    loading,
-    error,
+    profile: userProfile,
     updateProfile: updateUserProfile,
+    loading,
+    error
   };
 };

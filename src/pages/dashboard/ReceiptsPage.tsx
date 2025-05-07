@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +28,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useReceipts } from "@/hooks/useReceipts";
-import { Receipt } from "@/types/receipts";
+import { Receipt } from "@/types";
 import { formatCurrency } from "@/utils/formatters";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import {
@@ -41,7 +42,7 @@ import { getClientById } from "@/services/clientService";
 import { invoiceService } from "@/services/invoiceService";
 import { getQuoteById } from "@/services/quoteService";
 import { downloadPDF } from "@/utils/pdf";
-import ReceiptPreview from "@/components/receipt/ReceiptPreview";
+import { ReceiptPreview } from "@/components/receipt/ReceiptPreview";
 import { useQuotes } from "@/hooks/useQuotes";
 
 const ReceiptsPage: React.FC = () => {
