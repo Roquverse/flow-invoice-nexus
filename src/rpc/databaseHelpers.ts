@@ -1,6 +1,24 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
+// Define a type for allowed tables
+export type AllowedTable = 
+  | "clients"
+  | "invoices" 
+  | "quotes" 
+  | "receipts" 
+  | "user_profiles" 
+  | "company_settings"
+  | "admin_users"
+  | "billing_settings"
+  | "invoice_items"
+  | "notification_preferences"
+  | "payment_methods"
+  | "quote_items"
+  | "security_settings"
+  | "session_history"
+  | "projects";
+
 // Get all tables in the database
 export async function loadTables(): Promise<string[]> {
   try {
@@ -13,7 +31,16 @@ export async function loadTables(): Promise<string[]> {
       "quotes",
       "receipts",
       "user_profiles",
-      "company_settings"
+      "company_settings",
+      "admin_users",
+      "billing_settings",
+      "invoice_items",
+      "notification_preferences", 
+      "payment_methods",
+      "quote_items",
+      "security_settings",
+      "session_history",
+      "projects"
     ];
   } catch (error) {
     console.error("Error loading tables:", error);
@@ -22,12 +49,12 @@ export async function loadTables(): Promise<string[]> {
 }
 
 // Get columns for a specific table
-export async function getTableColumns(tableName: string): Promise<any[]> {
+export async function getTableColumns(tableName: AllowedTable): Promise<any[]> {
   try {
     // For demonstration purposes, we're returning a simplified structure
     // In a real app, you would query PostgreSQL information_schema
     const { data, error } = await supabase
-      .from(tableName)
+      .from(tableName as any)
       .select('*')
       .limit(1);
     
@@ -57,10 +84,10 @@ export async function getAllTables(): Promise<string[]> {
   return await loadTables();
 }
 
-export async function getSampleTableData(tableName: string): Promise<any[]> {
+export async function getSampleTableData(tableName: AllowedTable): Promise<any[]> {
   try {
     const { data, error } = await supabase
-      .from(tableName)
+      .from(tableName as any)
       .select('*')
       .limit(10);
     

@@ -6,7 +6,8 @@ export interface ReceiptItem {
   unit_price: number;
 }
 
-export interface Receipt {
+// This is the Receipt type used in ReceiptPreview component
+export interface ReceiptDisplay {
   id: string;
   receipt_number: string;
   client_id: string;
@@ -28,3 +29,6 @@ export interface Receipt {
   date: string;
   amount: number;
 }
+
+// Export Receipt from receipts.ts to avoid duplicate definitions
+export type { Receipt, ReceiptFormData } from './receipts';

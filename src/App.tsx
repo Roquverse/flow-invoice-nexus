@@ -1,5 +1,5 @@
 
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { Routes, Route, useNavigate } from "react-router-dom";
 import LandingPage from "./pages/LandingPage";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/auth/LoginPage";
@@ -37,7 +37,7 @@ import React from "react";
 
 function App() {
   return (
-    <Router>
+    <>
       <AdminAuthProvider>
         <Routes>
           <Route path="/" element={<LandingPage />} />
@@ -88,7 +88,7 @@ function App() {
         </Routes>
       </AdminAuthProvider>
       <Toaster richColors position="top-right" />
-    </Router>
+    </>
   );
 }
 

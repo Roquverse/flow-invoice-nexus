@@ -1,48 +1,38 @@
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Search,
-  UserPlus,
-  Edit,
-  Trash2,
-  AlertCircle,
-  Loader2,
-} from "lucide-react";
-import {
-  AdminUser,
-  getAdminUsers,
-  deleteUser,
-  updateUserStatus,
-} from "@/services/adminService";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
+import { PlusCircle, Search, Trash2, Edit, Check, X } from "lucide-react";
+import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { toast } from "sonner";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { adminService } from "@/services/adminService";
+import { AdminUser } from "@/types/admin";
+
+// Update method names to match admin service exports
+const updateUserStatus = async (userId: string, status: string) => {
+  // The status property doesn't exist in AdminUser type, so we need to update the field using a custom approach
+  try {
+    const { data, error } = await supabase
+      .from('admin_users')
+      .update({ status }) // Use the field directly in the update
+      .eq('id', userId);
+      
+    return !error;
+  } catch (error) {
+    console.error("Error updating status:", error);
+    return false;
+  }
+};
+
+const deleteUser = async (userId: string) => {
+  const result = await adminService.deleteAdminUser(userId);
+  return result.success;
+};
 
 const AdminUsersPage: React.FC = () => {
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -60,7 +50,7 @@ const AdminUsersPage: React.FC = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const usersData = await getAdminUsers();
+      const usersData = await adminService.getAdminUsers();
       setUsers(usersData);
     } catch (error) {
       console.error("Error fetching users:", error);

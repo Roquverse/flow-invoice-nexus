@@ -1,1024 +1,1108 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+
+import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { User, Building, CreditCard, Bell, Shield, LogOut } from "lucide-react";
 import { useProfileSettings } from "@/hooks/useProfileSettings";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
-import { useNotificationSettings } from "@/hooks/useNotificationSettings";
-import { useSecuritySettings } from "@/hooks/useSecuritySettings";
 import { useBillingSettings } from "@/hooks/useBillingSettings";
-import {
-  ProfileFormData,
-  CompanyFormData,
-  BillingFormData,
-  NotificationFormData,
-  SecurityFormData,
-} from "@/types/settings";
+import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
+import { useSecuritySettings } from "@/hooks/useSecuritySettings";
 import { toast } from "sonner";
-import { uploadFile } from "@/services/storageService";
+import { CreditCard, PlusCircle, Trash2, Calendar, RefreshCcw } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import currencies from "@/data/currencies";
+import countryList from "@/data/countries";
+import { format } from "date-fns";
 
-// Add a logo upload component
-const LogoUploader = ({
-  logoUrl,
-  onLogoChange,
-}: {
-  logoUrl?: string;
-  onLogoChange: (url: string) => void;
-}) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [loading, setLoading] = useState(false);
+// Define type for tabs
+type TabType = "profile" | "company" | "billing" | "notifications" | "security";
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+const SettingsPage = () => {
+  // State for active tab
+  const [activeTab, setActiveTab] = useState<TabType>("profile");
+  
+  // Hooks for settings
+  const { profile, updateProfile, loading: profileLoading, error: profileError } = useProfileSettings();
+  const { companySettings, updateCompanySettings, loading: companyLoading, error: companyError } = useCompanySettings();
+  const { 
+    billingSettings, 
+    paymentMethods, 
+    loading: billingLoading, 
+    error: billingError,
+    addPaymentMethod,
+    deletePaymentMethod,
+    updateBillingSettings
+  } = useBillingSettings();
+  const { notificationPreferences, loading: notifLoading, error: notifError, updatePreferences } = useNotificationPreferences();
+  const { 
+    securitySettings, 
+    sessionHistory,
+    loading: securityLoading, 
+    error: securityError,
+    fetchSessionHistory,
+    changePassword
+  } = useSecuritySettings();
 
-    // Validate file type
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please upload an image file");
-      return;
-    }
-
-    // Validate file size (max 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("Image file size must be less than 2MB");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const url = await uploadFile(file);
-      if (url) {
-        onLogoChange(url);
-        toast.success("Logo uploaded successfully");
-      } else {
-        toast.error("Failed to upload logo");
-      }
-    } catch (error) {
-      console.error("Error uploading logo:", error);
-      toast.error("Failed to upload logo");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="space-y-2">
-      <Label htmlFor="logo">Company Logo</Label>
-      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
-        <div className="border rounded-md overflow-hidden w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center bg-gray-50 shrink-0">
-          {logoUrl ? (
-            <img
-              src={logoUrl}
-              alt="Company Logo"
-              className="max-w-full max-h-full object-contain"
-            />
-          ) : (
-            <User className="h-10 w-10 text-gray-300" />
-          )}
-        </div>
-        <div className="space-y-2 text-center sm:text-left">
-          <input
-            type="file"
-            id="logo"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            accept="image/*"
-            className="hidden"
-          />
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={loading}
-            size="sm"
-            className="w-full sm:w-auto"
-          >
-            {loading ? "Uploading..." : "Upload Logo"}
-          </Button>
-          {logoUrl && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="text-red-500 hover:text-red-700 w-full sm:w-auto"
-              onClick={() => onLogoChange("")}
-            >
-              Remove Logo
-            </Button>
-          )}
-          <p className="text-xs text-gray-500 mt-1">
-            Recommended: 200x200px. Max: 2MB.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const SettingsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState("profile");
-  const profile = useProfileSettings();
-  const company = useCompanySettings();
-  const notifications = useNotificationSettings();
-  const security = useSecuritySettings();
-  const billing = useBillingSettings();
-
-  // Profile state
-  const [profileForm, setProfileForm] = useState<ProfileFormData>({
+  // Form state
+  const [profileFormData, setProfileFormData] = useState({
     first_name: "",
     last_name: "",
     email: "",
     phone: "",
+    avatar_url: ""
   });
-
-  // Company state
-  const [companyForm, setCompanyForm] = useState<CompanyFormData>({
+  
+  const [companyFormData, setCompanyFormData] = useState({
     company_name: "",
-    industry: "",
+    logo_url: "",
     address: "",
     city: "",
+    state: "",
     postal_code: "",
     country: "",
+    phone: "",
+    email: "",
+    website: "",
     tax_id: "",
-    logo_url: "",
+    vat_number: "",
+    registration_number: "",
+    default_currency: "USD",
+    default_tax_rate: 0,
+    payment_terms: 30,
+    payment_instructions: "",
+    invoice_prefix: "INV-",
+    quote_prefix: "QUO-",
+    receipt_prefix: "REC-",
+    invoice_notes: "",
+    quote_notes: ""
   });
 
-  // Notification state
-  const [notificationForm, setNotificationForm] =
-    useState<NotificationFormData>({
-      invoice_notifications: true,
-      client_activity: true,
-      project_updates: false,
-      marketing_tips: false,
-      email_frequency: "immediate",
-    });
-
-  // Security state
-  const [securityForm, setSecurityForm] = useState<SecurityFormData>({
-    two_factor_enabled: false,
+  // Payment method dialog state
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [newPaymentMethod, setNewPaymentMethod] = useState({
+    payment_type: "credit_card",
+    provider: "visa",
+    last_four: "",
+    expiry_date: "",
+    is_default: false
   });
 
-  // Password fields
-  const [passwordFields, setPasswordFields] = useState({
+  // Password change dialog state
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
-    confirmPassword: "",
+    confirmPassword: ""
   });
 
-  // Billing state
-  const [billingForm, setBillingForm] = useState<BillingFormData>({
-    billing_name: "",
-    billing_email: "",
-  });
+  // Security settings state
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
 
-  // Effect to update forms when data is loaded
-  React.useEffect(() => {
-    if (profile.profile) {
-      setProfileForm({
-        first_name: profile.profile.first_name || "",
-        last_name: profile.profile.last_name || "",
-        email: profile.profile.email,
-        phone: profile.profile.phone || "",
+  // Notification settings state
+  const [invoiceNotifs, setInvoiceNotifs] = useState(true);
+  const [clientActivity, setClientActivity] = useState(true);
+  const [projectUpdates, setProjectUpdates] = useState(false);
+  const [marketingTips, setMarketingTips] = useState(false);
+  const [emailFrequency, setEmailFrequency] = useState<"immediate" | "daily" | "weekly">("immediate");
+
+  // Initialize form data when settings are loaded
+  useEffect(() => {
+    if (profile) {
+      setProfileFormData({
+        first_name: profile.first_name || "",
+        last_name: profile.last_name || "",
+        email: profile.email || "",
+        phone: profile.phone || "",
+        avatar_url: profile.avatar_url || ""
       });
     }
+  }, [profile]);
 
-    if (company.companySettings) {
-      setCompanyForm({
-        company_name: company.companySettings.company_name || "",
-        industry: company.companySettings.industry || "",
-        address: company.companySettings.address || "",
-        city: company.companySettings.city || "",
-        postal_code: company.companySettings.postal_code || "",
-        country: company.companySettings.country || "",
-        tax_id: company.companySettings.tax_id || "",
-        logo_url: company.companySettings.logo_url || "",
+  useEffect(() => {
+    if (companySettings) {
+      setCompanyFormData({
+        company_name: companySettings.company_name || "",
+        logo_url: companySettings.logo_url || "",
+        address: companySettings.address || "",
+        city: companySettings.city || "",
+        state: companySettings.state || "",
+        postal_code: companySettings.postal_code || "",
+        country: companySettings.country || "",
+        phone: companySettings.phone || "",
+        email: companySettings.email || "",
+        website: companySettings.website || "",
+        tax_id: companySettings.tax_id || "",
+        vat_number: companySettings.vat_number || "",
+        registration_number: companySettings.registration_number || "",
+        default_currency: companySettings.default_currency || "USD",
+        default_tax_rate: companySettings.default_tax_rate || 0,
+        payment_terms: companySettings.payment_terms || 30,
+        payment_instructions: companySettings.payment_instructions || "",
+        invoice_prefix: companySettings.invoice_prefix || "INV-",
+        quote_prefix: companySettings.quote_prefix || "QUO-",
+        receipt_prefix: companySettings.receipt_prefix || "REC-",
+        invoice_notes: companySettings.invoice_notes || "",
+        quote_notes: companySettings.quote_notes || ""
       });
     }
+  }, [companySettings]);
 
-    if (notifications.notificationPreferences) {
-      setNotificationForm({
-        invoice_notifications:
-          notifications.notificationPreferences.invoice_notifications,
-        client_activity: notifications.notificationPreferences.client_activity,
-        project_updates: notifications.notificationPreferences.project_updates,
-        marketing_tips: notifications.notificationPreferences.marketing_tips,
-        email_frequency: notifications.notificationPreferences.email_frequency,
-      });
+  useEffect(() => {
+    if (notificationPreferences) {
+      setInvoiceNotifs(notificationPreferences.invoice_notifications || false);
+      setClientActivity(notificationPreferences.client_activity || false);
+      setProjectUpdates(notificationPreferences.project_updates || false);
+      setMarketingTips(notificationPreferences.marketing_tips || false);
+      setEmailFrequency(notificationPreferences.email_frequency || "immediate");
     }
+  }, [notificationPreferences]);
 
-    if (security.securitySettings) {
-      setSecurityForm({
-        two_factor_enabled: security.securitySettings.two_factor_enabled,
-      });
+  useEffect(() => {
+    if (securitySettings) {
+      setTwoFactorEnabled(securitySettings.two_factor_enabled || false);
     }
-
-    if (billing.billingSettings) {
-      setBillingForm({
-        billing_name: billing.billingSettings.billing_name || "",
-        billing_email: billing.billingSettings.billing_email || "",
-      });
+    
+    // Fetch session history when security tab is active
+    if (activeTab === "security") {
+      fetchSessionHistory();
     }
-  }, [
-    profile.profile,
-    company.companySettings,
-    notifications.notificationPreferences,
-    security.securitySettings,
-    billing.billingSettings,
-  ]);
+  }, [securitySettings, activeTab]);
 
-  // Form handlers
-  const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
-    setProfileForm((prev) => ({ ...prev, [id]: value }));
-  };
-
-  const handleCompanyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
-    setCompanyForm((prev) => ({ ...prev, [id]: value }));
-  };
-
-  const handleBillingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
-    setBillingForm((prev) => ({ ...prev, [id]: value }));
-  };
-
-  const handleNotificationToggle = (field: keyof NotificationFormData) => {
-    if (typeof notificationForm[field] === "boolean") {
-      setNotificationForm((prev) => ({
-        ...prev,
-        [field]: !prev[field],
-      }));
-    }
-  };
-
-  const handleFrequencyChange = (value: "immediate" | "daily" | "weekly") => {
-    setNotificationForm((prev) => ({ ...prev, email_frequency: value }));
-  };
-
-  const handleSecurityToggle = () => {
-    setSecurityForm((prev) => ({
-      ...prev,
-      two_factor_enabled: !prev.two_factor_enabled,
-    }));
-  };
-
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
-    setPasswordFields((prev) => ({ ...prev, [id]: value }));
-  };
-
-  // Add logo change handler
-  const handleLogoChange = (url: string) => {
-    setCompanyForm((prev) => ({ ...prev, logo_url: url }));
-  };
-
-  // Save handlers
-  const saveProfile = async () => {
+  const handleProfileSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
-      const success = await profile.updateProfile(profileForm);
-      if (success) {
-        toast.success("Profile updated successfully");
-      }
+      await updateProfile(profileFormData);
+      toast.success("Profile updated successfully");
     } catch (error) {
       toast.error("Failed to update profile");
-      console.error(error);
+      console.error("Error updating profile:", error);
     }
   };
 
-  const saveCompanySettings = async () => {
+  const handleCompanySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
-      const success = await company.updateCompanySettings(companyForm);
-      if (success) {
-        toast.success("Company settings updated successfully");
-      }
+      await updateCompanySettings({
+        ...companyFormData
+      });
+      toast.success("Company settings updated successfully");
     } catch (error) {
       toast.error("Failed to update company settings");
-      console.error(error);
+      console.error("Error updating company settings:", error);
     }
   };
 
-  const saveBillingSettings = async () => {
+  const handleNotificationSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
-      const success = await billing.updateBillingSettings(billingForm);
-      if (success) {
-        toast.success("Billing settings updated successfully");
-      }
-    } catch (error) {
-      toast.error("Failed to update billing settings");
-      console.error(error);
-    }
-  };
-
-  const saveNotificationSettings = async () => {
-    try {
-      const success = await notifications.updateNotificationPreferences(
-        notificationForm
-      );
-      if (success) {
+      const result = await updatePreferences({
+        invoice_notifications: invoiceNotifs,
+        client_activity: clientActivity,
+        project_updates: projectUpdates,
+        marketing_tips: marketingTips,
+        email_frequency: emailFrequency
+      });
+      
+      if (result) {
         toast.success("Notification preferences updated successfully");
+      } else {
+        toast.error("Failed to update notification preferences");
       }
     } catch (error) {
       toast.error("Failed to update notification preferences");
-      console.error(error);
+      console.error("Error updating notification preferences:", error);
     }
   };
 
-  const saveSecuritySettings = async () => {
+  const handleAddPaymentMethod = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
-      const success = await security.updateSecuritySettings(securityForm);
-      if (success) {
-        toast.success("Security settings updated successfully");
+      const result = await addPaymentMethod(newPaymentMethod);
+      if (result) {
+        toast.success("Payment method added successfully");
+        setPaymentDialogOpen(false);
+        setNewPaymentMethod({
+          payment_type: "credit_card",
+          provider: "visa",
+          last_four: "",
+          expiry_date: "",
+          is_default: false
+        });
+      } else {
+        toast.error("Failed to add payment method");
       }
+    } catch (error) {
+      toast.error("Failed to add payment method");
+      console.error("Error adding payment method:", error);
+    }
+  };
+
+  const handleDeletePaymentMethod = async (id: string) => {
+    try {
+      const result = await deletePaymentMethod(id);
+      if (result) {
+        toast.success("Payment method deleted successfully");
+      } else {
+        toast.error("Failed to delete payment method");
+      }
+    } catch (error) {
+      toast.error("Failed to delete payment method");
+      console.error("Error deleting payment method:", error);
+    }
+  };
+
+  const handleSaveSecuritySettings = async () => {
+    try {
+      await updateSecuritySettings({
+        two_factor_enabled: twoFactorEnabled
+      });
+      toast.success("Security settings updated successfully");
     } catch (error) {
       toast.error("Failed to update security settings");
-      console.error(error);
+      console.error("Error updating security settings:", error);
     }
   };
 
-  const updatePassword = async () => {
-    if (passwordFields.newPassword !== passwordFields.confirmPassword) {
-      toast.error("New passwords do not match");
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast.error("New password and confirmation do not match");
       return;
     }
-
-    if (passwordFields.newPassword.length < 6) {
-      toast.error("Password must be at least 6 characters");
-      return;
-    }
-
+    
     try {
-      const success = await security.changePassword(
-        passwordFields.currentPassword,
-        passwordFields.newPassword
-      );
-      if (success) {
-        toast.success("Password updated successfully");
-        setPasswordFields({
+      const result = await changePassword(passwordData.currentPassword, passwordData.newPassword);
+      if (result) {
+        toast.success("Password changed successfully");
+        setPasswordDialogOpen(false);
+        setPasswordData({
           currentPassword: "",
           newPassword: "",
-          confirmPassword: "",
+          confirmPassword: ""
         });
+      } else {
+        toast.error("Failed to change password");
       }
     } catch (error) {
-      toast.error("Failed to update password");
-      console.error(error);
+      toast.error("Failed to change password");
+      console.error("Error changing password:", error);
     }
   };
 
-  if (
-    profile.loading ||
-    company.loading ||
-    notifications.loading ||
-    security.loading ||
-    billing.loading
-  ) {
-    return <div className="p-4 text-center">Loading settings...</div>;
-  }
+  // Handle tab change
+  const handleTabChange = (value: string) => {
+    setActiveTab(value as TabType);
+  };
 
   return (
-    <div className="p-4 sm:p-6 max-w-5xl mx-auto">
-      <div className="mb-4 sm:mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-          Settings
-        </h1>
-        <p className="text-sm text-gray-500">
-          Manage your account settings and preferences
-        </p>
-      </div>
-
-      <div className="bg-white rounded-lg shadow">
-        <Tabs
-          defaultValue="profile"
-          className="w-full"
-          onValueChange={setActiveTab}
-        >
-          <div className="border-b overflow-x-auto">
-            <TabsList className="flex h-auto p-0 min-w-max">
-              <TabsTrigger
-                value="profile"
-                className="flex items-center px-3 py-2 border-b-2 border-transparent data-[state=active]:border-green-600 data-[state=active]:text-green-600 text-sm"
-              >
-                <User className="mr-2 h-4 w-4" />
-                Profile
-              </TabsTrigger>
-              <TabsTrigger
-                value="company"
-                className="flex items-center px-3 py-2 border-b-2 border-transparent data-[state=active]:border-green-600 data-[state=active]:text-green-600 text-sm"
-              >
-                <Building className="mr-2 h-4 w-4" />
-                Company
-              </TabsTrigger>
-              <TabsTrigger
-                value="billing"
-                className="flex items-center px-3 py-2 border-b-2 border-transparent data-[state=active]:border-green-600 data-[state=active]:text-green-600 text-sm"
-              >
-                <CreditCard className="mr-2 h-4 w-4" />
-                Billing
-              </TabsTrigger>
-              <TabsTrigger
-                value="notifications"
-                className="flex items-center px-3 py-2 border-b-2 border-transparent data-[state=active]:border-green-600 data-[state=active]:text-green-600 text-sm"
-              >
-                <Bell className="mr-2 h-4 w-4" />
-                Notifications
-              </TabsTrigger>
-              <TabsTrigger
-                value="security"
-                className="flex items-center px-3 py-2 border-b-2 border-transparent data-[state=active]:border-green-600 data-[state=active]:text-green-600 text-sm"
-              >
-                <Shield className="mr-2 h-4 w-4" />
-                Security
-              </TabsTrigger>
-            </TabsList>
-          </div>
-
-          <div className="p-4 sm:p-6">
-            <TabsContent value="profile" className="mt-0">
-              <div className="space-y-4 sm:space-y-6">
-                <div className="border-b pb-4 sm:pb-6">
-                  <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4">
-                    Personal Information
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                    <div className="space-y-1 sm:space-y-2">
-                      <Label htmlFor="first_name">First Name</Label>
-                      <Input
-                        id="first_name"
-                        value={profileForm.first_name}
-                        onChange={handleProfileChange}
-                      />
-                    </div>
-                    <div className="space-y-1 sm:space-y-2">
-                      <Label htmlFor="last_name">Last Name</Label>
-                      <Input
-                        id="last_name"
-                        value={profileForm.last_name}
-                        onChange={handleProfileChange}
-                      />
-                    </div>
-                    <div className="space-y-1 sm:space-y-2">
-                      <Label htmlFor="email">Email Address</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={profileForm.email}
-                        onChange={handleProfileChange}
-                      />
-                    </div>
-                    <div className="space-y-1 sm:space-y-2">
-                      <Label htmlFor="phone">Phone Number</Label>
-                      <Input
-                        id="phone"
-                        value={profileForm.phone}
-                        onChange={handleProfileChange}
-                      />
-                    </div>
+    <div className="container mx-auto py-8">
+      <h1 className="text-3xl font-bold mb-6">Settings</h1>
+      
+      <Tabs defaultValue="profile" value={activeTab} onValueChange={handleTabChange}>
+        <TabsList className="mb-8">
+          <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsTrigger value="company">Company</TabsTrigger>
+          <TabsTrigger value="billing">Billing</TabsTrigger>
+          <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="security">Security</TabsTrigger>
+        </TabsList>
+        
+        {/* Profile Settings */}
+        <TabsContent value="profile">
+          <Card>
+            <CardHeader>
+              <CardTitle>Profile Settings</CardTitle>
+              <CardDescription>
+                Manage your personal information
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleProfileSubmit}>
+                <div className="flex items-center mb-8">
+                  <Avatar className="h-20 w-20">
+                    <AvatarImage src={profileFormData.avatar_url} alt="Profile" />
+                    <AvatarFallback>
+                      {`${profileFormData.first_name?.charAt(0) || ''}${profileFormData.last_name?.charAt(0) || ''}`}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="ml-4">
+                    <Input
+                      id="avatar_url"
+                      type="text"
+                      placeholder="Avatar URL"
+                      value={profileFormData.avatar_url}
+                      onChange={(e) => setProfileFormData({ ...profileFormData, avatar_url: e.target.value })}
+                      className="mb-2"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Enter a URL for your profile image
+                    </p>
                   </div>
                 </div>
 
-                <div className="flex justify-end space-x-2">
-                  <Button variant="outline" size="sm">
-                    Cancel
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="bg-green-600 hover:bg-green-700 text-white"
-                    onClick={saveProfile}
-                    disabled={profile.loading}
-                  >
-                    {profile.loading ? "Saving..." : "Save Changes"}
-                  </Button>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <Label htmlFor="first_name">First Name</Label>
+                    <Input
+                      id="first_name"
+                      value={profileFormData.first_name}
+                      onChange={(e) => setProfileFormData({ ...profileFormData, first_name: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="last_name">Last Name</Label>
+                    <Input
+                      id="last_name"
+                      value={profileFormData.last_name}
+                      onChange={(e) => setProfileFormData({ ...profileFormData, last_name: e.target.value })}
+                    />
+                  </div>
                 </div>
-              </div>
-            </TabsContent>
 
-            <TabsContent value="company" className="mt-0">
-              <div className="space-y-4 sm:space-y-6">
-                <div className="space-y-3 sm:space-y-4">
-                  <h3 className="text-base sm:text-lg font-medium">
-                    Company Information
-                  </h3>
-                  <p className="text-xs sm:text-sm text-gray-500">
-                    This information will appear on your invoices and quotes.
-                  </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                  <div>
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={profileFormData.email}
+                      onChange={(e) => setProfileFormData({ ...profileFormData, email: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="phone">Phone</Label>
+                    <Input
+                      id="phone"
+                      value={profileFormData.phone}
+                      onChange={(e) => setProfileFormData({ ...profileFormData, phone: e.target.value })}
+                    />
+                  </div>
+                </div>
 
-                  {/* Logo uploader */}
-                  <LogoUploader
-                    logoUrl={companyForm.logo_url}
-                    onLogoChange={handleLogoChange}
-                  />
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                    <div className="space-y-1 sm:space-y-2">
+                <Button type="submit" disabled={profileLoading}>
+                  {profileLoading ? "Saving..." : "Save Changes"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* Company Settings */}
+        <TabsContent value="company">
+          <Card>
+            <CardHeader>
+              <CardTitle>Company Settings</CardTitle>
+              <CardDescription>
+                Manage your company information and defaults
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleCompanySubmit}>
+                <div className="mb-8">
+                  <h3 className="text-lg font-medium mb-4">Company Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
                       <Label htmlFor="company_name">Company Name</Label>
                       <Input
                         id="company_name"
-                        value={companyForm.company_name}
-                        onChange={handleCompanyChange}
+                        value={companyFormData.company_name}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, company_name: e.target.value })}
                       />
                     </div>
-                    <div className="space-y-1 sm:space-y-2">
-                      <Label htmlFor="industry">Industry</Label>
+                    <div>
+                      <Label htmlFor="logo_url">Logo URL</Label>
                       <Input
-                        id="industry"
-                        value={companyForm.industry}
-                        onChange={handleCompanyChange}
+                        id="logo_url"
+                        value={companyFormData.logo_url}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, logo_url: e.target.value })}
                       />
                     </div>
-                    <div className="space-y-1 sm:space-y-2 col-span-1 sm:col-span-2">
-                      <Label htmlFor="address">Address</Label>
+                  </div>
+                </div>
+
+                <div className="mb-8">
+                  <h3 className="text-lg font-medium mb-4">Address Information</h3>
+                  <div className="grid grid-cols-1 gap-4 mb-4">
+                    <div>
+                      <Label htmlFor="address">Street Address</Label>
                       <Input
                         id="address"
-                        value={companyForm.address}
-                        onChange={handleCompanyChange}
+                        value={companyFormData.address}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, address: e.target.value })}
                       />
                     </div>
-                    <div className="space-y-1 sm:space-y-2">
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div>
                       <Label htmlFor="city">City</Label>
                       <Input
                         id="city"
-                        value={companyForm.city}
-                        onChange={handleCompanyChange}
+                        value={companyFormData.city}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, city: e.target.value })}
                       />
                     </div>
-                    <div className="space-y-1 sm:space-y-2">
+                    <div>
+                      <Label htmlFor="state">State/Province</Label>
+                      <Input
+                        id="state"
+                        value={companyFormData.state}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, state: e.target.value })}
+                      />
+                    </div>
+                    <div>
                       <Label htmlFor="postal_code">Postal Code</Label>
                       <Input
                         id="postal_code"
-                        value={companyForm.postal_code}
-                        onChange={handleCompanyChange}
+                        value={companyFormData.postal_code}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, postal_code: e.target.value })}
                       />
                     </div>
-                    <div className="space-y-1 sm:space-y-2">
-                      <Label htmlFor="country">Country</Label>
+                  </div>
+                  <div className="mt-4">
+                    <Label htmlFor="country">Country</Label>
+                    <Select 
+                      value={companyFormData.country}
+                      onValueChange={(value) => setCompanyFormData({ ...companyFormData, country: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a country" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {countryList.map((country) => (
+                          <SelectItem key={country.code} value={country.code}>
+                            {country.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="mb-8">
+                  <h3 className="text-lg font-medium mb-4">Contact Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="company_phone">Phone</Label>
                       <Input
-                        id="country"
-                        value={companyForm.country}
-                        onChange={handleCompanyChange}
+                        id="company_phone"
+                        value={companyFormData.phone}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, phone: e.target.value })}
                       />
                     </div>
-                    <div className="space-y-1 sm:space-y-2">
-                      <Label htmlFor="tax_id">Tax ID / VAT Number</Label>
+                    <div>
+                      <Label htmlFor="company_email">Email</Label>
+                      <Input
+                        id="company_email"
+                        value={companyFormData.email}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, email: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="website">Website</Label>
+                      <Input
+                        id="website"
+                        value={companyFormData.website}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, website: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mb-8">
+                  <h3 className="text-lg font-medium mb-4">Registration Details</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="tax_id">Tax ID</Label>
                       <Input
                         id="tax_id"
-                        value={companyForm.tax_id}
-                        onChange={handleCompanyChange}
+                        value={companyFormData.tax_id}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, tax_id: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="vat_number">VAT Number</Label>
+                      <Input
+                        id="vat_number"
+                        value={companyFormData.vat_number}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, vat_number: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="registration_number">Registration Number</Label>
+                      <Input
+                        id="registration_number"
+                        value={companyFormData.registration_number}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, registration_number: e.target.value })}
                       />
                     </div>
                   </div>
                 </div>
 
-                <div className="flex justify-end space-x-2">
-                  <Button variant="outline" size="sm">
-                    Cancel
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="bg-green-600 hover:bg-green-700 text-white"
-                    onClick={saveCompanySettings}
-                    disabled={company.loading}
-                  >
-                    {company.loading ? "Saving..." : "Save Changes"}
-                  </Button>
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="billing" className="mt-0">
-              <div className="space-y-4 sm:space-y-6">
-                <div className="border-b pb-4 sm:pb-6">
-                  <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4">
-                    Payment Methods
-                  </h3>
-                  {billing.paymentMethods.length > 0 ? (
-                    billing.paymentMethods.map((method) => (
-                      <div
-                        key={method.id}
-                        className="p-3 sm:p-4 border rounded-lg mb-3 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3"
+                <div className="mb-8">
+                  <h3 className="text-lg font-medium mb-4">Default Settings</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                      <Label htmlFor="default_currency">Currency</Label>
+                      <Select 
+                        value={companyFormData.default_currency}
+                        onValueChange={(value) => setCompanyFormData({ ...companyFormData, default_currency: value })}
                       >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select currency" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {currencies.map((currency) => (
+                            <SelectItem key={currency.code} value={currency.code}>
+                              {currency.code} - {currency.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="default_tax_rate">Default Tax Rate (%)</Label>
+                      <Input
+                        id="default_tax_rate"
+                        type="number"
+                        step="0.01"
+                        value={companyFormData.default_tax_rate}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, default_tax_rate: parseFloat(e.target.value) || 0 })}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="payment_terms">Payment Terms (Days)</Label>
+                      <Input
+                        id="payment_terms"
+                        type="number"
+                        value={companyFormData.payment_terms}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, payment_terms: parseInt(e.target.value) || 0 })}
+                      />
+                    </div>
+                  </div>
+                  <div className="mb-4">
+                    <Label htmlFor="payment_instructions">Payment Instructions</Label>
+                    <Input
+                      id="payment_instructions"
+                      value={companyFormData.payment_instructions}
+                      onChange={(e) => setCompanyFormData({ ...companyFormData, payment_instructions: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="mb-8">
+                  <h3 className="text-lg font-medium mb-4">Document Settings</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                      <Label htmlFor="invoice_prefix">Invoice Prefix</Label>
+                      <Input
+                        id="invoice_prefix"
+                        value={companyFormData.invoice_prefix}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, invoice_prefix: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="quote_prefix">Quote Prefix</Label>
+                      <Input
+                        id="quote_prefix"
+                        value={companyFormData.quote_prefix}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, quote_prefix: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="receipt_prefix">Receipt Prefix</Label>
+                      <Input
+                        id="receipt_prefix"
+                        value={companyFormData.receipt_prefix}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, receipt_prefix: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="invoice_notes">Default Invoice Notes</Label>
+                      <Input
+                        id="invoice_notes"
+                        value={companyFormData.invoice_notes}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, invoice_notes: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="quote_notes">Default Quote Notes</Label>
+                      <Input
+                        id="quote_notes"
+                        value={companyFormData.quote_notes}
+                        onChange={(e) => setCompanyFormData({ ...companyFormData, quote_notes: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Button type="submit" disabled={companyLoading}>
+                  {companyLoading ? "Saving..." : "Save Changes"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* Billing Settings */}
+        <TabsContent value="billing">
+          <Card>
+            <CardHeader>
+              <CardTitle>Billing Settings</CardTitle>
+              <CardDescription>
+                Manage your payment methods and subscription
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-8">
+                <h3 className="text-lg font-medium mb-4">Payment Methods</h3>
+                {paymentMethods && paymentMethods.length > 0 ? (
+                  <div className="space-y-4">
+                    {paymentMethods.map((method) => (
+                      <div key={method.id} className="flex items-center justify-between p-4 border rounded-md">
                         <div className="flex items-center">
-                          <div className="bg-blue-500 text-white p-1.5 sm:p-2 rounded mr-3 shrink-0">
-                            <CreditCard className="h-5 w-5" />
-                          </div>
+                          <CreditCard className="h-5 w-5 mr-2" />
                           <div>
-                            <div className="font-medium text-sm">
-                              {method.provider} ending in {method.last_four}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {method.expiry_date
-                                ? `Expires ${new Date(
-                                    method.expiry_date
-                                  ).toLocaleDateString("en-US", {
-                                    month: "2-digit",
-                                    year: "numeric",
-                                  })}`
-                                : "No expiry date"}
-                            </div>
+                            <p className="font-medium capitalize">{method.provider}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {method.payment_type} •••• {method.last_four} 
+                              {method.expiry_date ? ` • Expires ${method.expiry_date}` : ''}
+                              {method.is_default ? ' • Default' : ''}
+                            </p>
                           </div>
                         </div>
-                        <div className="space-x-2 flex ml-8 sm:ml-0">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs"
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-red-500 hover:text-red-700 text-xs"
-                            onClick={() =>
-                              billing.deletePaymentMethod(method.id)
-                            }
-                          >
-                            Remove
-                          </Button>
-                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeletePaymentMethod(method.id!)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
-                    ))
-                  ) : (
-                    <div className="text-sm text-gray-500 mb-3">
-                      No payment methods added yet.
-                    </div>
-                  )}
-                  <Button variant="outline" size="sm">
-                    <CreditCard className="mr-2 h-4 w-4" />
-                    Add Payment Method
-                  </Button>
-                </div>
-
-                <div className="border-b pb-4 sm:pb-6">
-                  <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4">
-                    Billing Information
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                    <div className="space-y-1 sm:space-y-2">
-                      <Label htmlFor="billing_name">Name on Invoice</Label>
-                      <Input
-                        id="billing_name"
-                        value={billingForm.billing_name}
-                        onChange={handleBillingChange}
-                      />
-                    </div>
-                    <div className="space-y-1 sm:space-y-2">
-                      <Label htmlFor="billing_email">Billing Email</Label>
-                      <Input
-                        id="billing_email"
-                        value={billingForm.billing_email}
-                        onChange={handleBillingChange}
-                      />
-                    </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground mb-4">No payment methods added yet.</p>
+                )}
+                
+                <Button 
+                  variant="outline" 
+                  className="mt-4"
+                  onClick={() => setPaymentDialogOpen(true)}
+                >
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  Add Payment Method
+                </Button>
+              </div>
+              
+              <Separator className="my-6" />
+              
+              <div className="mb-4">
+                <h3 className="text-lg font-medium mb-4">Subscription Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Current Plan</Label>
+                    <p className="text-lg font-medium mt-1">
+                      {billingSettings?.subscription_plan || "Free Plan"}
+                    </p>
+                  </div>
+                  <div>
+                    <Label>Status</Label>
+                    <p className="text-lg font-medium mt-1">
+                      {billingSettings?.subscription_status || "Active"}
+                    </p>
+                  </div>
+                  <div>
+                    <Label>Next Payment</Label>
+                    <p className="text-lg font-medium mt-1">
+                      {billingSettings?.subscription_renewal_date ? 
+                        new Date(billingSettings.subscription_renewal_date).toLocaleDateString() : 
+                        "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <Label>Billing Name</Label>
+                    <p className="text-lg font-medium mt-1">
+                      {billingSettings?.billing_name || "N/A"}
+                    </p>
                   </div>
                 </div>
-
-                <div>
-                  <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4">
-                    Subscription Plan
-                  </h3>
-                  <div className="bg-gray-50 p-3 sm:p-4 rounded-lg mb-4">
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-2 gap-1">
-                      <div className="font-semibold text-sm">
-                        Current Plan:{" "}
-                        {billing.billingSettings?.subscription_plan || "Free"}
-                      </div>
-                      <div className="text-green-600 font-medium text-sm">
-                        {billing.billingSettings?.subscription_plan === "free"
-                          ? "Free"
-                          : "$29.99/month"}
-                      </div>
-                    </div>
-                    <div className="text-xs text-gray-500 mb-3">
-                      {billing.billingSettings?.subscription_renewal_date
-                        ? `Your plan renews on ${new Date(
-                            billing.billingSettings.subscription_renewal_date
-                          ).toLocaleDateString()}`
-                        : "No renewal date set"}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button variant="outline" size="sm" className="text-xs">
-                        Change Plan
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-red-500 hover:text-red-700 text-xs"
-                      >
-                        Cancel Subscription
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex justify-end space-x-2">
-                  <Button variant="outline" size="sm">
-                    Cancel
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="bg-green-600 hover:bg-green-700 text-white"
-                    onClick={saveBillingSettings}
-                    disabled={billing.loading}
-                  >
-                    {billing.loading ? "Saving..." : "Save Changes"}
+                <div className="mt-4">
+                  <Button variant="outline">
+                    Manage Subscription
                   </Button>
                 </div>
               </div>
-            </TabsContent>
+            </CardContent>
+          </Card>
 
-            <TabsContent value="notifications" className="mt-0">
-              <div className="space-y-4 sm:space-y-6">
-                <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4">
-                  Notification Preferences
-                </h3>
-
-                <div className="space-y-3 sm:space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5 pr-4">
-                      <div className="font-medium text-sm">
-                        Invoice Notifications
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        Receive notifications for paid, overdue, or expired
-                        invoices
-                      </div>
-                    </div>
-                    <Switch
-                      checked={notificationForm.invoice_notifications}
-                      onCheckedChange={() =>
-                        handleNotificationToggle("invoice_notifications")
-                      }
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5 pr-4">
-                      <div className="font-medium text-sm">Client Activity</div>
-                      <div className="text-xs text-gray-500">
-                        Get notified when clients view your documents
-                      </div>
-                    </div>
-                    <Switch
-                      checked={notificationForm.client_activity}
-                      onCheckedChange={() =>
-                        handleNotificationToggle("client_activity")
-                      }
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5 pr-4">
-                      <div className="font-medium text-sm">Project Updates</div>
-                      <div className="text-xs text-gray-500">
-                        Receive updates about project milestones
-                      </div>
-                    </div>
-                    <Switch
-                      checked={notificationForm.project_updates}
-                      onCheckedChange={() =>
-                        handleNotificationToggle("project_updates")
-                      }
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5 pr-4">
-                      <div className="font-medium text-sm">
-                        Marketing & Tips
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        Receive product updates and tips
-                      </div>
-                    </div>
-                    <Switch
-                      checked={notificationForm.marketing_tips}
-                      onCheckedChange={() =>
-                        handleNotificationToggle("marketing_tips")
-                      }
-                    />
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t">
-                  <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4">
-                    Email Notification Frequency
-                  </h3>
-
-                  <div className="space-y-2 sm:space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        id="immediate"
-                        name="frequency"
-                        checked={
-                          notificationForm.email_frequency === "immediate"
-                        }
-                        onChange={() => handleFrequencyChange("immediate")}
-                        className="text-green-600"
-                      />
-                      <Label htmlFor="immediate" className="text-sm">
-                        Immediately
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        id="daily"
-                        name="frequency"
-                        checked={notificationForm.email_frequency === "daily"}
-                        onChange={() => handleFrequencyChange("daily")}
-                        className="text-green-600"
-                      />
-                      <Label htmlFor="daily" className="text-sm">
-                        Daily digest
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        id="weekly"
-                        name="frequency"
-                        checked={notificationForm.email_frequency === "weekly"}
-                        onChange={() => handleFrequencyChange("weekly")}
-                        className="text-green-600"
-                      />
-                      <Label htmlFor="weekly" className="text-sm">
-                        Weekly digest
-                      </Label>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex justify-end space-x-2">
-                  <Button variant="outline" size="sm">
-                    Cancel
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="bg-green-600 hover:bg-green-700 text-white"
-                    onClick={saveNotificationSettings}
-                    disabled={notifications.loading}
-                  >
-                    {notifications.loading ? "Saving..." : "Save Changes"}
-                  </Button>
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="security" className="mt-0">
-              <div className="space-y-4 sm:space-y-6">
-                <div className="border-b pb-4 sm:pb-6">
-                  <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4">
-                    Two-Factor Authentication
-                  </h3>
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5 pr-4">
-                      <div className="font-medium text-sm">
-                        Enable Two-Factor Authentication
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        Add an extra layer of security to your account
-                      </div>
-                    </div>
-                    <Switch
-                      checked={securityForm.two_factor_enabled}
-                      onCheckedChange={handleSecurityToggle}
-                    />
-                  </div>
-                </div>
-
-                <div className="border-b pb-4 sm:pb-6">
-                  <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4">
-                    Change Password
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                    <div className="space-y-1 sm:space-y-2 col-span-1 sm:col-span-2">
-                      <Label htmlFor="currentPassword">Current Password</Label>
-                      <Input
-                        id="currentPassword"
-                        type="password"
-                        value={passwordFields.currentPassword}
-                        onChange={handlePasswordChange}
-                      />
-                    </div>
-                    <div className="space-y-1 sm:space-y-2">
-                      <Label htmlFor="newPassword">New Password</Label>
-                      <Input
-                        id="newPassword"
-                        type="password"
-                        value={passwordFields.newPassword}
-                        onChange={handlePasswordChange}
-                      />
-                    </div>
-                    <div className="space-y-1 sm:space-y-2">
-                      <Label htmlFor="confirmPassword">
-                        Confirm New Password
-                      </Label>
-                      <Input
-                        id="confirmPassword"
-                        type="password"
-                        value={passwordFields.confirmPassword}
-                        onChange={handlePasswordChange}
-                      />
-                    </div>
-                  </div>
-                  <div className="mt-3 sm:mt-4">
-                    <Button
-                      size="sm"
-                      onClick={updatePassword}
-                      disabled={
-                        !passwordFields.currentPassword ||
-                        !passwordFields.newPassword ||
-                        !passwordFields.confirmPassword ||
-                        passwordFields.newPassword !==
-                          passwordFields.confirmPassword
-                      }
-                      className="bg-green-600 hover:bg-green-700 text-white"
+          {/* Payment Method Dialog */}
+          <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add Payment Method</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleAddPaymentMethod}>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="payment_type" className="text-right">
+                      Type
+                    </Label>
+                    <Select 
+                      value={newPaymentMethod.payment_type}
+                      onValueChange={(value) => setNewPaymentMethod({ ...newPaymentMethod, payment_type: value })}
                     >
-                      Update Password
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="credit_card">Credit Card</SelectItem>
+                        <SelectItem value="paypal">PayPal</SelectItem>
+                        <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="provider" className="text-right">
+                      Provider
+                    </Label>
+                    <Select 
+                      value={newPaymentMethod.provider}
+                      onValueChange={(value) => setNewPaymentMethod({ ...newPaymentMethod, provider: value })}
+                    >
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Select provider" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="visa">Visa</SelectItem>
+                        <SelectItem value="mastercard">Mastercard</SelectItem>
+                        <SelectItem value="amex">American Express</SelectItem>
+                        <SelectItem value="discover">Discover</SelectItem>
+                        <SelectItem value="paypal">PayPal</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {newPaymentMethod.payment_type === "credit_card" && (
+                    <>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="last_four" className="text-right">
+                          Last 4 Digits
+                        </Label>
+                        <Input
+                          id="last_four"
+                          value={newPaymentMethod.last_four}
+                          onChange={(e) => setNewPaymentMethod({ ...newPaymentMethod, last_four: e.target.value })}
+                          className="col-span-3"
+                          maxLength={4}
+                        />
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="expiry_date" className="text-right">
+                          Expiry (MM/YY)
+                        </Label>
+                        <Input
+                          id="expiry_date"
+                          value={newPaymentMethod.expiry_date}
+                          onChange={(e) => setNewPaymentMethod({ ...newPaymentMethod, expiry_date: e.target.value })}
+                          className="col-span-3"
+                          placeholder="MM/YY"
+                        />
+                      </div>
+                    </>
+                  )}
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="is_default" className="text-right">
+                      Default
+                    </Label>
+                    <div className="flex items-center space-x-2 col-span-3">
+                      <Switch
+                        id="is_default"
+                        checked={newPaymentMethod.is_default}
+                        onCheckedChange={(value) => setNewPaymentMethod({ ...newPaymentMethod, is_default: value })}
+                      />
+                      <Label htmlFor="is_default">Set as default payment method</Label>
+                    </div>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="submit">Add Payment Method</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </TabsContent>
+        
+        {/* Notification Preferences */}
+        <TabsContent value="notifications">
+          <Card>
+            <CardHeader>
+              <CardTitle>Notification Preferences</CardTitle>
+              <CardDescription>
+                Manage how you receive notifications
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleNotificationSubmit}>
+                <div className="mb-8">
+                  <h3 className="text-lg font-medium mb-4">Email Notifications</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="invoice_notifications" className="text-base font-medium">
+                          Invoice Notifications
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                          Receive notifications about invoice updates and payments
+                        </p>
+                      </div>
+                      <Switch
+                        id="invoice_notifications"
+                        checked={invoiceNotifs}
+                        onCheckedChange={setInvoiceNotifs}
+                      />
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="client_activity" className="text-base font-medium">
+                          Client Activity
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                          Get notifications when clients view or pay invoices
+                        </p>
+                      </div>
+                      <Switch
+                        id="client_activity"
+                        checked={clientActivity}
+                        onCheckedChange={setClientActivity}
+                      />
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="project_updates" className="text-base font-medium">
+                          Project Updates
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                          Receive notifications about project milestones and updates
+                        </p>
+                      </div>
+                      <Switch
+                        id="project_updates"
+                        checked={projectUpdates}
+                        onCheckedChange={setProjectUpdates}
+                      />
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="marketing_tips" className="text-base font-medium">
+                          Marketing & Tips
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                          Receive tips, updates, and marketing communications
+                        </p>
+                      </div>
+                      <Switch
+                        id="marketing_tips"
+                        checked={marketingTips}
+                        onCheckedChange={setMarketingTips}
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mb-8">
+                  <h3 className="text-lg font-medium mb-4">Email Digest Frequency</h3>
+                  <div className="grid gap-4">
+                    <div className="flex flex-col">
+                      <Label htmlFor="email_frequency" className="mb-2">
+                        Frequency
+                      </Label>
+                      <Select 
+                        value={emailFrequency}
+                        onValueChange={(value: "immediate" | "daily" | "weekly") => setEmailFrequency(value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select frequency" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="immediate">Immediate</SelectItem>
+                          <SelectItem value="daily">Daily Digest</SelectItem>
+                          <SelectItem value="weekly">Weekly Digest</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        {emailFrequency === "immediate" && "Receive individual emails immediately as events happen"}
+                        {emailFrequency === "daily" && "Receive a daily summary of all notifications"}
+                        {emailFrequency === "weekly" && "Receive a weekly summary of all notifications"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <Button type="submit" disabled={notifLoading}>
+                  {notifLoading ? "Saving..." : "Save Preferences"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* Security Settings */}
+        <TabsContent value="security">
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Account Security</CardTitle>
+              <CardDescription>
+                Manage your account security settings
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-base font-medium">Two-Factor Authentication</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Add an extra layer of security to your account
+                    </p>
+                  </div>
+                  <Switch
+                    id="two_factor"
+                    checked={twoFactorEnabled}
+                    onCheckedChange={(value) => setTwoFactorEnabled(value)}
+                  />
+                </div>
+                
+                <Separator />
+                
+                <div>
+                  <h3 className="text-base font-medium mb-2">Password</h3>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        Last changed: {securitySettings?.last_password_change ? 
+                          new Date(securitySettings.last_password_change).toLocaleDateString() : 
+                          "Never"}
+                      </p>
+                    </div>
+                    <Button 
+                      variant="outline"
+                      onClick={() => setPasswordDialogOpen(true)}
+                    >
+                      <RefreshCcw className="h-4 w-4 mr-2" />
+                      Change Password
                     </Button>
                   </div>
                 </div>
-
-                <div className="border-b pb-4 sm:pb-6">
-                  <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4">
-                    Sessions
-                  </h3>
-                  <div className="space-y-3">
-                    {security.sessionHistory.length > 0 ? (
-                      security.sessionHistory.map((session, index) => (
-                        <div
-                          key={session.id}
-                          className="p-3 border rounded-lg flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2"
-                        >
-                          <div>
-                            <div className="font-medium text-sm">
-                              {index === 0
-                                ? "Current Session"
-                                : "Previous Session"}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {session.os || "Unknown OS"} •{" "}
-                              {session.browser || "Unknown Browser"} •{" "}
-                              {session.location || "Unknown Location"}
-                            </div>
-                          </div>
-                          <div
-                            className={`text-xs ${
-                              index === 0
-                                ? "text-green-600 font-medium"
-                                : "text-gray-500"
-                            }`}
-                          >
-                            {index === 0
-                              ? "Active Now"
-                              : new Date(session.login_at).toLocaleDateString()}
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-sm text-gray-500">
-                        No session history available
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4">
-                    Advanced
-                  </h3>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="bg-red-600 hover:bg-red-700"
-                  >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Sign Out of All Devices
-                  </Button>
-                </div>
-
-                <div className="flex justify-end space-x-2">
-                  <Button variant="outline" size="sm">
-                    Cancel
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="bg-green-600 hover:bg-green-700 text-white"
-                    onClick={saveSecuritySettings}
-                    disabled={security.loading}
-                  >
-                    {security.loading ? "Saving..." : "Save 2FA Settings"}
+                
+                <Separator />
+                
+                <div className="flex justify-end">
+                  <Button onClick={handleSaveSecuritySettings} disabled={securityLoading}>
+                    {securityLoading ? "Saving..." : "Save Security Settings"}
                   </Button>
                 </div>
               </div>
-            </TabsContent>
-          </div>
-        </Tabs>
-      </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Session History</CardTitle>
+              <CardDescription>
+                View your recent login activity
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Device / Browser</TableHead>
+                      <TableHead>IP Address</TableHead>
+                      <TableHead>Location</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sessionHistory && sessionHistory.length > 0 ? (
+                      sessionHistory.map((session) => (
+                        <TableRow key={session.id}>
+                          <TableCell>
+                            {new Date(session.login_at).toLocaleDateString()} {new Date(session.login_at).toLocaleTimeString()}
+                          </TableCell>
+                          <TableCell>
+                            {session.device} / {session.browser} / {session.os}
+                          </TableCell>
+                          <TableCell>{session.ip_address}</TableCell>
+                          <TableCell>{session.location || "Unknown"}</TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center">No session history available</TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Password Change Dialog */}
+          <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Change Password</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleChangePassword}>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="currentPassword">Current Password</Label>
+                    <Input
+                      id="currentPassword"
+                      type="password"
+                      value={passwordData.currentPassword}
+                      onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="newPassword">New Password</Label>
+                    <Input
+                      id="newPassword"
+                      type="password"
+                      value={passwordData.newPassword}
+                      onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      value={passwordData.confirmPassword}
+                      onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="submit">Change Password</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

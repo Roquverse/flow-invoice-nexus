@@ -61,6 +61,19 @@ export const useSettings = () => {
         throw notificationError;
       }
 
+      // Cast email_frequency to appropriate type
+      let typedNotificationData = null;
+      if (notificationData) {
+        const emailFreq = notificationData.email_frequency as
+          | "immediate"
+          | "daily"
+          | "weekly";
+        typedNotificationData = {
+          ...notificationData,
+          email_frequency: emailFreq,
+        };
+      }
+
       // Fetch security settings
       const { data: securityData, error: securityError } = await supabase
         .from("security_settings")
@@ -107,7 +120,7 @@ export const useSettings = () => {
 
       // Update state with fetched data
       setUserProfile(profileData || null);
-      setNotificationPreferences(notificationData || null);
+      setNotificationPreferences(typedNotificationData || null);
       setSecuritySettings(securityData || null);
       setSessionHistory(sessionData || null);
       setPaymentMethods(paymentData || null);
@@ -320,3 +333,6 @@ export const useSettings = () => {
     refresh,
   };
 };
+
+// Export default for backward compatibility
+export default useSettings;
