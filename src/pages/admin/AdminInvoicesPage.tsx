@@ -1,19 +1,49 @@
-
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, PlusCircle, Eye, FileText } from "lucide-react";
+import { Search, PlusCircle, Eye, FileText, Loader2 } from "lucide-react";
+import { getAdminInvoices } from "@/services/adminService";
+import { formatCurrency } from "@/utils/formatters";
 
 const AdminInvoicesPage: React.FC = () => {
-  // Mock invoices data
-  const invoices = [
-    { id: "INV-2025-001", client: "Acme Corp", date: "2025-01-15", amount: 1200.00, status: "paid" },
-    { id: "INV-2025-002", client: "Globex Inc", date: "2025-01-20", amount: 850.00, status: "pending" },
-    { id: "INV-2025-003", client: "Stark Industries", date: "2025-01-25", amount: 3450.00, status: "overdue" },
-    { id: "INV-2025-004", client: "Wayne Enterprises", date: "2025-02-01", amount: 1750.00, status: "draft" },
-    { id: "INV-2025-005", client: "Oscorp", date: "2025-02-07", amount: 2100.00, status: "paid" },
-  ];
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    const fetchInvoices = async () => {
+      try {
+        const data = await getAdminInvoices();
+        setInvoices(data);
+      } catch (error) {
+        console.error("Error fetching invoices:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInvoices();
+  }, []);
+
+  const filteredInvoices = invoices.filter(
+    (invoice) =>
+      invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      invoice.client?.business_name
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      invoice.client?.contact_name
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase())
+  );
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -31,7 +61,12 @@ const AdminInvoicesPage: React.FC = () => {
             <CardTitle>Invoices</CardTitle>
             <div className="relative w-64">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
-              <Input placeholder="Search invoices..." className="pl-8" />
+              <Input
+                placeholder="Search invoices..."
+                className="pl-8"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
           </div>
         </CardHeader>
@@ -49,20 +84,40 @@ const AdminInvoicesPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {invoices.map((invoice) => (
+                {filteredInvoices.map((invoice) => (
                   <tr key={invoice.id} className="border-b hover:bg-gray-50">
-                    <td className="px-6 py-4 font-medium">{invoice.id}</td>
-                    <td className="px-6 py-4">{invoice.client}</td>
-                    <td className="px-6 py-4">{invoice.date}</td>
-                    <td className="px-6 py-4 text-right">${invoice.amount.toFixed(2)}</td>
+                    <td className="px-6 py-4 font-medium">
+                      {invoice.invoice_number}
+                    </td>
                     <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        invoice.status === "paid" ? "bg-green-100 text-green-800" :
-                        invoice.status === "pending" ? "bg-yellow-100 text-yellow-800" :
-                        invoice.status === "overdue" ? "bg-red-100 text-red-800" :
-                        "bg-gray-100 text-gray-800"
-                      }`}>
-                        {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
+                      {invoice.client?.business_name ||
+                        invoice.client?.contact_name ||
+                        "N/A"}
+                    </td>
+                    <td className="px-6 py-4">
+                      {new Date(invoice.issue_date).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      {formatCurrency(invoice.total_amount, invoice.currency)}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs ${
+                          invoice.status === "paid"
+                            ? "bg-green-100 text-green-800"
+                            : invoice.status === "sent"
+                            ? "bg-blue-100 text-blue-800"
+                            : invoice.status === "viewed"
+                            ? "bg-purple-100 text-purple-800"
+                            : invoice.status === "overdue"
+                            ? "bg-red-100 text-red-800"
+                            : invoice.status === "cancelled"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        {invoice.status.charAt(0).toUpperCase() +
+                          invoice.status.slice(1)}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">

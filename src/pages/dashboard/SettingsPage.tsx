@@ -5,7 +5,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { User, Building, CreditCard, Bell, Shield, LogOut } from "lucide-react";
-import { useSettings } from "@/hooks/useSettings";
+import { useProfileSettings } from "@/hooks/useProfileSettings";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { useNotificationSettings } from "@/hooks/useNotificationSettings";
+import { useSecuritySettings } from "@/hooks/useSecuritySettings";
+import { useBillingSettings } from "@/hooks/useBillingSettings";
 import {
   ProfileFormData,
   CompanyFormData,
@@ -116,7 +120,11 @@ const LogoUploader = ({
 
 const SettingsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState("profile");
-  const settings = useSettings();
+  const profile = useProfileSettings();
+  const company = useCompanySettings();
+  const notifications = useNotificationSettings();
+  const security = useSecuritySettings();
+  const billing = useBillingSettings();
 
   // Profile state
   const [profileForm, setProfileForm] = useState<ProfileFormData>({
@@ -168,62 +176,57 @@ const SettingsPage: React.FC = () => {
 
   // Effect to update forms when data is loaded
   React.useEffect(() => {
-    if (settings.profile.profile) {
+    if (profile.profile) {
       setProfileForm({
-        first_name: settings.profile.profile.first_name || "",
-        last_name: settings.profile.profile.last_name || "",
-        email: settings.profile.profile.email,
-        phone: settings.profile.profile.phone || "",
+        first_name: profile.profile.first_name || "",
+        last_name: profile.profile.last_name || "",
+        email: profile.profile.email,
+        phone: profile.profile.phone || "",
       });
     }
 
-    if (settings.company.companySettings) {
+    if (company.companySettings) {
       setCompanyForm({
-        company_name: settings.company.companySettings.company_name || "",
-        industry: settings.company.companySettings.industry || "",
-        address: settings.company.companySettings.address || "",
-        city: settings.company.companySettings.city || "",
-        postal_code: settings.company.companySettings.postal_code || "",
-        country: settings.company.companySettings.country || "",
-        tax_id: settings.company.companySettings.tax_id || "",
-        logo_url: settings.company.companySettings.logo_url || "",
+        company_name: company.companySettings.company_name || "",
+        industry: company.companySettings.industry || "",
+        address: company.companySettings.address || "",
+        city: company.companySettings.city || "",
+        postal_code: company.companySettings.postal_code || "",
+        country: company.companySettings.country || "",
+        tax_id: company.companySettings.tax_id || "",
+        logo_url: company.companySettings.logo_url || "",
       });
     }
 
-    if (settings.notifications.notificationPreferences) {
+    if (notifications.notificationPreferences) {
       setNotificationForm({
         invoice_notifications:
-          settings.notifications.notificationPreferences.invoice_notifications,
-        client_activity:
-          settings.notifications.notificationPreferences.client_activity,
-        project_updates:
-          settings.notifications.notificationPreferences.project_updates,
-        marketing_tips:
-          settings.notifications.notificationPreferences.marketing_tips,
-        email_frequency:
-          settings.notifications.notificationPreferences.email_frequency,
+          notifications.notificationPreferences.invoice_notifications,
+        client_activity: notifications.notificationPreferences.client_activity,
+        project_updates: notifications.notificationPreferences.project_updates,
+        marketing_tips: notifications.notificationPreferences.marketing_tips,
+        email_frequency: notifications.notificationPreferences.email_frequency,
       });
     }
 
-    if (settings.security.securitySettings) {
+    if (security.securitySettings) {
       setSecurityForm({
-        two_factor_enabled:
-          settings.security.securitySettings.two_factor_enabled,
+        two_factor_enabled: security.securitySettings.two_factor_enabled,
       });
     }
 
-    if (settings.billing.billingSettings) {
+    if (billing.billingSettings) {
       setBillingForm({
-        billing_name: settings.billing.billingSettings.billing_name || "",
-        billing_email: settings.billing.billingSettings.billing_email || "",
+        billing_name: billing.billingSettings.billing_name || "",
+        billing_email: billing.billingSettings.billing_email || "",
       });
     }
   }, [
-    settings.profile.profile,
-    settings.company.companySettings,
-    settings.notifications.notificationPreferences,
-    settings.security.securitySettings,
-    settings.billing.billingSettings,
+    profile.profile,
+    company.companySettings,
+    notifications.notificationPreferences,
+    security.securitySettings,
+    billing.billingSettings,
   ]);
 
   // Form handlers
@@ -275,7 +278,7 @@ const SettingsPage: React.FC = () => {
   // Save handlers
   const saveProfile = async () => {
     try {
-      const success = await settings.profile.updateProfile(profileForm);
+      const success = await profile.updateProfile(profileForm);
       if (success) {
         toast.success("Profile updated successfully");
       }
@@ -287,7 +290,7 @@ const SettingsPage: React.FC = () => {
 
   const saveCompanySettings = async () => {
     try {
-      const success = await settings.company.updateCompanySettings(companyForm);
+      const success = await company.updateCompanySettings(companyForm);
       if (success) {
         toast.success("Company settings updated successfully");
       }
@@ -299,7 +302,7 @@ const SettingsPage: React.FC = () => {
 
   const saveBillingSettings = async () => {
     try {
-      const success = await settings.billing.updateBillingSettings(billingForm);
+      const success = await billing.updateBillingSettings(billingForm);
       if (success) {
         toast.success("Billing settings updated successfully");
       }
@@ -311,10 +314,9 @@ const SettingsPage: React.FC = () => {
 
   const saveNotificationSettings = async () => {
     try {
-      const success =
-        await settings.notifications.updateNotificationPreferences(
-          notificationForm
-        );
+      const success = await notifications.updateNotificationPreferences(
+        notificationForm
+      );
       if (success) {
         toast.success("Notification preferences updated successfully");
       }
@@ -326,9 +328,7 @@ const SettingsPage: React.FC = () => {
 
   const saveSecuritySettings = async () => {
     try {
-      const success = await settings.security.updateSecuritySettings(
-        securityForm
-      );
+      const success = await security.updateSecuritySettings(securityForm);
       if (success) {
         toast.success("Security settings updated successfully");
       }
@@ -350,7 +350,7 @@ const SettingsPage: React.FC = () => {
     }
 
     try {
-      const success = await settings.security.updatePassword(
+      const success = await security.changePassword(
         passwordFields.currentPassword,
         passwordFields.newPassword
       );
@@ -368,7 +368,13 @@ const SettingsPage: React.FC = () => {
     }
   };
 
-  if (settings.loading) {
+  if (
+    profile.loading ||
+    company.loading ||
+    notifications.loading ||
+    security.loading ||
+    billing.loading
+  ) {
     return <div className="p-4 text-center">Loading settings...</div>;
   }
 
@@ -481,9 +487,9 @@ const SettingsPage: React.FC = () => {
                     size="sm"
                     className="bg-green-600 hover:bg-green-700 text-white"
                     onClick={saveProfile}
-                    disabled={settings.profile.loading}
+                    disabled={profile.loading}
                   >
-                    {settings.profile.loading ? "Saving..." : "Save Changes"}
+                    {profile.loading ? "Saving..." : "Save Changes"}
                   </Button>
                 </div>
               </div>
@@ -573,9 +579,9 @@ const SettingsPage: React.FC = () => {
                     size="sm"
                     className="bg-green-600 hover:bg-green-700 text-white"
                     onClick={saveCompanySettings}
-                    disabled={settings.company.loading}
+                    disabled={company.loading}
                   >
-                    {settings.company.loading ? "Saving..." : "Save Changes"}
+                    {company.loading ? "Saving..." : "Save Changes"}
                   </Button>
                 </div>
               </div>
@@ -587,8 +593,8 @@ const SettingsPage: React.FC = () => {
                   <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4">
                     Payment Methods
                   </h3>
-                  {settings.billing.paymentMethods.length > 0 ? (
-                    settings.billing.paymentMethods.map((method) => (
+                  {billing.paymentMethods.length > 0 ? (
+                    billing.paymentMethods.map((method) => (
                       <div
                         key={method.id}
                         className="p-3 sm:p-4 border rounded-lg mb-3 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3"
@@ -626,7 +632,7 @@ const SettingsPage: React.FC = () => {
                             size="sm"
                             className="text-red-500 hover:text-red-700 text-xs"
                             onClick={() =>
-                              settings.billing.deletePaymentMethod(method.id)
+                              billing.deletePaymentMethod(method.id)
                             }
                           >
                             Remove
@@ -677,21 +683,18 @@ const SettingsPage: React.FC = () => {
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-2 gap-1">
                       <div className="font-semibold text-sm">
                         Current Plan:{" "}
-                        {settings.billing.billingSettings?.subscription_plan ||
-                          "Free"}
+                        {billing.billingSettings?.subscription_plan || "Free"}
                       </div>
                       <div className="text-green-600 font-medium text-sm">
-                        {settings.billing.billingSettings?.subscription_plan ===
-                        "free"
+                        {billing.billingSettings?.subscription_plan === "free"
                           ? "Free"
                           : "$29.99/month"}
                       </div>
                     </div>
                     <div className="text-xs text-gray-500 mb-3">
-                      {settings.billing.billingSettings
-                        ?.subscription_renewal_date
+                      {billing.billingSettings?.subscription_renewal_date
                         ? `Your plan renews on ${new Date(
-                            settings.billing.billingSettings.subscription_renewal_date
+                            billing.billingSettings.subscription_renewal_date
                           ).toLocaleDateString()}`
                         : "No renewal date set"}
                     </div>
@@ -718,9 +721,9 @@ const SettingsPage: React.FC = () => {
                     size="sm"
                     className="bg-green-600 hover:bg-green-700 text-white"
                     onClick={saveBillingSettings}
-                    disabled={settings.billing.loading}
+                    disabled={billing.loading}
                   >
-                    {settings.billing.loading ? "Saving..." : "Save Changes"}
+                    {billing.loading ? "Saving..." : "Save Changes"}
                   </Button>
                 </div>
               </div>
@@ -857,11 +860,9 @@ const SettingsPage: React.FC = () => {
                     size="sm"
                     className="bg-green-600 hover:bg-green-700 text-white"
                     onClick={saveNotificationSettings}
-                    disabled={settings.notifications.loading}
+                    disabled={notifications.loading}
                   >
-                    {settings.notifications.loading
-                      ? "Saving..."
-                      : "Save Changes"}
+                    {notifications.loading ? "Saving..." : "Save Changes"}
                   </Button>
                 </div>
               </div>
@@ -947,8 +948,8 @@ const SettingsPage: React.FC = () => {
                     Sessions
                   </h3>
                   <div className="space-y-3">
-                    {settings.security.sessionHistory.length > 0 ? (
-                      settings.security.sessionHistory.map((session, index) => (
+                    {security.sessionHistory.length > 0 ? (
+                      security.sessionHistory.map((session, index) => (
                         <div
                           key={session.id}
                           className="p-3 border rounded-lg flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2"
@@ -1008,11 +1009,9 @@ const SettingsPage: React.FC = () => {
                     size="sm"
                     className="bg-green-600 hover:bg-green-700 text-white"
                     onClick={saveSecuritySettings}
-                    disabled={settings.security.loading}
+                    disabled={security.loading}
                   >
-                    {settings.security.loading
-                      ? "Saving..."
-                      : "Save 2FA Settings"}
+                    {security.loading ? "Saving..." : "Save 2FA Settings"}
                   </Button>
                 </div>
               </div>
