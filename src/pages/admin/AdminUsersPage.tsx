@@ -11,11 +11,11 @@ import {
   Loader2,
 } from "lucide-react";
 import {
-  AdminUser,
   getAdminUsers,
-  deleteUser,
-  updateUserStatus,
+  deleteAdminUser,
+  updateAdminUser,
 } from "@/services/adminService";
+import { AdminUser } from "@/types/admin";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -43,6 +43,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
+// Update method names to match admin service exports
+const updateUserStatus = async (userId: string, status: string) => {
+  return await updateAdminUser(userId, { status });
+};
+
+const deleteUser = async (userId: string) => {
+  const result = await deleteAdminUser(userId);
+  return result.success;
+};
 
 const AdminUsersPage: React.FC = () => {
   const [users, setUsers] = useState<AdminUser[]>([]);

@@ -17,11 +17,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getAllTables, getSampleTableData, getTableColumns } from "@/rpc/databaseHelpers";
+import { getAllTables, getSampleTableData, getTableColumns, AllowedTable } from "@/rpc/databaseHelpers";
 
 const DebugDatabase = () => {
   const [tables, setTables] = useState<string[]>([]);
-  const [selectedTable, setSelectedTable] = useState<string>("");
+  const [selectedTable, setSelectedTable] = useState<AllowedTable | "">("");
   const [tableData, setTableData] = useState<any[]>([]);
   const [columns, setColumns] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -40,11 +40,17 @@ const DebugDatabase = () => {
   }, []);
 
   const handleTableSelect = async (tableName: string) => {
+    // Validate that the selected table name is an allowed table
+    if (!isAllowedTable(tableName)) {
+      console.error(`Table name ${tableName} is not in the allowed list`);
+      return;
+    }
+    
     setSelectedTable(tableName);
     setLoading(true);
     
     try {
-      // Fixed here: removed the second argument
+      // Now we're sure tableName is an AllowedTable
       const columnData = await getTableColumns(tableName);
       setColumns(columnData);
       
@@ -58,6 +64,17 @@ const DebugDatabase = () => {
       setLoading(false);
     }
   };
+
+  // Type guard function
+  function isAllowedTable(tableName: string): tableName is AllowedTable {
+    const allowedTables: string[] = [
+      "clients", "invoices", "quotes", "receipts", "user_profiles",
+      "company_settings", "admin_users", "billing_settings", "invoice_items",
+      "notification_preferences", "payment_methods", "quote_items",
+      "security_settings", "session_history", "projects"
+    ];
+    return allowedTables.includes(tableName);
+  }
 
   return (
     <Card>

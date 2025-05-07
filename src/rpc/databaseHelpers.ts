@@ -2,7 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 // Define a type for allowed tables
-type AllowedTable = 
+export type AllowedTable = 
   | "clients"
   | "invoices" 
   | "quotes" 

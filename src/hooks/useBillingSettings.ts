@@ -43,11 +43,19 @@ export const useBillingSettings = () => {
       if (!user) {
         return false;
       }
+      
+      // Make sure required fields are present
+      if (!paymentData.payment_type || !paymentData.provider) {
+        console.error("Missing required fields for payment method");
+        return false;
+      }
 
       const { error } = await supabase
         .from('payment_methods')
         .insert({
           ...paymentData,
+          payment_type: paymentData.payment_type,
+          provider: paymentData.provider,
           user_id: user.id,
         });
 

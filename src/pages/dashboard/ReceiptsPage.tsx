@@ -1,17 +1,7 @@
-
-import React, { useState, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Plus,
-  Edit,
-  Trash2,
-  Receipt as ReceiptIcon,
-  Loader2,
-  Eye,
-  Download,
-  FileText,
-} from "lucide-react";
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
@@ -19,412 +9,268 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/ui/table"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Search, Download, Eye, Edit, Trash2, Plus } from 'lucide-react';
+import { getReceipts, getReceiptById } from '@/services/receiptService';
+import { getClientById } from '@/services/clientService';
+import { invoiceService } from '@/services/invoiceService';
+import { getQuoteById } from '@/services/quoteService';
+import { Receipt } from '@/types/receipts';
+import { Client } from '@/types/clients';
+import { Invoice } from '@/types/invoices';
+import { Quote } from '@/types/quotes';
+import { downloadPDF } from '@/utils/pdf';
+import { ReceiptPreview } from '@/components/receipt/ReceiptPreview';
+import { formatCurrency } from '@/utils/formatters';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { useReceipts } from "@/hooks/useReceipts";
-import { Receipt } from "@/types/receipts";
-import { formatCurrency } from "@/utils/formatters";
-import ErrorBoundary from "@/components/ErrorBoundary";
+} from "@/components/ui/dialog"
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Link, useNavigate } from "react-router-dom";
-import { getClientById } from "@/services/clientService";
-import { invoiceService } from "@/services/invoiceService";
-import { getQuoteById } from "@/services/quoteService";
-import { downloadPDF } from "@/utils/pdf";
-import { ReceiptPreview } from "@/components/receipt/ReceiptPreview";
-import { useQuotes } from "@/hooks/useQuotes";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 const ReceiptsPage: React.FC = () => {
-  const navigate = useNavigate();
-  const {
-    receipts,
-    loading,
-    error,
-    getClientName,
-    getInvoiceNumber,
-    removeReceipt,
-  } = useReceipts();
-  const { quotes } = useQuotes();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [receipts, setReceipts] = useState<Receipt[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
-
-  // Preview and download related states
-  const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false);
-  const [previewClient, setPreviewClient] = useState<any>(null);
-  const [previewInvoice, setPreviewInvoice] = useState<any>(null);
-  const [previewQuote, setPreviewQuote] = useState<any>(null);
-  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
+  const [open, setOpen] = useState(false);
+  const [openDeleteAlert, setOpenDeleteAlert] = useState(false);
+  const navigate = useNavigate();
+  
+  // Make sure previewRef is properly defined as a ref to an HTMLDivElement
   const previewRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    fetchReceipts();
+  }, []);
 
-  // Helper function to get quote number from quote ID
-  const getQuoteNumber = (quoteId: string) => {
-    const quote = quotes.find((q) => q.id === quoteId);
-    return quote ? quote.quote_number : "Unknown";
-  };
-
-  const handleDeleteClick = (receipt: Receipt) => {
-    setSelectedReceipt(receipt);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const confirmDelete = async () => {
-    if (selectedReceipt) {
-      await removeReceipt(selectedReceipt.id);
-      setIsDeleteDialogOpen(false);
-      setSelectedReceipt(null);
+  const fetchReceipts = async () => {
+    setLoading(true);
+    try {
+      const receiptsData = await getReceipts();
+      setReceipts(receiptsData);
+    } catch (error) {
+      console.error('Error fetching receipts:', error);
+      toast.error('Failed to fetch receipts');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handlePreviewClick = async (receipt: Receipt) => {
+  const handleRowClick = async (receipt: Receipt) => {
     setSelectedReceipt(receipt);
-    setIsLoadingPreview(true);
-    setIsPreviewDialogOpen(true);
+    setOpen(true);
 
     try {
-      // Fetch client data
       const client = await getClientById(receipt.client_id);
-      setPreviewClient(client);
+      setSelectedClient(client);
 
-      // Fetch invoice data if there's a related invoice
       if (receipt.invoice_id) {
-        const { invoice } = await invoiceService.getInvoiceById(
-          receipt.invoice_id
-        );
-        setPreviewInvoice(invoice);
+        const { invoice } = await invoiceService.getInvoiceById(receipt.invoice_id);
+        setSelectedInvoice(invoice);
+      } else {
+        setSelectedInvoice(null);
       }
 
-      // Fetch quote data if there's a related quote
       if (receipt.quote_id) {
         const { quote } = await getQuoteById(receipt.quote_id);
-        setPreviewQuote(quote);
+        setSelectedQuote(quote);
+      } else {
+        setSelectedQuote(null);
       }
     } catch (error) {
-      console.error("Error loading preview data:", error);
-    } finally {
-      setIsLoadingPreview(false);
+      console.error('Error fetching related data:', error);
+      toast.error('Failed to fetch related data');
     }
   };
 
-  const handleDownloadReceipt = async (receipt: Receipt) => {
-    try {
-      // First navigate to the preview page which handles the download
-      navigate(`/dashboard/receipts/preview/${receipt.id}`);
-    } catch (error) {
-      console.error("Error navigating to download receipt:", error);
+  const filteredReceipts = receipts.filter((receipt) => {
+    const searchTerm = searchQuery.toLowerCase();
+    return (
+      receipt.receipt_number.toLowerCase().includes(searchTerm) ||
+      receipt.client_name.toLowerCase().includes(searchTerm) ||
+      receipt.client_email.toLowerCase().includes(searchTerm)
+    );
+  });
+  
+  const downloadReceiptPDF = async (receipt: Receipt, client: any) => {
+    if (!previewRef.current) {
+      toast.error("Preview component not loaded properly.");
+      return;
     }
-  };
-
-  const handleDownloadPDF = async () => {
-    if (!selectedReceipt || !previewClient || !previewRef.current) return;
-
+    
     try {
       await downloadPDF(
         previewRef.current,
-        previewClient.business_name.replace(/\s+/g, "-").toLowerCase(),
+        `receipt-${receipt.receipt_number}`,
         "receipt",
-        selectedReceipt.receipt_number
+        receipt.receipt_number
       );
+      toast.success("PDF downloaded successfully!");
     } catch (error) {
       console.error("Error downloading PDF:", error);
+      toast.error("Failed to download PDF");
     }
   };
-
-  const getPaymentMethodLabel = (paymentMethod: string): string => {
-    switch (paymentMethod) {
-      case "cash":
-        return "Cash";
-      case "bank_transfer":
-        return "Bank Transfer";
-      case "credit_card":
-        return "Credit Card";
-      case "paypal":
-        return "PayPal";
-      case "other":
-        return "Other";
-      default:
-        return paymentMethod;
-    }
-  };
-
-  const filteredReceipts = receipts.filter(
-    (receipt) =>
-      receipt.receipt_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      getClientName(receipt.client_id)
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase())
-  );
-
-  if (error) {
-    return (
-      <div className="p-6">
-        <div className="bg-red-100 p-4 rounded-md text-red-800 mb-4">
-          {error}
-        </div>
-      </div>
-    );
-  }
-
+  
   return (
-    <div className="p-6">
-      {/* Header section */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Receipts</h1>
-          <p className="text-gray-500">Manage your payment receipts</p>
-        </div>
-        <Link to="/dashboard/receipts/new">
-          <Button className="bg-green-600 hover:bg-green-700 text-white">
-            <Plus className="mr-2 h-4 w-4" /> New Receipt
+    <div>
+      <div className="container mx-auto py-6">
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold">Receipts</h1>
+          <Button onClick={() => navigate('/dashboard/receipts/create')} className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Plus className="mr-2 h-4 w-4" />
+            Create Receipt
           </Button>
-        </Link>
-      </div>
-
-      {/* Search input */}
-      <div className="mb-6">
-        <Input
-          placeholder="Search receipts..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-md"
-        />
-      </div>
-
-      {/* Loading state */}
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
         </div>
-      ) : filteredReceipts.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-          <ReceiptIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-1">
-            No receipts found
-          </h3>
-          <p className="text-gray-500 mb-4">
-            {searchTerm
-              ? "No receipts match your search"
-              : "You haven't created any receipts yet"}
-          </p>
-          {searchTerm ? (
-            <Button variant="outline" onClick={() => setSearchTerm("")}>
-              Clear Search
-            </Button>
-          ) : (
-            <Link to="/dashboard/receipts/new">
-              <Button className="bg-green-600 hover:bg-green-700 text-white">
-                <Plus className="mr-2 h-4 w-4" /> Create Your First Receipt
-              </Button>
-            </Link>
-          )}
-        </div>
-      ) : (
-        <ErrorBoundary>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Receipt #</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>Invoice/Quote #</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Payment Method</TableHead>
-                <TableHead>Reference</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredReceipts.map((receipt) => (
-                <TableRow key={receipt.id}>
-                  <TableCell className="font-medium">
-                    <Link
-                      to={`/dashboard/receipts/preview/${receipt.id}`}
-                      className="text-blue-600 hover:underline"
-                    >
-                      {receipt.receipt_number}
-                    </Link>
-                  </TableCell>
-                  <TableCell>{getClientName(receipt.client_id)}</TableCell>
-                  <TableCell>
-                    {receipt.invoice_id ? (
-                      <Link
-                        to={`/dashboard/invoices/${receipt.invoice_id}`}
-                        className="text-blue-600 hover:underline"
-                      >
-                        {getInvoiceNumber(receipt.invoice_id)}
-                      </Link>
-                    ) : receipt.quote_id ? (
-                      <Link
-                        to={`/dashboard/quotes/${receipt.quote_id}`}
-                        className="text-blue-600 hover:underline"
-                      >
-                        {getQuoteNumber(receipt.quote_id)}
-                      </Link>
-                    ) : (
-                      "-"
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {new Date(receipt.date).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    {formatCurrency(receipt.amount, receipt.currency)}
-                  </TableCell>
-                  <TableCell>
-                    {getPaymentMethodLabel(receipt.payment_method)}
-                  </TableCell>
-                  <TableCell>{receipt.payment_reference || "-"}</TableCell>
-                  <TableCell>
-                    <div className="flex space-x-1">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <span className="sr-only">Actions</span>
-                            <span className="h-4 w-4">⋯</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <Link
-                              to={`/dashboard/receipts/preview/${receipt.id}`}
-                            >
-                              <Eye className="mr-2 h-4 w-4" />
-                              View Details
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <Link to={`/dashboard/receipts/edit/${receipt.id}`}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Edit Receipt
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handlePreviewClick(receipt)}
-                          >
-                            <FileText className="mr-2 h-4 w-4" />
-                            Preview Receipt
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleDownloadReceipt(receipt)}
-                          >
-                            <Download className="mr-2 h-4 w-4" />
-                            Download Receipt
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleDeleteClick(receipt)}
-                            className="text-red-600"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete Receipt
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </ErrorBoundary>
-      )}
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Delete Receipt</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p>
-              Are you sure you want to delete receipt{" "}
-              <span className="font-semibold">
-                {selectedReceipt?.receipt_number}
-              </span>
-              ?
-            </p>
-            {selectedReceipt?.invoice_id && (
-              <p className="text-amber-600 mt-2">
-                This may change the status of the linked invoice.
-              </p>
-            )}
-            <p className="text-sm text-gray-500 mt-2">
-              This action cannot be undone.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsDeleteDialogOpen(false);
-                setSelectedReceipt(null);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={confirmDelete}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Preview Dialog */}
-      <Dialog open={isPreviewDialogOpen} onOpenChange={setIsPreviewDialogOpen}>
-        <DialogContent className="sm:max-w-[800px]">
-          <DialogHeader>
-            <DialogTitle>Receipt Preview</DialogTitle>
-          </DialogHeader>
-          {isLoadingPreview ? (
-            <div className="py-12 flex justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
-            </div>
-          ) : (
-            <>
-              <div className="max-h-[600px] overflow-y-auto">
-                {selectedReceipt && previewClient && (
-                  <ReceiptPreview
-                    ref={previewRef}
-                    receipt={selectedReceipt}
-                    client={previewClient}
-                    invoice={previewInvoice}
-                    quote={previewQuote}
-                  />
-                )}
+        <Card>
+          <CardHeader>
+            <CardTitle>Receipts List</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="mb-4">
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Search receipts..."
+                  className="pl-8"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
               </div>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsPreviewDialogOpen(false)}
-                >
-                  Close
-                </Button>
-                <Button
-                  onClick={handleDownloadPDF}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
+            </div>
+
+            {loading ? (
+              <div className="text-center py-4">Loading receipts...</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Receipt Number</TableHead>
+                      <TableHead>Client Name</TableHead>
+                      <TableHead>Client Email</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead className="text-center">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredReceipts.map((receipt) => (
+                      <TableRow key={receipt.id} onClick={() => handleRowClick(receipt)} className="cursor-pointer hover:bg-gray-100">
+                        <TableCell>{receipt.receipt_number}</TableCell>
+                        <TableCell>{receipt.client_name}</TableCell>
+                        <TableCell>{receipt.client_email}</TableCell>
+                        <TableCell>{new Date(receipt.date).toLocaleDateString()}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(receipt.amount, receipt.currency)}</TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex justify-center space-x-2">
+                            <Button variant="ghost" size="sm" onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/dashboard/receipts/preview/${receipt.id}`);
+                            }}>
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/dashboard/receipts/edit/${receipt.id}`);
+                            }}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700" onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenDeleteAlert(true);
+                              setSelectedReceipt(receipt);
+                            }}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Receipt Details Modal */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Receipt Details</DialogTitle>
+            <DialogDescription>
+              View all the information about this receipt.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedReceipt && selectedClient && (
+            <div className="grid gap-4 py-4">
+              <div className="flex justify-end space-x-2">
+                <Button onClick={() => {
+                  if (selectedReceipt && selectedClient) {
+                    downloadReceiptPDF(selectedReceipt, selectedClient);
+                  }
+                }} className="bg-blue-600 hover:bg-blue-700 text-white">
                   <Download className="mr-2 h-4 w-4" />
                   Download PDF
                 </Button>
-              </DialogFooter>
-            </>
+                <Button variant="outline" onClick={() => navigate(`/dashboard/receipts/preview/${selectedReceipt.id}`)}>
+                  <Eye className="mr-2 h-4 w-4" />
+                  View Full Page
+                </Button>
+              </div>
+
+              <div className="border rounded-lg p-4 bg-white shadow-md">
+                {/* Receipt Preview */}
+                <ReceiptPreview
+                  ref={previewRef}
+                  receipt={selectedReceipt}
+                  client={selectedClient}
+                  invoice={selectedInvoice}
+                  quote={selectedQuote}
+                />
+              </div>
+            </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Alert */}
+      <AlertDialog open={openDeleteAlert} onOpenChange={setOpenDeleteAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the receipt.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

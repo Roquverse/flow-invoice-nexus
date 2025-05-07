@@ -1,161 +1,152 @@
 
 import React, { forwardRef } from "react";
-import { format } from "date-fns";
-import { ReceiptDisplay } from "@/types";
-import { Receipt } from "@/types/receipts";
 import { Client } from "@/types/clients";
 import { Invoice } from "@/types/invoices";
 import { Quote } from "@/types/quotes";
-import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { Receipt } from "@/types/receipts";
+import { ReceiptDisplay } from "@/types/index";
+import { formatCurrency, formatDate } from "@/utils/formatters";
 
-interface ReceiptPreviewProps {
+export interface ReceiptPreviewProps {
   receipt: Receipt | ReceiptDisplay;
-  client?: Client | null;
+  client: Client;
   invoice?: Invoice | null;
   quote?: Quote | null;
 }
 
-// Use forwardRef to properly handle the ref being passed
 export const ReceiptPreview = forwardRef<HTMLDivElement, ReceiptPreviewProps>(
   ({ receipt, client, invoice, quote }, ref) => {
-    const { companySettings } = useCompanySettings();
-
-    // Format the receipt date consistently
-    const displayDate = receipt.date 
-      ? format(new Date(receipt.date), "MMM dd, yyyy")
-      : receipt.issue_date 
-        ? format(new Date(receipt.issue_date), "MMM dd, yyyy") 
-        : "";
-
-    // Function to get client name from either receipt type
-    const getClientName = () => {
-      if ('client_name' in receipt) {
-        return receipt.client_name;
+    // Helper function to get issue date from either receipt type
+    const getIssueDate = () => {
+      if ('issue_date' in receipt) {
+        return receipt.issue_date;
+      } else {
+        return receipt.date; // Fall back to date field for Receipt type
       }
-      return client?.business_name || client?.contact_name || "Client";
     };
 
-    // Function to get client email from either receipt type
-    const getClientEmail = () => {
-      if ('client_email' in receipt) {
-        return receipt.client_email;
-      }
-      return client?.email || "";
-    };
-
-    // For ReceiptDisplay type, we already have items
-    // For Receipt type from receipts.ts, we don't have items, so use an empty array
-    const displayItems = 'items' in receipt ? receipt.items : [];
-
+    // Determine if we're dealing with ReceiptDisplay or Receipt
+    const isReceiptDisplay = 'items' in receipt;
+    
     return (
-      <div className="bg-white p-8 rounded shadow-md" ref={ref}>
-        {/* Header Section */}
-        <div className="flex justify-between items-center mb-6">
+      <div ref={ref} className="bg-white p-6 max-w-4xl mx-auto">
+        <div className="border-b pb-4 mb-6 flex justify-between items-start">
           <div>
-            {companySettings?.logo_url ? (
-              <img
-                src={companySettings?.logo_url}
-                alt="Company Logo"
-                className="h-12"
-              />
-            ) : (
-              <div className="text-lg font-semibold">
-                {companySettings?.company_name || "Your Company"}
-              </div>
-            )}
+            <h1 className="text-3xl font-bold text-gray-900">Receipt</h1>
+            <p className="text-gray-600 mt-1">#{receipt.receipt_number}</p>
+            <p className="text-gray-600 mt-1">Date: {formatDate(getIssueDate() || receipt.date)}</p>
           </div>
           <div className="text-right">
-            <h2 className="text-2xl font-bold mb-2">Receipt</h2>
-            <div>{companySettings?.company_name || "Your Company"}</div>
-            <div>{companySettings?.address || "Your Address"}</div>
-            <div>{companySettings?.city || "Your City"}</div>
-            <div>{companySettings?.country || "Your Country"}</div>
+            {/* Highlight payment status */}
+            <span className="inline-block px-3 py-1 text-sm font-medium bg-green-100 text-green-800 rounded-full">
+              Paid
+            </span>
           </div>
         </div>
 
-        {/* Receipt Information Section */}
-        <div className="flex justify-between mb-6">
+        <div className="grid grid-cols-2 gap-8 mb-8">
           <div>
-            <div className="font-semibold">Billed to:</div>
-            <div>{getClientName()}</div>
-            <div>{getClientEmail()}</div>
-          </div>
-          <div className="text-right">
-            <div>
-              <span className="font-semibold">Receipt Number:</span>{" "}
-              {receipt.receipt_number}
+            <h2 className="text-sm font-semibold text-gray-600 uppercase mb-2">From</h2>
+            <div className="text-gray-800">
+              <p className="font-medium">{client.business_name}</p>
+              <p>{client.contact_name}</p>
+              <p>{client.address}</p>
+              <p>
+                {client.city}, {client.postal_code}
+              </p>
+              <p>{client.country}</p>
             </div>
-            <div>
-              <span className="font-semibold">Date:</span>{" "}
-              {displayDate}
+          </div>
+
+          <div>
+            <h2 className="text-sm font-semibold text-gray-600 uppercase mb-2">Payment Details</h2>
+            <div className="text-gray-800">
+              <p>
+                <span className="font-medium">Method:</span> {receipt.payment_method}
+              </p>
+              {receipt.payment_reference && (
+                <p>
+                  <span className="font-medium">Reference:</span> {receipt.payment_reference}
+                </p>
+              )}
+              {receipt.reference && (
+                <p>
+                  <span className="font-medium">Reference:</span> {receipt.reference}
+                </p>
+              )}
+              <p>
+                <span className="font-medium">Amount:</span>{" "}
+                {formatCurrency(receipt.amount, receipt.currency)}
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Display items table only if we have items */}
-        {displayItems.length > 0 && (
-          <table className="w-full mb-8">
-            <thead>
-              <tr className="text-left">
-                <th className="py-2">Description</th>
-                <th className="py-2">Quantity</th>
-                <th className="py-2">Unit Price</th>
-                <th className="py-2 text-right">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {displayItems.map((item, index) => (
-                <tr key={index}>
-                  <td className="py-2">{item.description}</td>
-                  <td className="py-2">{item.quantity}</td>
-                  <td className="py-2">${item.unit_price}</td>
-                  <td className="py-2 text-right">
-                    ${(item.quantity * item.unit_price).toFixed(2)}
-                  </td>
+        {isReceiptDisplay && (
+          <div className="mb-8">
+            <h2 className="text-sm font-semibold text-gray-600 uppercase mb-4">Items</h2>
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b">
+                  <th className="py-2 font-semibold">Description</th>
+                  <th className="py-2 font-semibold text-right">Qty</th>
+                  <th className="py-2 font-semibold text-right">Price</th>
+                  <th className="py-2 font-semibold text-right">Amount</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {(receipt as ReceiptDisplay).items.map((item, index) => (
+                  <tr key={index} className="border-b">
+                    <td className="py-2">{item.description}</td>
+                    <td className="py-2 text-right">{item.quantity}</td>
+                    <td className="py-2 text-right">
+                      {formatCurrency(item.unit_price, receipt.currency)}
+                    </td>
+                    <td className="py-2 text-right">
+                      {formatCurrency(item.quantity * item.unit_price, receipt.currency)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
 
-        {/* Total Amount Section */}
-        <div className="flex justify-end">
-          <div className="w-1/2 text-right">
-            {'subtotal' in receipt && receipt.subtotal && (
-              <>
-                <div className="flex justify-between">
-                  <span className="font-semibold">Subtotal:</span>
-                  <span>${receipt.subtotal.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-semibold">Tax ({receipt.tax_rate}%):</span>
-                  <span>${receipt.tax_amount.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-semibold">Total:</span>
-                  <span>${receipt.total.toFixed(2)}</span>
-                </div>
-              </>
-            )}
-            {'amount' in receipt && (
-              <div className="flex justify-between">
-                <span className="font-semibold">Amount:</span>
-                <span>${receipt.amount.toFixed(2)}</span>
-              </div>
-            )}
+        {invoice && (
+          <div className="mb-6">
+            <h2 className="text-sm font-semibold text-gray-600 uppercase mb-2">
+              Related Invoice
+            </h2>
+            <p className="text-gray-800">
+              <span className="font-medium">Invoice #:</span> {invoice.invoice_number}
+            </p>
           </div>
-        </div>
+        )}
 
-        {/* Footer Section */}
-        <div className="text-center mt-8">
-          <p className="text-gray-600">
-            Thank you for your business!
-          </p>
+        {quote && (
+          <div className="mb-6">
+            <h2 className="text-sm font-semibold text-gray-600 uppercase mb-2">
+              Related Quote
+            </h2>
+            <p className="text-gray-800">
+              <span className="font-medium">Quote #:</span> {quote.quote_number}
+            </p>
+          </div>
+        )}
+
+        {receipt.notes && (
+          <div className="mb-8">
+            <h2 className="text-sm font-semibold text-gray-600 uppercase mb-2">Notes</h2>
+            <p className="text-gray-800">{receipt.notes}</p>
+          </div>
+        )}
+
+        <div className="text-center text-gray-500 text-sm mt-12">
+          <p>Thank you for your business!</p>
         </div>
       </div>
     );
   }
 );
 
-// Add display name for React DevTools
 ReceiptPreview.displayName = "ReceiptPreview";
