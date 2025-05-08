@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import {
   Table,
@@ -17,7 +16,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getAllTables, getSampleTableData, getTableColumns, AllowedTable } from "@/rpc/databaseHelpers";
+import {
+  getAllTables,
+  getSampleTableData,
+  getTableColumns,
+  AllowedTable,
+} from "@/rpc/databaseHelpers";
 
 const DebugDatabase = () => {
   const [tables, setTables] = useState<string[]>([]);
@@ -45,15 +49,15 @@ const DebugDatabase = () => {
       console.error(`Table name ${tableName} is not in the allowed list`);
       return;
     }
-    
+
     setSelectedTable(tableName);
     setLoading(true);
-    
+
     try {
       // Now we're sure tableName is an AllowedTable
       const columnData = await getTableColumns(tableName);
       setColumns(columnData);
-      
+
       const data = await getSampleTableData(tableName);
       setTableData(data);
     } catch (error) {
@@ -68,10 +72,21 @@ const DebugDatabase = () => {
   // Type guard function
   function isAllowedTable(tableName: string): tableName is AllowedTable {
     const allowedTables: string[] = [
-      "clients", "invoices", "quotes", "receipts", "user_profiles",
-      "company_settings", "admin_users", "billing_settings", "invoice_items",
-      "notification_preferences", "payment_methods", "quote_items",
-      "security_settings", "session_history", "projects"
+      "clients",
+      "invoices",
+      "quotes",
+      "receipts",
+      "user_profiles",
+      "company_settings",
+      "admin_users",
+      "billing_settings",
+      "invoice_items",
+      "notification_preferences",
+      "payment_methods",
+      "quote_items",
+      "security_settings",
+      "session_history",
+      "projects",
     ];
     return allowedTables.includes(tableName);
   }
@@ -88,11 +103,13 @@ const DebugDatabase = () => {
               <SelectValue placeholder="Select a table" />
             </SelectTrigger>
             <SelectContent>
-              {tables.map((table) => (
-                <SelectItem key={table} value={table}>
-                  {table}
-                </SelectItem>
-              ))}
+              {tables
+                .filter((table) => table && table !== "")
+                .map((table) => (
+                  <SelectItem key={table} value={table}>
+                    {table}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </div>

@@ -1,6 +1,4 @@
-
 import { Routes, Route, useNavigate } from "react-router-dom";
-import LandingPage from "./pages/LandingPage";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/auth/LoginPage";
@@ -42,7 +40,7 @@ function App() {
       <AdminAuthProvider>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/landing" element={<LandingPage />} />
+
           <Route path="/sign-in" element={<LoginPage />} />
           <Route path="/sign-up" element={<SignupPage />} />
 
@@ -50,7 +48,9 @@ function App() {
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<DashboardPage />} />
             <Route path="invoices" element={<InvoicesPage />} />
+            <Route path="invoices/new" element={<ModernInvoicePage />} />
             <Route path="invoices/:id" element={<InvoicePreviewPage />} />
+            <Route path="invoices/:id/edit" element={<ModernInvoicePage />} />
             <Route path="modern-invoice" element={<ModernInvoicePage />} />
             <Route
               path="modern-invoice/:id"

@@ -87,25 +87,6 @@ const Footer: React.FC = () => {
                   </li>
                 </ul>
               </div>
-              <div className="footer-column">
-                <h6>Company</h6>
-                <ul>
-                  <li>
-                    <a href="#">About</a>
-                  </li>
-                  <li>
-                    <a href="#">What we do</a>
-                  </li>
-                  <li>
-                    <a href="#">Contact us</a>
-                  </li>
-                  <li>
-                    <a href="#">
-                      Careers <span className="theme-badge">Hiring</span>
-                    </a>
-                  </li>
-                </ul>
-              </div>
             </div>
           </div>
         </div>

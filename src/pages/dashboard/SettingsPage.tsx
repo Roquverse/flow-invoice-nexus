@@ -1,12 +1,24 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useProfileSettings } from "@/hooks/useProfileSettings";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
@@ -14,20 +26,33 @@ import { useBillingSettings } from "@/hooks/useBillingSettings";
 import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 import { useSecuritySettings } from "@/hooks/useSecuritySettings";
 import { toast } from "sonner";
-import { CreditCard, PlusCircle, Trash2, Calendar, RefreshCcw } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  CreditCard,
+  PlusCircle,
+  Trash2,
+  Calendar,
+  RefreshCcw,
+} from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import currencies from "@/data/currencies";
 import countryList from "@/data/countries";
 import { format } from "date-fns";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
-import { useSettings } from '@/hooks/useSettings';
+import { useSettings } from "@/hooks/useSettings";
+import { supabase } from "@/integrations/supabase/client";
 
 // Define type for tabs
 type TabType = "profile" | "company" | "billing" | "notifications" | "security";
@@ -35,41 +60,41 @@ type TabType = "profile" | "company" | "billing" | "notifications" | "security";
 const SettingsPage: React.FC = () => {
   // State for active tab
   const [activeTab, setActiveTab] = useState<TabType>("profile");
-  
+
   // Hooks for settings
   const {
     profile,
     updateProfile,
     loading: profileLoading,
-    error: profileError
+    error: profileError,
   } = useProfileSettings();
-  
+
   const {
     companySettings,
     updateCompanySettings,
     loading: companyLoading,
-    error: companyError
+    error: companyError,
   } = useCompanySettings();
-  
-  const { 
-    billingSettings, 
+
+  const {
+    billingSettings,
     loading: billingLoading,
     updateBillingSettings,
-    error: billingError
+    error: billingError,
   } = useBillingSettings();
 
   const {
     securitySettings,
     loading: securityLoading,
     error: securityError,
-    updateSecuritySettings
+    updateSecuritySettings,
   } = useSecuritySettings();
-  
+
   const {
     notificationPreferences,
     loading: notifLoading,
     error: notifError,
-    updatePreferences: updateNotificationPreferences
+    updatePreferences: updateNotificationPreferences,
   } = useNotificationPreferences();
 
   const {
@@ -77,7 +102,7 @@ const SettingsPage: React.FC = () => {
     paymentMethods,
     changePassword,
     addPaymentMethod,
-    deletePaymentMethod
+    deletePaymentMethod,
   } = useSettings();
 
   // Form state
@@ -86,9 +111,9 @@ const SettingsPage: React.FC = () => {
     last_name: "",
     email: "",
     phone: "",
-    avatar_url: ""
+    avatar_url: "",
   });
-  
+
   const [companyFormData, setCompanyFormData] = useState({
     company_name: "",
     logo_url: "",
@@ -111,7 +136,7 @@ const SettingsPage: React.FC = () => {
     quote_prefix: "QUO-",
     receipt_prefix: "REC-",
     invoice_notes: "",
-    quote_notes: ""
+    quote_notes: "",
   });
 
   // Payment method dialog state
@@ -121,7 +146,7 @@ const SettingsPage: React.FC = () => {
     provider: "visa",
     last_four: "",
     expiry_date: "",
-    is_default: false
+    is_default: false,
   });
 
   // Password change dialog state
@@ -129,7 +154,7 @@ const SettingsPage: React.FC = () => {
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
-    confirmPassword: ""
+    confirmPassword: "",
   });
 
   // Security settings state
@@ -140,7 +165,9 @@ const SettingsPage: React.FC = () => {
   const [clientActivity, setClientActivity] = useState(true);
   const [projectUpdates, setProjectUpdates] = useState(false);
   const [marketingTips, setMarketingTips] = useState(false);
-  const [emailFrequency, setEmailFrequency] = useState<"immediate" | "daily" | "weekly">("immediate");
+  const [emailFrequency, setEmailFrequency] = useState<
+    "immediate" | "daily" | "weekly"
+  >("immediate");
 
   // Initialize form data when settings are loaded
   useEffect(() => {
@@ -150,7 +177,7 @@ const SettingsPage: React.FC = () => {
         last_name: profile.last_name || "",
         email: profile.email || "",
         phone: profile.phone || "",
-        avatar_url: profile.avatar_url || ""
+        avatar_url: profile.avatar_url || "",
       });
     }
   }, [profile]);
@@ -179,7 +206,7 @@ const SettingsPage: React.FC = () => {
         quote_prefix: companySettings.quote_prefix || "QUO-",
         receipt_prefix: companySettings.receipt_prefix || "REC-",
         invoice_notes: companySettings.invoice_notes || "",
-        quote_notes: companySettings.quote_notes || ""
+        quote_notes: companySettings.quote_notes || "",
       });
     }
   }, [companySettings]);
@@ -215,7 +242,7 @@ const SettingsPage: React.FC = () => {
     e.preventDefault();
     try {
       await updateCompanySettings({
-        ...companyFormData
+        ...companyFormData,
       });
       toast.success("Company settings updated successfully");
     } catch (error) {
@@ -232,9 +259,9 @@ const SettingsPage: React.FC = () => {
         client_activity: clientActivity,
         project_updates: projectUpdates,
         marketing_tips: marketingTips,
-        email_frequency: emailFrequency
+        email_frequency: emailFrequency,
       });
-      
+
       if (result) {
         toast.success("Notification preferences updated successfully");
       } else {
@@ -258,7 +285,7 @@ const SettingsPage: React.FC = () => {
           provider: "visa",
           last_four: "",
           expiry_date: "",
-          is_default: false
+          is_default: false,
         });
       } else {
         toast.error("Failed to add payment method");
@@ -286,7 +313,7 @@ const SettingsPage: React.FC = () => {
   const handleSaveSecuritySettings = async () => {
     try {
       await updateSecuritySettings({
-        two_factor_enabled: twoFactorEnabled
+        two_factor_enabled: twoFactorEnabled,
       });
       toast.success("Security settings updated successfully");
     } catch (error) {
@@ -297,21 +324,24 @@ const SettingsPage: React.FC = () => {
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       toast.error("New password and confirmation do not match");
       return;
     }
-    
+
     try {
-      const result = await changePassword(passwordData.currentPassword, passwordData.newPassword);
+      const result = await changePassword(
+        passwordData.currentPassword,
+        passwordData.newPassword
+      );
       if (result) {
         toast.success("Password changed successfully");
         setPasswordDialogOpen(false);
         setPasswordData({
           currentPassword: "",
           newPassword: "",
-          confirmPassword: ""
+          confirmPassword: "",
         });
       } else {
         toast.error("Failed to change password");
@@ -322,6 +352,40 @@ const SettingsPage: React.FC = () => {
     }
   };
 
+  const handleLogoUpload = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      try {
+        const fileExt = file.name.split(".").pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `company-logos/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("company-assets")
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("company-assets").getPublicUrl(filePath);
+
+        setCompanyFormData((prev) => ({
+          ...prev,
+          logo_url: publicUrl,
+        }));
+
+        toast.success("Logo uploaded successfully");
+      } catch (error) {
+        console.error("Error uploading logo:", error);
+        toast.error("Failed to upload logo");
+      }
+    },
+    []
+  );
+
   // Handle tab change
   const handleTabChange = (value: string) => {
     setActiveTab(value as TabType);
@@ -330,8 +394,12 @@ const SettingsPage: React.FC = () => {
   return (
     <div className="settings-container">
       <h1 className="text-3xl font-bold mb-6">Settings</h1>
-      
-      <Tabs defaultValue="profile" value={activeTab} onValueChange={handleTabChange}>
+
+      <Tabs
+        defaultValue="profile"
+        value={activeTab}
+        onValueChange={handleTabChange}
+      >
         <TabsList className="mb-8">
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="company">Company</TabsTrigger>
@@ -339,7 +407,7 @@ const SettingsPage: React.FC = () => {
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
         </TabsList>
-        
+
         {/* Profile Settings */}
         <TabsContent value="profile">
           <Card>
@@ -353,9 +421,14 @@ const SettingsPage: React.FC = () => {
               <form onSubmit={handleProfileSubmit}>
                 <div className="flex items-center mb-8">
                   <Avatar className="h-20 w-20">
-                    <AvatarImage src={profileFormData.avatar_url} alt="Profile" />
+                    <AvatarImage
+                      src={profileFormData.avatar_url}
+                      alt="Profile"
+                    />
                     <AvatarFallback>
-                      {`${profileFormData.first_name?.charAt(0) || ''}${profileFormData.last_name?.charAt(0) || ''}`}
+                      {`${profileFormData.first_name?.charAt(0) || ""}${
+                        profileFormData.last_name?.charAt(0) || ""
+                      }`}
                     </AvatarFallback>
                   </Avatar>
                   <div className="ml-4">
@@ -364,7 +437,12 @@ const SettingsPage: React.FC = () => {
                       type="text"
                       placeholder="Avatar URL"
                       value={profileFormData.avatar_url}
-                      onChange={(e) => setProfileFormData({ ...profileFormData, avatar_url: e.target.value })}
+                      onChange={(e) =>
+                        setProfileFormData({
+                          ...profileFormData,
+                          avatar_url: e.target.value,
+                        })
+                      }
                       className="mb-2"
                     />
                     <p className="text-sm text-muted-foreground">
@@ -379,7 +457,12 @@ const SettingsPage: React.FC = () => {
                     <Input
                       id="first_name"
                       value={profileFormData.first_name}
-                      onChange={(e) => setProfileFormData({ ...profileFormData, first_name: e.target.value })}
+                      onChange={(e) =>
+                        setProfileFormData({
+                          ...profileFormData,
+                          first_name: e.target.value,
+                        })
+                      }
                     />
                   </div>
                   <div>
@@ -387,7 +470,12 @@ const SettingsPage: React.FC = () => {
                     <Input
                       id="last_name"
                       value={profileFormData.last_name}
-                      onChange={(e) => setProfileFormData({ ...profileFormData, last_name: e.target.value })}
+                      onChange={(e) =>
+                        setProfileFormData({
+                          ...profileFormData,
+                          last_name: e.target.value,
+                        })
+                      }
                     />
                   </div>
                 </div>
@@ -399,7 +487,12 @@ const SettingsPage: React.FC = () => {
                       id="email"
                       type="email"
                       value={profileFormData.email}
-                      onChange={(e) => setProfileFormData({ ...profileFormData, email: e.target.value })}
+                      onChange={(e) =>
+                        setProfileFormData({
+                          ...profileFormData,
+                          email: e.target.value,
+                        })
+                      }
                     />
                   </div>
                   <div>
@@ -407,7 +500,12 @@ const SettingsPage: React.FC = () => {
                     <Input
                       id="phone"
                       value={profileFormData.phone}
-                      onChange={(e) => setProfileFormData({ ...profileFormData, phone: e.target.value })}
+                      onChange={(e) =>
+                        setProfileFormData({
+                          ...profileFormData,
+                          phone: e.target.value,
+                        })
+                      }
                     />
                   </div>
                 </div>
@@ -419,7 +517,7 @@ const SettingsPage: React.FC = () => {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         {/* Company Settings */}
         <TabsContent value="company">
           <Card>
@@ -432,36 +530,61 @@ const SettingsPage: React.FC = () => {
             <CardContent>
               <form onSubmit={handleCompanySubmit}>
                 <div className="mb-8">
-                  <h3 className="text-lg font-medium mb-4">Company Information</h3>
+                  <h3 className="text-lg font-medium mb-4">
+                    Company Information
+                  </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="company_name">Company Name</Label>
                       <Input
                         id="company_name"
                         value={companyFormData.company_name}
-                        onChange={(e) => setCompanyFormData({ ...companyFormData, company_name: e.target.value })}
+                        onChange={(e) =>
+                          setCompanyFormData({
+                            ...companyFormData,
+                            company_name: e.target.value,
+                          })
+                        }
                       />
                     </div>
                     <div>
-                      <Label htmlFor="logo_url">Logo URL</Label>
-                      <Input
-                        id="logo_url"
-                        value={companyFormData.logo_url}
-                        onChange={(e) => setCompanyFormData({ ...companyFormData, logo_url: e.target.value })}
-                      />
+                      <Label htmlFor="logo">Company Logo</Label>
+                      <div className="flex items-center gap-4">
+                        {companyFormData.logo_url && (
+                          <img
+                            src={companyFormData.logo_url}
+                            alt="Company Logo"
+                            className="h-12 w-12 object-contain rounded"
+                          />
+                        )}
+                        <Input
+                          id="logo"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleLogoUpload}
+                          className="flex-1"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 <div className="mb-8">
-                  <h3 className="text-lg font-medium mb-4">Address Information</h3>
+                  <h3 className="text-lg font-medium mb-4">
+                    Address Information
+                  </h3>
                   <div className="grid grid-cols-1 gap-4 mb-4">
                     <div>
                       <Label htmlFor="address">Street Address</Label>
                       <Input
                         id="address"
                         value={companyFormData.address}
-                        onChange={(e) => setCompanyFormData({ ...companyFormData, address: e.target.value })}
+                        onChange={(e) =>
+                          setCompanyFormData({
+                            ...companyFormData,
+                            address: e.target.value,
+                          })
+                        }
                       />
                     </div>
                   </div>
@@ -471,7 +594,12 @@ const SettingsPage: React.FC = () => {
                       <Input
                         id="city"
                         value={companyFormData.city}
-                        onChange={(e) => setCompanyFormData({ ...companyFormData, city: e.target.value })}
+                        onChange={(e) =>
+                          setCompanyFormData({
+                            ...companyFormData,
+                            city: e.target.value,
+                          })
+                        }
                       />
                     </div>
                     <div>
@@ -479,7 +607,12 @@ const SettingsPage: React.FC = () => {
                       <Input
                         id="state"
                         value={companyFormData.state}
-                        onChange={(e) => setCompanyFormData({ ...companyFormData, state: e.target.value })}
+                        onChange={(e) =>
+                          setCompanyFormData({
+                            ...companyFormData,
+                            state: e.target.value,
+                          })
+                        }
                       />
                     </div>
                     <div>
@@ -487,39 +620,60 @@ const SettingsPage: React.FC = () => {
                       <Input
                         id="postal_code"
                         value={companyFormData.postal_code}
-                        onChange={(e) => setCompanyFormData({ ...companyFormData, postal_code: e.target.value })}
+                        onChange={(e) =>
+                          setCompanyFormData({
+                            ...companyFormData,
+                            postal_code: e.target.value,
+                          })
+                        }
                       />
                     </div>
                   </div>
                   <div className="mt-4">
                     <Label htmlFor="country">Country</Label>
-                    <Select 
+                    <Select
                       value={companyFormData.country}
-                      onValueChange={(value) => setCompanyFormData({ ...companyFormData, country: value })}
+                      onValueChange={(value) =>
+                        setCompanyFormData({
+                          ...companyFormData,
+                          country: value,
+                        })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select a country" />
                       </SelectTrigger>
                       <SelectContent>
-                        {countryList.map((country) => (
-                          <SelectItem key={country.code} value={country.code}>
-                            {country.name}
-                          </SelectItem>
-                        ))}
+                        {countryList
+                          .filter(
+                            (country) => country.code && country.code !== ""
+                          )
+                          .map((country) => (
+                            <SelectItem key={country.code} value={country.code}>
+                              {country.name}
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
 
                 <div className="mb-8">
-                  <h3 className="text-lg font-medium mb-4">Contact Information</h3>
+                  <h3 className="text-lg font-medium mb-4">
+                    Contact Information
+                  </h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <Label htmlFor="company_phone">Phone</Label>
                       <Input
                         id="company_phone"
                         value={companyFormData.phone}
-                        onChange={(e) => setCompanyFormData({ ...companyFormData, phone: e.target.value })}
+                        onChange={(e) =>
+                          setCompanyFormData({
+                            ...companyFormData,
+                            phone: e.target.value,
+                          })
+                        }
                       />
                     </div>
                     <div>
@@ -527,7 +681,12 @@ const SettingsPage: React.FC = () => {
                       <Input
                         id="company_email"
                         value={companyFormData.email}
-                        onChange={(e) => setCompanyFormData({ ...companyFormData, email: e.target.value })}
+                        onChange={(e) =>
+                          setCompanyFormData({
+                            ...companyFormData,
+                            email: e.target.value,
+                          })
+                        }
                       />
                     </div>
                     <div>
@@ -535,21 +694,33 @@ const SettingsPage: React.FC = () => {
                       <Input
                         id="website"
                         value={companyFormData.website}
-                        onChange={(e) => setCompanyFormData({ ...companyFormData, website: e.target.value })}
+                        onChange={(e) =>
+                          setCompanyFormData({
+                            ...companyFormData,
+                            website: e.target.value,
+                          })
+                        }
                       />
                     </div>
                   </div>
                 </div>
 
                 <div className="mb-8">
-                  <h3 className="text-lg font-medium mb-4">Registration Details</h3>
+                  <h3 className="text-lg font-medium mb-4">
+                    Registration Details
+                  </h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <Label htmlFor="tax_id">Tax ID</Label>
                       <Input
                         id="tax_id"
                         value={companyFormData.tax_id}
-                        onChange={(e) => setCompanyFormData({ ...companyFormData, tax_id: e.target.value })}
+                        onChange={(e) =>
+                          setCompanyFormData({
+                            ...companyFormData,
+                            tax_id: e.target.value,
+                          })
+                        }
                       />
                     </div>
                     <div>
@@ -557,15 +728,27 @@ const SettingsPage: React.FC = () => {
                       <Input
                         id="vat_number"
                         value={companyFormData.vat_number}
-                        onChange={(e) => setCompanyFormData({ ...companyFormData, vat_number: e.target.value })}
+                        onChange={(e) =>
+                          setCompanyFormData({
+                            ...companyFormData,
+                            vat_number: e.target.value,
+                          })
+                        }
                       />
                     </div>
                     <div>
-                      <Label htmlFor="registration_number">Registration Number</Label>
+                      <Label htmlFor="registration_number">
+                        Registration Number
+                      </Label>
                       <Input
                         id="registration_number"
                         value={companyFormData.registration_number}
-                        onChange={(e) => setCompanyFormData({ ...companyFormData, registration_number: e.target.value })}
+                        onChange={(e) =>
+                          setCompanyFormData({
+                            ...companyFormData,
+                            registration_number: e.target.value,
+                          })
+                        }
                       />
                     </div>
                   </div>
@@ -576,61 +759,102 @@ const SettingsPage: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div>
                       <Label htmlFor="default_currency">Currency</Label>
-                      <Select 
+                      <Select
                         value={companyFormData.default_currency}
-                        onValueChange={(value) => setCompanyFormData({ ...companyFormData, default_currency: value })}
+                        onValueChange={(value) =>
+                          setCompanyFormData({
+                            ...companyFormData,
+                            default_currency: value,
+                          })
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select currency" />
                         </SelectTrigger>
                         <SelectContent>
-                          {currencies.map((currency) => (
-                            <SelectItem key={currency.code} value={currency.code}>
-                              {currency.code} - {currency.name}
-                            </SelectItem>
-                          ))}
+                          {currencies
+                            .filter(
+                              (currency) =>
+                                currency.code && currency.code !== ""
+                            )
+                            .map((currency) => (
+                              <SelectItem
+                                key={currency.code}
+                                value={currency.code}
+                              >
+                                {currency.code} - {currency.name}
+                              </SelectItem>
+                            ))}
                         </SelectContent>
                       </Select>
                     </div>
                     <div>
-                      <Label htmlFor="default_tax_rate">Default Tax Rate (%)</Label>
+                      <Label htmlFor="default_tax_rate">
+                        Default Tax Rate (%)
+                      </Label>
                       <Input
                         id="default_tax_rate"
                         type="number"
                         step="0.01"
                         value={companyFormData.default_tax_rate}
-                        onChange={(e) => setCompanyFormData({ ...companyFormData, default_tax_rate: parseFloat(e.target.value) || 0 })}
+                        onChange={(e) =>
+                          setCompanyFormData({
+                            ...companyFormData,
+                            default_tax_rate: parseFloat(e.target.value) || 0,
+                          })
+                        }
                       />
                     </div>
                     <div>
-                      <Label htmlFor="payment_terms">Payment Terms (Days)</Label>
+                      <Label htmlFor="payment_terms">
+                        Payment Terms (Days)
+                      </Label>
                       <Input
                         id="payment_terms"
                         type="number"
                         value={companyFormData.payment_terms}
-                        onChange={(e) => setCompanyFormData({ ...companyFormData, payment_terms: parseInt(e.target.value) || 0 })}
+                        onChange={(e) =>
+                          setCompanyFormData({
+                            ...companyFormData,
+                            payment_terms: parseInt(e.target.value) || 0,
+                          })
+                        }
                       />
                     </div>
                   </div>
                   <div className="mb-4">
-                    <Label htmlFor="payment_instructions">Payment Instructions</Label>
+                    <Label htmlFor="payment_instructions">
+                      Payment Instructions
+                    </Label>
                     <Input
                       id="payment_instructions"
                       value={companyFormData.payment_instructions}
-                      onChange={(e) => setCompanyFormData({ ...companyFormData, payment_instructions: e.target.value })}
+                      onChange={(e) =>
+                        setCompanyFormData({
+                          ...companyFormData,
+                          payment_instructions: e.target.value,
+                        })
+                      }
                     />
                   </div>
                 </div>
 
                 <div className="mb-8">
-                  <h3 className="text-lg font-medium mb-4">Document Settings</h3>
+                  <h3 className="text-lg font-medium mb-4">
+                    Document Settings
+                  </h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div>
                       <Label htmlFor="invoice_prefix">Invoice Prefix</Label>
                       <Input
                         id="invoice_prefix"
                         value={companyFormData.invoice_prefix}
-                        onChange={(e) => setCompanyFormData({ ...companyFormData, invoice_prefix: e.target.value })}
+                        onChange={(e) =>
+                          setCompanyFormData({
+                            ...companyFormData,
+                            invoice_prefix: e.target.value,
+                          })
+                        }
                       />
                     </div>
                     <div>
@@ -638,7 +862,12 @@ const SettingsPage: React.FC = () => {
                       <Input
                         id="quote_prefix"
                         value={companyFormData.quote_prefix}
-                        onChange={(e) => setCompanyFormData({ ...companyFormData, quote_prefix: e.target.value })}
+                        onChange={(e) =>
+                          setCompanyFormData({
+                            ...companyFormData,
+                            quote_prefix: e.target.value,
+                          })
+                        }
                       />
                     </div>
                     <div>
@@ -646,17 +875,29 @@ const SettingsPage: React.FC = () => {
                       <Input
                         id="receipt_prefix"
                         value={companyFormData.receipt_prefix}
-                        onChange={(e) => setCompanyFormData({ ...companyFormData, receipt_prefix: e.target.value })}
+                        onChange={(e) =>
+                          setCompanyFormData({
+                            ...companyFormData,
+                            receipt_prefix: e.target.value,
+                          })
+                        }
                       />
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="invoice_notes">Default Invoice Notes</Label>
+                      <Label htmlFor="invoice_notes">
+                        Default Invoice Notes
+                      </Label>
                       <Input
                         id="invoice_notes"
                         value={companyFormData.invoice_notes}
-                        onChange={(e) => setCompanyFormData({ ...companyFormData, invoice_notes: e.target.value })}
+                        onChange={(e) =>
+                          setCompanyFormData({
+                            ...companyFormData,
+                            invoice_notes: e.target.value,
+                          })
+                        }
                       />
                     </div>
                     <div>
@@ -664,7 +905,12 @@ const SettingsPage: React.FC = () => {
                       <Input
                         id="quote_notes"
                         value={companyFormData.quote_notes}
-                        onChange={(e) => setCompanyFormData({ ...companyFormData, quote_notes: e.target.value })}
+                        onChange={(e) =>
+                          setCompanyFormData({
+                            ...companyFormData,
+                            quote_notes: e.target.value,
+                          })
+                        }
                       />
                     </div>
                   </div>
@@ -677,7 +923,7 @@ const SettingsPage: React.FC = () => {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         {/* Billing Settings */}
         <TabsContent value="billing">
           <Card>
@@ -693,15 +939,22 @@ const SettingsPage: React.FC = () => {
                 {paymentMethods && paymentMethods.length > 0 ? (
                   <div className="space-y-4">
                     {paymentMethods.map((method) => (
-                      <div key={method.id} className="flex items-center justify-between p-4 border rounded-md">
+                      <div
+                        key={method.id}
+                        className="flex items-center justify-between p-4 border rounded-md"
+                      >
                         <div className="flex items-center">
                           <CreditCard className="h-5 w-5 mr-2" />
                           <div>
-                            <p className="font-medium capitalize">{method.provider}</p>
+                            <p className="font-medium capitalize">
+                              {method.provider}
+                            </p>
                             <p className="text-sm text-muted-foreground">
-                              {method.payment_type} •••• {method.last_four} 
-                              {method.expiry_date ? ` • Expires ${method.expiry_date}` : ''}
-                              {method.is_default ? ' • Default' : ''}
+                              {method.payment_type} •••• {method.last_four}
+                              {method.expiry_date
+                                ? ` • Expires ${method.expiry_date}`
+                                : ""}
+                              {method.is_default ? " • Default" : ""}
                             </p>
                           </div>
                         </div>
@@ -716,11 +969,13 @@ const SettingsPage: React.FC = () => {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-muted-foreground mb-4">No payment methods added yet.</p>
+                  <p className="text-muted-foreground mb-4">
+                    No payment methods added yet.
+                  </p>
                 )}
-                
-                <Button 
-                  variant="outline" 
+
+                <Button
+                  variant="outline"
                   className="mt-4"
                   onClick={() => setPaymentDialogOpen(true)}
                 >
@@ -728,11 +983,13 @@ const SettingsPage: React.FC = () => {
                   Add Payment Method
                 </Button>
               </div>
-              
+
               <Separator className="my-6" />
-              
+
               <div className="mb-4">
-                <h3 className="text-lg font-medium mb-4">Subscription Information</h3>
+                <h3 className="text-lg font-medium mb-4">
+                  Subscription Information
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label>Current Plan</Label>
@@ -749,9 +1006,11 @@ const SettingsPage: React.FC = () => {
                   <div>
                     <Label>Next Payment</Label>
                     <p className="text-lg font-medium mt-1">
-                      {billingSettings?.subscription_renewal_date ? 
-                        new Date(billingSettings.subscription_renewal_date).toLocaleDateString() : 
-                        "N/A"}
+                      {billingSettings?.subscription_renewal_date
+                        ? new Date(
+                            billingSettings.subscription_renewal_date
+                          ).toLocaleDateString()
+                        : "N/A"}
                     </p>
                   </div>
                   <div>
@@ -762,9 +1021,7 @@ const SettingsPage: React.FC = () => {
                   </div>
                 </div>
                 <div className="mt-4">
-                  <Button variant="outline">
-                    Manage Subscription
-                  </Button>
+                  <Button variant="outline">Manage Subscription</Button>
                 </div>
               </div>
             </CardContent>
@@ -782,9 +1039,14 @@ const SettingsPage: React.FC = () => {
                     <Label htmlFor="payment_type" className="text-right">
                       Type
                     </Label>
-                    <Select 
+                    <Select
                       value={newPaymentMethod.payment_type}
-                      onValueChange={(value) => setNewPaymentMethod({ ...newPaymentMethod, payment_type: value })}
+                      onValueChange={(value) =>
+                        setNewPaymentMethod({
+                          ...newPaymentMethod,
+                          payment_type: value,
+                        })
+                      }
                     >
                       <SelectTrigger className="col-span-3">
                         <SelectValue placeholder="Select type" />
@@ -792,7 +1054,9 @@ const SettingsPage: React.FC = () => {
                       <SelectContent>
                         <SelectItem value="credit_card">Credit Card</SelectItem>
                         <SelectItem value="paypal">PayPal</SelectItem>
-                        <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                        <SelectItem value="bank_transfer">
+                          Bank Transfer
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -800,9 +1064,14 @@ const SettingsPage: React.FC = () => {
                     <Label htmlFor="provider" className="text-right">
                       Provider
                     </Label>
-                    <Select 
+                    <Select
                       value={newPaymentMethod.provider}
-                      onValueChange={(value) => setNewPaymentMethod({ ...newPaymentMethod, provider: value })}
+                      onValueChange={(value) =>
+                        setNewPaymentMethod({
+                          ...newPaymentMethod,
+                          provider: value,
+                        })
+                      }
                     >
                       <SelectTrigger className="col-span-3">
                         <SelectValue placeholder="Select provider" />
@@ -825,7 +1094,12 @@ const SettingsPage: React.FC = () => {
                         <Input
                           id="last_four"
                           value={newPaymentMethod.last_four}
-                          onChange={(e) => setNewPaymentMethod({ ...newPaymentMethod, last_four: e.target.value })}
+                          onChange={(e) =>
+                            setNewPaymentMethod({
+                              ...newPaymentMethod,
+                              last_four: e.target.value,
+                            })
+                          }
                           className="col-span-3"
                           maxLength={4}
                         />
@@ -837,7 +1111,12 @@ const SettingsPage: React.FC = () => {
                         <Input
                           id="expiry_date"
                           value={newPaymentMethod.expiry_date}
-                          onChange={(e) => setNewPaymentMethod({ ...newPaymentMethod, expiry_date: e.target.value })}
+                          onChange={(e) =>
+                            setNewPaymentMethod({
+                              ...newPaymentMethod,
+                              expiry_date: e.target.value,
+                            })
+                          }
                           className="col-span-3"
                           placeholder="MM/YY"
                         />
@@ -852,9 +1131,16 @@ const SettingsPage: React.FC = () => {
                       <Switch
                         id="is_default"
                         checked={newPaymentMethod.is_default}
-                        onCheckedChange={(value) => setNewPaymentMethod({ ...newPaymentMethod, is_default: value })}
+                        onCheckedChange={(value) =>
+                          setNewPaymentMethod({
+                            ...newPaymentMethod,
+                            is_default: value,
+                          })
+                        }
                       />
-                      <Label htmlFor="is_default">Set as default payment method</Label>
+                      <Label htmlFor="is_default">
+                        Set as default payment method
+                      </Label>
                     </div>
                   </div>
                 </div>
@@ -865,7 +1151,7 @@ const SettingsPage: React.FC = () => {
             </DialogContent>
           </Dialog>
         </TabsContent>
-        
+
         {/* Notification Preferences */}
         <TabsContent value="notifications">
           <Card>
@@ -878,15 +1164,21 @@ const SettingsPage: React.FC = () => {
             <CardContent>
               <form onSubmit={handleNotificationSubmit}>
                 <div className="mb-8">
-                  <h3 className="text-lg font-medium mb-4">Email Notifications</h3>
+                  <h3 className="text-lg font-medium mb-4">
+                    Email Notifications
+                  </h3>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <Label htmlFor="invoice_notifications" className="text-base font-medium">
+                        <Label
+                          htmlFor="invoice_notifications"
+                          className="text-base font-medium"
+                        >
                           Invoice Notifications
                         </Label>
                         <p className="text-sm text-muted-foreground">
-                          Receive notifications about invoice updates and payments
+                          Receive notifications about invoice updates and
+                          payments
                         </p>
                       </div>
                       <Switch
@@ -895,10 +1187,13 @@ const SettingsPage: React.FC = () => {
                         onCheckedChange={setInvoiceNotifs}
                       />
                     </div>
-                    
+
                     <div className="flex items-center justify-between">
                       <div>
-                        <Label htmlFor="client_activity" className="text-base font-medium">
+                        <Label
+                          htmlFor="client_activity"
+                          className="text-base font-medium"
+                        >
                           Client Activity
                         </Label>
                         <p className="text-sm text-muted-foreground">
@@ -911,14 +1206,18 @@ const SettingsPage: React.FC = () => {
                         onCheckedChange={setClientActivity}
                       />
                     </div>
-                    
+
                     <div className="flex items-center justify-between">
                       <div>
-                        <Label htmlFor="project_updates" className="text-base font-medium">
+                        <Label
+                          htmlFor="project_updates"
+                          className="text-base font-medium"
+                        >
                           Project Updates
                         </Label>
                         <p className="text-sm text-muted-foreground">
-                          Receive notifications about project milestones and updates
+                          Receive notifications about project milestones and
+                          updates
                         </p>
                       </div>
                       <Switch
@@ -927,10 +1226,13 @@ const SettingsPage: React.FC = () => {
                         onCheckedChange={setProjectUpdates}
                       />
                     </div>
-                    
+
                     <div className="flex items-center justify-between">
                       <div>
-                        <Label htmlFor="marketing_tips" className="text-base font-medium">
+                        <Label
+                          htmlFor="marketing_tips"
+                          className="text-base font-medium"
+                        >
                           Marketing & Tips
                         </Label>
                         <p className="text-sm text-muted-foreground">
@@ -945,17 +1247,21 @@ const SettingsPage: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="mb-8">
-                  <h3 className="text-lg font-medium mb-4">Email Digest Frequency</h3>
+                  <h3 className="text-lg font-medium mb-4">
+                    Email Digest Frequency
+                  </h3>
                   <div className="grid gap-4">
                     <div className="flex flex-col">
                       <Label htmlFor="email_frequency" className="mb-2">
                         Frequency
                       </Label>
-                      <Select 
+                      <Select
                         value={emailFrequency}
-                        onValueChange={(value: "immediate" | "daily" | "weekly") => setEmailFrequency(value)}
+                        onValueChange={(
+                          value: "immediate" | "daily" | "weekly"
+                        ) => setEmailFrequency(value)}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select frequency" />
@@ -967,9 +1273,12 @@ const SettingsPage: React.FC = () => {
                         </SelectContent>
                       </Select>
                       <p className="text-sm text-muted-foreground mt-2">
-                        {emailFrequency === "immediate" && "Receive individual emails immediately as events happen"}
-                        {emailFrequency === "daily" && "Receive a daily summary of all notifications"}
-                        {emailFrequency === "weekly" && "Receive a weekly summary of all notifications"}
+                        {emailFrequency === "immediate" &&
+                          "Receive individual emails immediately as events happen"}
+                        {emailFrequency === "daily" &&
+                          "Receive a daily summary of all notifications"}
+                        {emailFrequency === "weekly" &&
+                          "Receive a weekly summary of all notifications"}
                       </p>
                     </div>
                   </div>
@@ -982,7 +1291,7 @@ const SettingsPage: React.FC = () => {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         {/* Security Settings */}
         <TabsContent value="security">
           <Card className="mb-8">
@@ -996,7 +1305,9 @@ const SettingsPage: React.FC = () => {
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-base font-medium">Two-Factor Authentication</h3>
+                    <h3 className="text-base font-medium">
+                      Two-Factor Authentication
+                    </h3>
                     <p className="text-sm text-muted-foreground">
                       Add an extra layer of security to your account
                     </p>
@@ -1007,20 +1318,23 @@ const SettingsPage: React.FC = () => {
                     onCheckedChange={(value) => setTwoFactorEnabled(value)}
                   />
                 </div>
-                
+
                 <Separator />
-                
+
                 <div>
                   <h3 className="text-base font-medium mb-2">Password</h3>
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-muted-foreground">
-                        Last changed: {securitySettings?.last_password_change ? 
-                          new Date(securitySettings.last_password_change).toLocaleDateString() : 
-                          "Never"}
+                        Last changed:{" "}
+                        {securitySettings?.last_password_change
+                          ? new Date(
+                              securitySettings.last_password_change
+                            ).toLocaleDateString()
+                          : "Never"}
                       </p>
                     </div>
-                    <Button 
+                    <Button
                       variant="outline"
                       onClick={() => setPasswordDialogOpen(true)}
                     >
@@ -1029,24 +1343,25 @@ const SettingsPage: React.FC = () => {
                     </Button>
                   </div>
                 </div>
-                
+
                 <Separator />
-                
+
                 <div className="flex justify-end">
-                  <Button onClick={handleSaveSecuritySettings} disabled={securityLoading}>
+                  <Button
+                    onClick={handleSaveSecuritySettings}
+                    disabled={securityLoading}
+                  >
                     {securityLoading ? "Saving..." : "Save Security Settings"}
                   </Button>
                 </div>
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader>
               <CardTitle>Session History</CardTitle>
-              <CardDescription>
-                View your recent login activity
-              </CardDescription>
+              <CardDescription>View your recent login activity</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
@@ -1062,15 +1377,19 @@ const SettingsPage: React.FC = () => {
                   <TableBody>
                     {sessionHistory?.map((session) => (
                       <TableRow key={session.id}>
-                        <TableCell>{new Date(session.login_at).toLocaleString()}</TableCell>
-                        <TableCell>{session.browser || 'Unknown'}</TableCell>
-                        <TableCell>{session.device || 'Unknown'}</TableCell>
-                        <TableCell>{session.ip_address || 'Unknown'}</TableCell>
+                        <TableCell>
+                          {new Date(session.login_at).toLocaleString()}
+                        </TableCell>
+                        <TableCell>{session.browser || "Unknown"}</TableCell>
+                        <TableCell>{session.device || "Unknown"}</TableCell>
+                        <TableCell>{session.ip_address || "Unknown"}</TableCell>
                       </TableRow>
                     ))}
                     {sessionHistory?.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={4}>No session history found</TableCell>
+                        <TableCell colSpan={4}>
+                          No session history found
+                        </TableCell>
                       </TableRow>
                     )}
                   </TableBody>
@@ -1078,9 +1397,12 @@ const SettingsPage: React.FC = () => {
               </div>
             </CardContent>
           </Card>
-          
+
           {/* Password Change Dialog */}
-          <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+          <Dialog
+            open={passwordDialogOpen}
+            onOpenChange={setPasswordDialogOpen}
+          >
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Change Password</DialogTitle>
@@ -1093,7 +1415,12 @@ const SettingsPage: React.FC = () => {
                       id="currentPassword"
                       type="password"
                       value={passwordData.currentPassword}
-                      onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                      onChange={(e) =>
+                        setPasswordData({
+                          ...passwordData,
+                          currentPassword: e.target.value,
+                        })
+                      }
                     />
                   </div>
                   <div className="grid gap-2">
@@ -1102,16 +1429,28 @@ const SettingsPage: React.FC = () => {
                       id="newPassword"
                       type="password"
                       value={passwordData.newPassword}
-                      onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                      onChange={(e) =>
+                        setPasswordData({
+                          ...passwordData,
+                          newPassword: e.target.value,
+                        })
+                      }
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                    <Label htmlFor="confirmPassword">
+                      Confirm New Password
+                    </Label>
                     <Input
                       id="confirmPassword"
                       type="password"
                       value={passwordData.confirmPassword}
-                      onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                      onChange={(e) =>
+                        setPasswordData({
+                          ...passwordData,
+                          confirmPassword: e.target.value,
+                        })
+                      }
                     />
                   </div>
                 </div>

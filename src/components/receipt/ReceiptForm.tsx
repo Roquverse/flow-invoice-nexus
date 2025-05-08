@@ -17,7 +17,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -39,7 +45,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 import { useClients } from "@/hooks/useClients";
@@ -62,19 +74,28 @@ const formSchema = z.object({
   date: z.string().min(1, {
     message: "Please select a date.",
   }),
-  amount: z.string().refine((value) => {
-    // Allow empty string
-    if (!value) return true;
+  amount: z
+    .string()
+    .refine(
+      (value) => {
+        // Allow empty string
+        if (!value) return true;
 
-    // Check if the value is a valid number
-    const num = Number(value);
-    return !isNaN(num);
-  }, {
-    message: "Amount must be a number.",
-  }).optional(),
-  payment_method: z.enum(["cash", "bank_transfer", "credit_card", "paypal", "other"], {
-    required_error: "Please select a payment method.",
-  }),
+        // Check if the value is a valid number
+        const num = Number(value);
+        return !isNaN(num);
+      },
+      {
+        message: "Amount must be a number.",
+      }
+    )
+    .optional(),
+  payment_method: z.enum(
+    ["cash", "bank_transfer", "credit_card", "paypal", "other"],
+    {
+      required_error: "Please select a payment method.",
+    }
+  ),
   payment_reference: z.string().optional(),
   notes: z.string().optional(),
   currency: z.string().min(1, {
@@ -91,7 +112,8 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({ isEditing }) => {
   const { clients, loading: clientsLoading } = useClients();
   const { invoices, loading: invoicesLoading } = useInvoices();
   const { quotes, loading: quotesLoading } = useQuotes();
-  const { createReceipt, updateReceipt, generateReceiptNumber, receipts } = useReceipts();
+  const { createReceipt, updateReceipt, generateReceiptNumber, receipts } =
+    useReceipts();
   const [previewOpen, setPreviewOpen] = useState(false);
   const [receiptNumber, setReceiptNumber] = useState<string | null>(null);
 
@@ -103,7 +125,7 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({ isEditing }) => {
       quote_id: "",
       receipt_number: "",
       reference: "",
-      date: new Date().toISOString().split('T')[0], // Default to today's date
+      date: new Date().toISOString().split("T")[0], // Default to today's date
       amount: "",
       payment_method: "cash",
       payment_reference: "",
@@ -196,7 +218,9 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({ isEditing }) => {
           <Card>
             <CardHeader>
               <CardTitle>Receipt Details</CardTitle>
-              <CardDescription>Enter the receipt information below.</CardDescription>
+              <CardDescription>
+                Enter the receipt information below.
+              </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-6">
               <FormField
@@ -205,7 +229,10 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({ isEditing }) => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Client</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select a client" />
@@ -231,18 +258,25 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({ isEditing }) => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Invoice (Optional)</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select an invoice" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {invoices.map((invoice) => (
-                            <SelectItem key={invoice.id} value={invoice.id}>
-                              {invoice.invoice_number}
-                            </SelectItem>
-                          ))}
+                          {invoices
+                            .filter(
+                              (invoice) => invoice.id && invoice.id !== ""
+                            )
+                            .map((invoice) => (
+                              <SelectItem key={invoice.id} value={invoice.id}>
+                                {invoice.invoice_number}
+                              </SelectItem>
+                            ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -256,18 +290,23 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({ isEditing }) => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Quote (Optional)</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a quote" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {quotes.map((quote) => (
-                            <SelectItem key={quote.id} value={quote.id}>
-                              {quote.quote_number}
-                            </SelectItem>
-                          ))}
+                          {quotes
+                            .filter((quote) => quote.id && quote.id !== "")
+                            .map((quote) => (
+                              <SelectItem key={quote.id} value={quote.id}>
+                                {quote.quote_number}
+                              </SelectItem>
+                            ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -284,7 +323,11 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({ isEditing }) => {
                     <FormItem>
                       <FormLabel>Receipt Number</FormLabel>
                       <FormControl>
-                        <Input placeholder="Receipt number" {...field} readOnly />
+                        <Input
+                          placeholder="Receipt number"
+                          {...field}
+                          readOnly
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -343,7 +386,10 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({ isEditing }) => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Payment Method</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a payment method" />
@@ -351,8 +397,12 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({ isEditing }) => {
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="cash">Cash</SelectItem>
-                          <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                          <SelectItem value="credit_card">Credit Card</SelectItem>
+                          <SelectItem value="bank_transfer">
+                            Bank Transfer
+                          </SelectItem>
+                          <SelectItem value="credit_card">
+                            Credit Card
+                          </SelectItem>
                           <SelectItem value="paypal">PayPal</SelectItem>
                           <SelectItem value="other">Other</SelectItem>
                         </SelectContent>
@@ -383,7 +433,10 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({ isEditing }) => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Currency</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select a currency" />
@@ -447,8 +500,12 @@ const ReceiptForm: React.FC<ReceiptFormProps> = ({ isEditing }) => {
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
               }}
-              invoice={invoices.find((invoice) => invoice.id === form.getValues("invoice_id"))}
-              quote={quotes.find((quote) => quote.id === form.getValues("quote_id"))}
+              invoice={invoices.find(
+                (invoice) => invoice.id === form.getValues("invoice_id")
+              )}
+              quote={quotes.find(
+                (quote) => quote.id === form.getValues("quote_id")
+              )}
             />
           </div>
         </DialogContent>

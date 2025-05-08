@@ -91,6 +91,7 @@
   background-color: #f5f7ff;
   position: relative;
   overflow: hidden;
+  /* margin-top: 2px; */
 }
 
 .v5welocme-section {
@@ -215,65 +216,6 @@ Hero Form Styling .hero-form {
   max-width: 100%;
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-}
-
-.index5-scroll-carousel-section {
-  margin-top: 60px;
-  position: relative;
-  overflow: hidden;
-  padding: 20px 0;
-  box-shadow: none !important;
-}
-
-.slide-left,
-.slide-right {
-  display: flex;
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  width: max-content;
-  overflow-x: hidden;
-}
-
-.slide-right {
-  margin-top: 20px;
-}
-
-.slide-left li,
-.slide-right li {
-  display: flex;
-  align-items: center;
-  background-color: white;
-  margin-right: 20px;
-  padding: 15px 20px;
-  border-radius: 10px;
-  box-shadow: none !important;
-  min-width: 200px;
-}
-
-.slide-left li span,
-.slide-right li span {
-  margin-right: 15px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  background-color: rgba(76, 175, 80, 0.1);
-  border-radius: 8px;
-}
-
-.slide-left li span img,
-.slide-right li span img {
-  width: 20px;
-  height: 20px;
-}
-
-.slide-left li strong,
-.slide-right li strong {
-  font-weight: 600;
-  font-size: 14px;
-  color: #333;
 }
 
 /* Why Choose Us Section */

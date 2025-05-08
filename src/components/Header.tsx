@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
@@ -44,177 +43,70 @@ const Header: React.FC = () => {
 
   return (
     <header
-      className={`header-section ${
-        isScrolled ? "header-sticky" : ""
-      } py-4 bg-white shadow-sm fixed top-0 left-0 w-full z-40`}
+      className="h-16 flex items-center fixed top-0 left-0 w-full z-50"
+      style={{ backgroundColor: "transparent", boxShadow: "none" }}
     >
-      <div className="container mx-auto px-4">
-        <div className="flex justify-between items-center">
-          {/* Logo */}
-          <div className="logo">
-            <Link to="/">
-              <img src="/logo.png" alt="Risitify" className="h-10" />
-            </Link>
-          </div>
-
-          {/* Navigation for desktop */}
-          <nav className="hidden md:block">
-            <ul className="flex space-x-6">
-              <li>
-                <Link to="/" className="nav-link text-gray-700 hover:text-[#4CAF50]">
-                  Home
-                </Link>
-              </li>
-              <li>
-                <Link to="/features" className="nav-link text-gray-700 hover:text-[#4CAF50]">
-                  Features
-                </Link>
-              </li>
-              <li>
-                <Link to="/pricing" className="nav-link text-gray-700 hover:text-[#4CAF50]">
-                  Pricing
-                </Link>
-              </li>
-              <li>
-                <Link to="/contact" className="nav-link text-gray-700 hover:text-[#4CAF50]">
-                  Contact
-                </Link>
-              </li>
-              <li>
-                <Link to="/admin/login" className="nav-link text-gray-700 hover:text-[#4CAF50]">
-                  Admin
-                </Link>
-              </li>
-            </ul>
-          </nav>
-
-          {/* Auth buttons for desktop */}
-          <div className="hidden md:flex items-center space-x-4">
-            {currentUser ? (
-              <>
-                <Link
-                  to="/dashboard"
-                  className="dashboard-link px-3 py-2 text-[#4CAF50] hover:text-[#388E3C]"
-                >
-                  Dashboard
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  className="sign-out-button px-3 py-2 bg-[#4CAF50] hover:bg-[#388E3C] text-white rounded-lg transition-colors"
-                >
-                  Sign Out
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  to="/sign-in"
-                  className="sign-in-link px-3 py-2 text-[#4CAF50] hover:text-[#388E3C]"
-                >
-                  Sign In
-                </Link>
-                <Link
-                  to="/sign-up"
-                  className="sign-up-button px-3 py-2 bg-[#4CAF50] hover:bg-[#388E3C] text-white rounded-lg transition-colors"
-                >
-                  Sign Up
-                </Link>
-              </>
-            )}
-          </div>
-
-          {/* Mobile menu button */}
-          <div className="md:hidden">
-            <button onClick={toggleMenu} className="p-2 focus:outline-none">
-              {isMenuOpen ? (
-                <X className="h-6 w-6 text-gray-700" />
-              ) : (
-                <Menu className="h-6 w-6 text-gray-700" />
-              )}
-            </button>
-          </div>
+      <div className="max-w-6xl mx-auto w-full flex justify-between items-center px-4">
+        {/* Logo */}
+        <div className="logo flex items-center h-12">
+          <Link to="/">
+            <img src="/logo.png" alt="Risitify" className="h-10 w-auto" />
+          </Link>
         </div>
-
-        {/* Mobile menu */}
-        {isMenuOpen && (
-          <div className="md:hidden mt-4 pb-4 border-t border-gray-200 pt-4">
-            <nav className="flex flex-col space-y-4">
+        {/* Navigation for desktop */}
+        <nav className="hidden md:block">
+          <ul className="flex space-x-6 text-lg font-medium">
+            <li>
               <Link
                 to="/"
                 className="nav-link text-gray-700 hover:text-[#4CAF50]"
-                onClick={() => setIsMenuOpen(false)}
+                style={{ fontSize: "14px" }}
               >
                 Home
               </Link>
+            </li>
+            <li>
               <Link
                 to="/features"
                 className="nav-link text-gray-700 hover:text-[#4CAF50]"
-                onClick={() => setIsMenuOpen(false)}
+                style={{ fontSize: "14px" }}
               >
                 Features
               </Link>
+            </li>
+            <li>
               <Link
                 to="/pricing"
                 className="nav-link text-gray-700 hover:text-[#4CAF50]"
-                onClick={() => setIsMenuOpen(false)}
+                style={{ fontSize: "14px" }}
               >
                 Pricing
               </Link>
+            </li>
+            <li>
               <Link
                 to="/contact"
                 className="nav-link text-gray-700 hover:text-[#4CAF50]"
-                onClick={() => setIsMenuOpen(false)}
+                style={{ fontSize: "14px" }}
               >
                 Contact
               </Link>
-              <Link
-                to="/admin/login"
-                className="nav-link text-gray-700 hover:text-[#4CAF50]"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Admin
-              </Link>
-
-              {currentUser ? (
-                <>
-                  <Link
-                    to="/dashboard"
-                    className="py-2 text-[#4CAF50] hover:text-[#388E3C]"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Dashboard
-                  </Link>
-                  <button
-                    onClick={() => {
-                      handleLogout();
-                      setIsMenuOpen(false);
-                    }}
-                    className="py-2 px-4 bg-[#4CAF50] hover:bg-[#388E3C] text-white rounded-lg transition-colors w-full text-left"
-                  >
-                    Sign Out
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Link
-                    to="/sign-in"
-                    className="py-2 text-[#4CAF50] hover:text-[#388E3C]"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Sign In
-                  </Link>
-                  <Link
-                    to="/sign-up"
-                    className="py-2 px-4 bg-[#4CAF50] hover:bg-[#388E3C] text-white rounded-lg transition-colors block"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Sign Up
-                  </Link>
-                </>
-              )}
-            </nav>
-          </div>
-        )}
+            </li>
+          </ul>
+        </nav>
+        {/* Auth buttons for desktop */}
+        <div className="flex items-center space-x-4">
+          <Link to="/sign-in">
+            <button className="text-gray-700 hover:text-[#4CAF50] text-lg font-medium">
+              Sign In
+            </button>
+          </Link>
+          <Link to="/sign-up">
+            <button className="bg-[#4CAF50] hover:bg-[#388e3c] text-white rounded px-5 py-2 text-lg font-medium transition">
+              Sign Up
+            </button>
+          </Link>
+        </div>
       </div>
     </header>
   );

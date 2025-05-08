@@ -169,7 +169,7 @@
 
   .footer-content {
     flex-direction: column;
-    gap: 30px;
+    gap: 40px;
   }
 
   .footer-brand {
@@ -178,29 +178,39 @@
   }
 
   .footer-links {
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     gap: 30px;
+    width: 100%;
   }
 
   .footer-column {
-    flex: 0 0 calc(50% - 15px);
+    flex: none;
   }
 }
 
 @media (max-width: 767px) {
+  .footer-links {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 30px;
+  }
+
   .footer-bottom-content {
     flex-direction: column;
     gap: 15px;
-    text-align: center;
+    text-align: left;
   }
 
   .privacy-menu {
-    justify-content: center;
+    justify-content: flex-start;
     flex-wrap: wrap;
     gap: 15px;
   }
+}
 
-  .footer-column {
-    flex: 0 0 100%;
+@media (max-width: 575px) {
+  .footer-links {
+    grid-template-columns: 1fr;
+    gap: 25px;
   }
 }

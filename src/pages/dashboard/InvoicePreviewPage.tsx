@@ -42,6 +42,12 @@ const InvoicePreviewPage: React.FC = () => {
     const fetchData = async () => {
       if (!id) return;
 
+      // Redirect to invoice creation form if ID is 'new'
+      if (id === "new") {
+        navigate("/dashboard/invoices/new");
+        return;
+      }
+
       try {
         setLoading(true);
         const { invoice: fetchedInvoice, items: fetchedItems } =
@@ -68,7 +74,7 @@ const InvoicePreviewPage: React.FC = () => {
     };
 
     fetchData();
-  }, [id]);
+  }, [id, navigate]);
 
   // Debug company settings
   useEffect(() => {

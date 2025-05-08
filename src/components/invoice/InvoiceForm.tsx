@@ -150,7 +150,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false }) => {
     console.log("isEditing flag:", isEditing);
 
     const fetchInvoice = async () => {
-      if (isEditing && id) {
+      if (isEditing && id && id !== "new") {
         console.log(`Attempting to fetch invoice with ID: ${id}`);
         setLoading(true);
         try {

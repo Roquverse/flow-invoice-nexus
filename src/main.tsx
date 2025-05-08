@@ -1,4 +1,3 @@
-
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.tsx";
@@ -16,11 +15,13 @@ import "./styles/style.css";
 import "./styles/responsive.css";
 import "./styles/font-fixes.css";
 import "./styles/pricing.css";
-import "./styles/powerfulTemplate.css";
 import "./styles/auth-pages.css";
 import "./styles/hero-animations.css";
 import "./index.css";
 import "./styles/dashboard.css";
+import "./styles/risitify.css";
+// import "./styles/custom.css";
+import "./styles/hero-animations.css";
 
 // Import custom scripts initialization
 import { initCustomScripts } from "./js";
