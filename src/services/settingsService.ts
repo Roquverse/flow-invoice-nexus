@@ -80,7 +80,7 @@ const mockNotificationPreferences = {
   client_activity: true,
   project_updates: true,
   marketing_tips: false,
-  email_frequency: "daily",
+  email_frequency: "daily" as "immediate" | "daily" | "weekly",
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
 };
@@ -344,19 +344,25 @@ export const getNotificationPreferences = async (
 
     if (error) throw error;
 
-    return (
-      data || {
-        id: "",
-        user_id: userId,
-        invoice_notifications: true,
-        client_activity: true,
-        project_updates: false,
-        marketing_tips: false,
-        email_frequency: "immediate",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }
-    );
+    // Convert string email_frequency to the proper union type
+    let emailFreq: "immediate" | "daily" | "weekly" = "immediate";
+    if (data?.email_frequency === "daily") emailFreq = "daily";
+    if (data?.email_frequency === "weekly") emailFreq = "weekly";
+
+    return data ? {
+      ...data,
+      email_frequency: emailFreq
+    } : {
+      id: "",
+      user_id: userId,
+      invoice_notifications: true,
+      client_activity: true,
+      project_updates: false,
+      marketing_tips: false,
+      email_frequency: "immediate",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
   } catch (error) {
     console.error("Error fetching notification preferences:", error);
     throw error;
@@ -367,10 +373,20 @@ export const updateNotificationPreferences = async (
   preferences: Partial<NotificationPreferences> & { user_id: string }
 ): Promise<NotificationPreferences> => {
   try {
+    // Ensure email_frequency is a valid value
+    let emailFreq: "immediate" | "daily" | "weekly" = "immediate";
+    if (preferences.email_frequency === "daily") emailFreq = "daily";
+    if (preferences.email_frequency === "weekly") emailFreq = "weekly";
+    
+    const updatedPreferences = {
+      ...preferences,
+      email_frequency: emailFreq
+    };
+
     const { data, error } = await supabase
       .from("notification_preferences")
       .upsert({
-        ...preferences,
+        ...updatedPreferences,
         updated_at: new Date().toISOString(),
       })
       .select()
@@ -378,7 +394,10 @@ export const updateNotificationPreferences = async (
 
     if (error) throw error;
 
-    return data;
+    return {
+      ...data,
+      email_frequency: data.email_frequency as "immediate" | "daily" | "weekly"
+    };
   } catch (error) {
     console.error("Error updating notification preferences:", error);
     throw error;

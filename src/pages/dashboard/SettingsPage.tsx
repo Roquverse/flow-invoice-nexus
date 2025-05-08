@@ -19,7 +19,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import currencies from "@/data/currencies";
 import countryList from "@/data/countries";
 import { format } from "date-fns";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
 import { useSettings } from '@/hooks/useSettings';
 
 // Define type for tabs
@@ -31,25 +38,47 @@ const SettingsPage: React.FC = () => {
   
   // Hooks for settings
   const {
-    userProfile,
-    securitySettings,
-    notificationPreferences,
-    sessionHistory,
-    paymentMethods,
-    updateUserProfile,
-    updateNotificationPreferences,
-    updateSecuritySettings,
-    changePassword,
-    addPaymentMethod,
-    deletePaymentMethod,
-    error: settingsError
-  } = useSettings();
+    profile,
+    updateProfile,
+    loading: profileLoading,
+    error: profileError
+  } = useProfileSettings();
+  
+  const {
+    companySettings,
+    updateCompanySettings,
+    loading: companyLoading,
+    error: companyError
+  } = useCompanySettings();
   
   const { 
     billingSettings, 
     loading: billingLoading,
-    updateBillingSettings 
+    updateBillingSettings,
+    error: billingError
   } = useBillingSettings();
+
+  const {
+    securitySettings,
+    loading: securityLoading,
+    error: securityError,
+    updateSecuritySettings
+  } = useSecuritySettings();
+  
+  const {
+    notificationPreferences,
+    loading: notifLoading,
+    error: notifError,
+    updatePreferences: updateNotificationPreferences
+  } = useNotificationPreferences();
+
+  const {
+    sessionHistory,
+    paymentMethods,
+    changePassword,
+    addPaymentMethod,
+    deletePaymentMethod
+  } = useSettings();
 
   // Form state
   const [profileFormData, setProfileFormData] = useState({
@@ -115,16 +144,16 @@ const SettingsPage: React.FC = () => {
 
   // Initialize form data when settings are loaded
   useEffect(() => {
-    if (userProfile) {
+    if (profile) {
       setProfileFormData({
-        first_name: userProfile.first_name || "",
-        last_name: userProfile.last_name || "",
-        email: userProfile.email || "",
-        phone: userProfile.phone || "",
-        avatar_url: userProfile.avatar_url || ""
+        first_name: profile.first_name || "",
+        last_name: profile.last_name || "",
+        email: profile.email || "",
+        phone: profile.phone || "",
+        avatar_url: profile.avatar_url || ""
       });
     }
-  }, [userProfile]);
+  }, [profile]);
 
   useEffect(() => {
     if (companySettings) {
@@ -169,17 +198,12 @@ const SettingsPage: React.FC = () => {
     if (securitySettings) {
       setTwoFactorEnabled(securitySettings.two_factor_enabled || false);
     }
-    
-    // Fetch session history when security tab is active
-    if (activeTab === "security") {
-      fetchSessionHistory();
-    }
-  }, [securitySettings, activeTab]);
+  }, [securitySettings]);
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await updateUserProfile(profileFormData);
+      await updateProfile(profileFormData);
       toast.success("Profile updated successfully");
     } catch (error) {
       toast.error("Failed to update profile");
