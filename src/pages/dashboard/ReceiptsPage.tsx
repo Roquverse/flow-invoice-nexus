@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -22,10 +23,10 @@ import { Invoice } from "@/types/invoices";
 import { Quote } from "@/types/quotes";
 import { Search, Eye, PlusCircle, File, Printer } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { getAllClients } from "@/services/clientService";
-import { getAllInvoices } from "@/services/invoiceService";
-import { getAllQuotes } from "@/services/quoteService";
-import { getAllReceipts } from "@/services/receiptService";
+import { getClients } from "@/services/clientService";
+import { useInvoices } from "@/hooks/useInvoices";
+import { useQuotes } from "@/hooks/useQuotes";
+import { useReceipts } from "@/hooks/useReceipts";
 import ReceiptPreview from "@/components/receipt/ReceiptPreview";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
@@ -42,27 +43,29 @@ const ReceiptsPage = () => {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
   const { toast } = useToast();
+  
+  // Use hooks to get data
+  const { invoices: allInvoices } = useInvoices();
+  const { quotes: allQuotes } = useQuotes();
+  const { receipts: allReceipts } = useReceipts();
 
   // Fix the ref handling
   const receiptPreviewRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [allInvoices, allQuotes, allReceipts]);
 
   const fetchData = async () => {
     try {
-      const receiptsData = await getAllReceipts();
-      setReceipts(receiptsData);
+      // Use data from hooks when available
+      setReceipts(allReceipts || []);
+      setInvoices(allInvoices || []);
+      setQuotes(allQuotes || []);
 
-      const clientsData = await getAllClients();
+      // Only call the API for clients
+      const clientsData = await getClients();
       setClients(clientsData);
-
-      const invoicesData = await getAllInvoices();
-      setInvoices(invoicesData);
-
-      const quotesData = await getAllQuotes();
-      setQuotes(quotesData);
     } catch (error) {
       console.error("Error fetching data:", error);
       toast({
@@ -77,10 +80,19 @@ const ReceiptsPage = () => {
     const searchTerm = searchQuery.toLowerCase();
     return (
       receipt.receipt_number.toLowerCase().includes(searchTerm) ||
-      receipt.client_name.toLowerCase().includes(searchTerm) ||
-      receipt.client_email.toLowerCase().includes(searchTerm)
+      (receipt.client_id && getClientName(receipt.client_id).toLowerCase().includes(searchTerm))
     );
   });
+
+  const getClientName = (clientId: string): string => {
+    const client = clients.find((c) => c.id === clientId);
+    return client ? client.business_name : "Unknown Client";
+  };
+
+  const getClientEmail = (clientId: string): string => {
+    const client = clients.find((c) => c.id === clientId);
+    return client?.email || "No Email";
+  };
 
   const handlePreview = (receipt: Receipt) => {
     setSelectedReceipt(receipt);
@@ -151,8 +163,8 @@ const ReceiptsPage = () => {
             {filteredReceipts.map((receipt) => (
               <TableRow key={receipt.id}>
                 <TableCell>{receipt.receipt_number}</TableCell>
-                <TableCell>{receipt.client_name}</TableCell>
-                <TableCell>{receipt.client_email}</TableCell>
+                <TableCell>{getClientName(receipt.client_id)}</TableCell>
+                <TableCell>{getClientEmail(receipt.client_id)}</TableCell>
                 <TableCell className="text-right">
                   <Button
                     variant="ghost"
@@ -177,13 +189,20 @@ const ReceiptsPage = () => {
           </DialogHeader>
           {selectedReceipt && (
             <div className="mt-4">
-              <ReceiptPreview
-                ref={receiptPreviewRef}
-                receipt={selectedReceipt}
-                client={selectedClient || {}}
-                invoice={selectedInvoice || {}}
-                quote={selectedQuote || {}}
-              />
+              <div ref={receiptPreviewRef}>
+                <ReceiptPreview
+                  receipt={selectedReceipt}
+                  client={selectedClient || undefined}
+                  invoice={selectedInvoice || undefined}
+                  quote={selectedQuote || undefined}
+                />
+              </div>
+              <div className="mt-4 flex justify-end">
+                <Button onClick={handlePrint}>
+                  <Printer className="mr-2 h-4 w-4" />
+                  Print / Download
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>

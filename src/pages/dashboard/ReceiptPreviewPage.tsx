@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Receipt } from "@/types/receipts";
 import { Client } from "@/types/clients";
@@ -8,7 +9,6 @@ import { Quote } from "@/types/quotes";
 import ReceiptPreview from "@/components/receipt/ReceiptPreview";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download } from "lucide-react";
-import { Link } from "react-router-dom";
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
@@ -54,7 +54,7 @@ const ReceiptPreviewPage = () => {
           return;
         }
 
-        setReceipt(receiptData);
+        setReceipt(receiptData as Receipt);
 
         // Fetch client data
         const { data: clientData, error: clientError } = await supabase
@@ -67,7 +67,7 @@ const ReceiptPreviewPage = () => {
           throw new Error(`Failed to fetch client: ${clientError.message}`);
         }
 
-        setClient(clientData);
+        setClient(clientData as Client);
 
         // Fetch invoice data if invoice_id exists
         if (receiptData.invoice_id) {
@@ -80,7 +80,7 @@ const ReceiptPreviewPage = () => {
           if (invoiceError) {
             console.error("Failed to fetch invoice:", invoiceError);
           } else {
-            setInvoice(invoiceData);
+            setInvoice(invoiceData as Invoice);
           }
         }
 
@@ -95,7 +95,7 @@ const ReceiptPreviewPage = () => {
           if (quoteError) {
             console.error("Failed to fetch quote:", quoteError);
           } else {
-            setQuote(quoteData);
+            setQuote(quoteData as Quote);
           }
         }
       } catch (err: any) {
@@ -150,25 +150,21 @@ const ReceiptPreviewPage = () => {
         <div>
           <Button onClick={handlePrint}>
             <Download className="mr-2 h-4 w-4" />
-            Download
+            Download PDF
           </Button>
         </div>
       </div>
       
-      {/* Fix the ref passing */}
       {receipt && client && (
         <div className="bg-white p-8 rounded-lg shadow-lg max-w-4xl mx-auto">
-          <div className="flex justify-between mb-8">
-            {/* Logo and Receipt Info */}
+          <div ref={receiptRef}>
+            <ReceiptPreview
+              receipt={receipt}
+              client={client}
+              invoice={invoice || undefined}
+              quote={quote || undefined}
+            />
           </div>
-          {/* Pass the ref correctly */}
-          <ReceiptPreview
-            ref={receiptRef}
-            receipt={receipt}
-            client={client}
-            invoice={invoice}
-            quote={quote}
-          />
         </div>
       )}
     </div>
