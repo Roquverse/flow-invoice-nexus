@@ -43,8 +43,7 @@ const ReceiptPreview = forwardRef<HTMLDivElement, ReceiptPreviewProps>(
               {client?.address && <div>{client.address}</div>}
               {client?.city && (
                 <div>
-                  {client.city}{client?.state ? `, ${client.state}` : ""}{" "}
-                  {client?.postal_code || ""}
+                  {client.city}{client?.postal_code ? `, ${client.postal_code}` : ""}
                 </div>
               )}
               {client?.country && <div>{client.country}</div>}

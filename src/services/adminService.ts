@@ -384,7 +384,7 @@ export const getAdminReceipts = async () => {
   }
 };
 
-export default {
+const adminService = {
   adminLogin,
   createAdminUser,
   getAdminUsers,
@@ -398,3 +398,5 @@ export default {
   getAdminQuotes,
   getAdminReceipts
 };
+
+export default adminService;

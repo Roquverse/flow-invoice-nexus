@@ -40,6 +40,108 @@ export const useQuotes = () => {
     }
   };
 
+  // Add getClientName function
+  const getClientName = (clientId: string): string => {
+    // This is just a placeholder function that will be updated when client data is available
+    return "Client";
+  };
+
+  // Add getProjectName function
+  const getProjectName = (projectId: string): string => {
+    // This is just a placeholder function that will be updated when project data is available
+    return "Project";
+  };
+
+  // Add changeQuoteStatus function
+  const changeQuoteStatus = async (quoteId: string, status: string) => {
+    try {
+      const { error } = await supabase
+        .from('quotes')
+        .update({ status })
+        .eq('id', quoteId);
+
+      if (error) throw error;
+      
+      await fetchQuotes();
+      return true;
+    } catch (error) {
+      console.error("Error changing quote status:", error);
+      return false;
+    }
+  };
+
+  // Add removeQuote function
+  const removeQuote = async (quoteId: string) => {
+    try {
+      const { error } = await supabase
+        .from('quotes')
+        .delete()
+        .eq('id', quoteId);
+
+      if (error) throw error;
+      
+      setQuotes(quotes.filter(quote => quote.id !== quoteId));
+      return true;
+    } catch (error) {
+      console.error("Error removing quote:", error);
+      return false;
+    }
+  };
+
+  // Add addQuote function
+  const addQuote = async (quote: Partial<Quote>) => {
+    try {
+      const { data, error } = await supabase
+        .from('quotes')
+        .insert(quote)
+        .select();
+
+      if (error) throw error;
+      
+      await fetchQuotes();
+      return data?.[0] as Quote;
+    } catch (error) {
+      console.error("Error adding quote:", error);
+      throw error;
+    }
+  };
+
+  // Add updateQuote function
+  const updateQuote = async (quoteId: string, quote: Partial<Quote>) => {
+    try {
+      const { data, error } = await supabase
+        .from('quotes')
+        .update(quote)
+        .eq('id', quoteId)
+        .select();
+
+      if (error) throw error;
+      
+      await fetchQuotes();
+      return data?.[0] as Quote;
+    } catch (error) {
+      console.error("Error updating quote:", error);
+      throw error;
+    }
+  };
+
+  // Add generateQuoteNumber function
+  const generateQuoteNumber = async (): Promise<string> => {
+    try {
+      const { count, error } = await supabase
+        .from('quotes')
+        .select('*', { count: 'exact', head: true });
+
+      if (error) throw error;
+      
+      const nextNumber = (count || 0) + 1;
+      return `QT-${new Date().getFullYear()}-${nextNumber.toString().padStart(4, '0')}`;
+    } catch (error) {
+      console.error("Error generating quote number:", error);
+      return `QT-${new Date().getFullYear()}-0001`;
+    }
+  };
+
   useEffect(() => {
     fetchQuotes();
   }, []);
@@ -49,5 +151,12 @@ export const useQuotes = () => {
     loading,
     error,
     fetchQuotes,
+    getClientName,
+    getProjectName,
+    changeQuoteStatus,
+    removeQuote,
+    addQuote,
+    updateQuote,
+    generateQuoteNumber
   };
 };
