@@ -1,6 +1,7 @@
 
 import { Routes, Route, useNavigate } from "react-router-dom";
 import LandingPage from "./pages/LandingPage";
+import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/auth/LoginPage";
 import SignupPage from "./pages/auth/SignupPage";
@@ -40,7 +41,8 @@ function App() {
     <>
       <AdminAuthProvider>
         <Routes>
-          <Route path="/" element={<LandingPage />} />
+          <Route path="/" element={<Index />} />
+          <Route path="/landing" element={<LandingPage />} />
           <Route path="/sign-in" element={<LoginPage />} />
           <Route path="/sign-up" element={<SignupPage />} />
 
