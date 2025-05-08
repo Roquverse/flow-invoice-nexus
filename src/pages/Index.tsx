@@ -9,7 +9,7 @@ import Header from "@/components/Header";
 
 const Index = () => {
   return (
-    <div className="home-page">
+    <div className="home-page w-full overflow-x-hidden">
       <Header />
       <Hero />
       <Features />

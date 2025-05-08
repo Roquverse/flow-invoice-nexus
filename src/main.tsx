@@ -38,6 +38,9 @@ const initializeAll = async () => {
 // Start initialization
 initializeAll().catch(console.error);
 
+// Add a class to the root div to ensure full width
+document.getElementById("root")?.classList.add("w-full", "p-0", "m-0");
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <ErrorBoundary>
