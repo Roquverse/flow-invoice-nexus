@@ -1,467 +1,360 @@
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useQuotes } from '@/hooks/useQuotes';
+import { useClients } from '@/hooks/useClients';
+import { Quote } from '@/types/quotes';
+import { formatCurrency, formatDate } from '@/utils/formatters';
+import { toast } from 'sonner';
 import {
+  MoreHorizontal,
   Plus,
-  Edit,
-  Trash2,
   FileText,
-  Loader2,
-  Eye,
+  Trash2,
+  Edit,
+  CheckCircle,
+  XCircle,
+  Clock,
   Send,
-  FileCheck,
-  AlertCircle,
-  Ban,
+  Eye,
+  FileUp,
+  Filter,
 } from "lucide-react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { useQuotes } from "@/hooks/useQuotes";
-import { Quote } from "@/types/quotes";
-import { formatCurrency } from "@/utils/formatters";
-import ErrorBoundary from "@/components/ErrorBoundary";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Link, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 const QuotesPage: React.FC = () => {
   const navigate = useNavigate();
-  const {
-    quotes,
-    loading,
-    error,
-    getClientName,
-    getProjectName,
-    changeQuoteStatus,
-    removeQuote,
-    convertToInvoice,
+  const { 
+    quotes, 
+    loading, 
+    error, 
+    fetchQuotes, 
+    changeQuoteStatus, 
+    removeQuote, 
+    convertToInvoice
   } = useQuotes();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isConvertDialogOpen, setIsConvertDialogOpen] = useState(false);
+  
+  const { clients } = useClients();
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [filteredQuotes, setFilteredQuotes] = useState<Quote[]>([]);
 
-  const handleDeleteClick = (quote: Quote) => {
-    setSelectedQuote(quote);
-    setIsDeleteDialogOpen(true);
-  };
+  useEffect(() => {
+    // Apply filters
+    let result = [...quotes];
+    
+    // Filter by status
+    if (filterStatus) {
+      result = result.filter(quote => quote.status === filterStatus);
+    }
+    
+    // Filter by search term
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      result = result.filter(quote => 
+        quote.quote_number.toLowerCase().includes(term) || 
+        (quote.reference && quote.reference.toLowerCase().includes(term))
+      );
+    }
+    
+    setFilteredQuotes(result);
+  }, [quotes, filterStatus, searchTerm]);
 
-  const handleConvertClick = (quote: Quote) => {
-    setSelectedQuote(quote);
-    setIsConvertDialogOpen(true);
-  };
-
-  const confirmDelete = async () => {
-    if (selectedQuote) {
-      await removeQuote(selectedQuote.id);
-      setIsDeleteDialogOpen(false);
+  const handleDeleteQuote = async () => {
+    if (!selectedQuote) return;
+    
+    try {
+      const success = await removeQuote(selectedQuote.id);
+      if (success) {
+        toast.success("Quote deleted successfully");
+      } else {
+        toast.error("Failed to delete quote");
+      }
+    } catch (err) {
+      toast.error("An error occurred while deleting the quote");
+      console.error(err);
+    } finally {
+      setIsDeleteModalOpen(false);
       setSelectedQuote(null);
     }
   };
 
-  const confirmConvert = async () => {
-    if (selectedQuote) {
+  const handleConvertToInvoice = async () => {
+    if (!selectedQuote) return;
+    
+    try {
       const invoiceId = await convertToInvoice(selectedQuote.id);
-      setIsConvertDialogOpen(false);
-      setSelectedQuote(null);
-
       if (invoiceId) {
         navigate(`/dashboard/invoices/${invoiceId}`);
       }
+    } catch (err) {
+      toast.error("An error occurred while converting the quote to invoice");
+      console.error(err);
+    } finally {
+      setIsConvertModalOpen(false);
+      setSelectedQuote(null);
     }
   };
 
-  const handleStatusChange = async (
-    quoteId: string,
-    status: "draft" | "sent" | "viewed" | "accepted" | "rejected" | "expired"
-  ) => {
-    await changeQuoteStatus(quoteId, status);
+  const handleStatusChange = async (quoteId: string, newStatus: string) => {
+    try {
+      const success = await changeQuoteStatus(quoteId, newStatus);
+      if (success) {
+        toast.success(`Quote status updated to ${newStatus}`);
+        await fetchQuotes();
+      } else {
+        toast.error("Failed to update quote status");
+      }
+    } catch (err) {
+      toast.error("An error occurred while updating the quote status");
+      console.error(err);
+    }
   };
 
-  const filteredQuotes = quotes.filter(
-    (quote) =>
-      quote.quote_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      getClientName(quote.client_id)
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase())
-  );
-
-  const getStatusBadgeClass = (status: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
-      case "draft":
-        return "bg-gray-100 text-gray-800";
-      case "sent":
-        return "bg-blue-100 text-blue-800";
-      case "viewed":
-        return "bg-purple-100 text-purple-800";
-      case "accepted":
-        return "bg-green-100 text-green-800";
-      case "rejected":
-        return "bg-red-100 text-red-800";
-      case "expired":
-        return "bg-yellow-100 text-yellow-800";
+      case 'draft':
+        return <Badge variant="outline" className="bg-gray-100 text-gray-800">Draft</Badge>;
+      case 'sent':
+        return <Badge variant="outline" className="bg-blue-100 text-blue-800">Sent</Badge>;
+      case 'viewed':
+        return <Badge variant="outline" className="bg-purple-100 text-purple-800">Viewed</Badge>;
+      case 'accepted':
+        return <Badge variant="outline" className="bg-green-100 text-green-800">Accepted</Badge>;
+      case 'rejected':
+        return <Badge variant="outline" className="bg-red-100 text-red-800">Rejected</Badge>;
+      case 'expired':
+        return <Badge variant="outline" className="bg-amber-100 text-amber-800">Expired</Badge>;
       default:
-        return "bg-gray-100 text-gray-800";
+        return <Badge variant="outline">{status}</Badge>;
     }
   };
 
-  const renderStatusActions = (quote: Quote) => {
-    switch (quote.status) {
-      case "draft":
-        return (
-          <>
-            <DropdownMenuItem
-              onClick={() => handleStatusChange(quote.id, "sent")}
-            >
-              <Send className="mr-2 h-4 w-4" />
-              Mark as Sent
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => handleStatusChange(quote.id, "accepted")}
-            >
-              <FileCheck className="mr-2 h-4 w-4" />
-              Mark as Accepted
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => handleStatusChange(quote.id, "rejected")}
-            >
-              <Ban className="mr-2 h-4 w-4" />
-              Mark as Rejected
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleConvertClick(quote)}>
-              <FileText className="mr-2 h-4 w-4" />
-              Convert to Invoice
-            </DropdownMenuItem>
-          </>
-        );
-      case "sent":
-        return (
-          <>
-            <DropdownMenuItem
-              onClick={() => handleStatusChange(quote.id, "viewed")}
-            >
-              <Eye className="mr-2 h-4 w-4" />
-              Mark as Viewed
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => handleStatusChange(quote.id, "accepted")}
-            >
-              <FileCheck className="mr-2 h-4 w-4" />
-              Mark as Accepted
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => handleStatusChange(quote.id, "rejected")}
-            >
-              <Ban className="mr-2 h-4 w-4" />
-              Mark as Rejected
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => handleStatusChange(quote.id, "expired")}
-            >
-              <AlertCircle className="mr-2 h-4 w-4" />
-              Mark as Expired
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleConvertClick(quote)}>
-              <FileText className="mr-2 h-4 w-4" />
-              Convert to Invoice
-            </DropdownMenuItem>
-          </>
-        );
-      case "viewed":
-        return (
-          <>
-            <DropdownMenuItem
-              onClick={() => handleStatusChange(quote.id, "accepted")}
-            >
-              <FileCheck className="mr-2 h-4 w-4" />
-              Mark as Accepted
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => handleStatusChange(quote.id, "rejected")}
-            >
-              <Ban className="mr-2 h-4 w-4" />
-              Mark as Rejected
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => handleStatusChange(quote.id, "expired")}
-            >
-              <AlertCircle className="mr-2 h-4 w-4" />
-              Mark as Expired
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleConvertClick(quote)}>
-              <FileText className="mr-2 h-4 w-4" />
-              Convert to Invoice
-            </DropdownMenuItem>
-          </>
-        );
-      case "accepted":
-        return (
-          <DropdownMenuItem onClick={() => handleConvertClick(quote)}>
-            <FileText className="mr-2 h-4 w-4" />
-            Convert to Invoice
-          </DropdownMenuItem>
-        );
-      case "rejected":
-      case "expired":
-        return (
-          <DropdownMenuItem
-            onClick={() => handleStatusChange(quote.id, "draft")}
-          >
-            <FileText className="mr-2 h-4 w-4" />
-            Revert to Draft
-          </DropdownMenuItem>
-        );
-      default:
-        return null;
-    }
+  const getClientName = (clientId: string) => {
+    const client = clients?.find(c => c.id === clientId);
+    return client ? (client.business_name || client.contact_name) : 'Unknown Client';
   };
 
+  // Fix the error rendering by showing error message as string
   if (error) {
-    return (
-      <div className="p-6">
-        <div className="bg-red-100 p-4 rounded-md text-red-800 mb-4">
-          {error}
-        </div>
-      </div>
-    );
+    return <div className="text-red-500">Error: {error.message}</div>;
   }
 
   return (
-    <div className="p-6">
+    <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Quotes</h1>
-          <p className="text-gray-500">Manage and track your quotes</p>
-        </div>
-        <Link to="/dashboard/quotes/new">
-          <Button className="bg-green-600 hover:bg-green-700 text-white">
-            <Plus className="mr-2 h-4 w-4" /> New Quote
-          </Button>
-        </Link>
+        <h1 className="text-2xl font-bold">Quotes</h1>
+        <Button onClick={() => navigate('/dashboard/quotes/new')}>
+          <Plus className="mr-2 h-4 w-4" /> New Quote
+        </Button>
       </div>
 
-      <div className="mb-6">
-        <Input
-          placeholder="Search quotes..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-md"
-        />
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <div className="flex-1">
+          <Input
+            placeholder="Search quotes..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="max-w-sm"
+          />
+        </div>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All Statuses</SelectItem>
+            <SelectItem value="draft">Draft</SelectItem>
+            <SelectItem value="sent">Sent</SelectItem>
+            <SelectItem value="viewed">Viewed</SelectItem>
+            <SelectItem value="accepted">Accepted</SelectItem>
+            <SelectItem value="rejected">Rejected</SelectItem>
+            <SelectItem value="expired">Expired</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+        <div className="space-y-4">
+          {[...Array(3)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-5 w-1/4" />
+                <Skeleton className="h-4 w-1/3" />
+              </CardHeader>
+              <CardContent>
+                <div className="flex justify-between">
+                  <Skeleton className="h-4 w-1/4" />
+                  <Skeleton className="h-4 w-1/4" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       ) : filteredQuotes.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-          <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-1">
-            No quotes found
-          </h3>
-          <p className="text-gray-500 mb-4">
-            {searchTerm
-              ? "No quotes match your search"
-              : "You haven't created any quotes yet"}
+        <div className="text-center py-10">
+          <FileText className="mx-auto h-12 w-12 text-gray-400" />
+          <h3 className="mt-2 text-lg font-medium">No quotes found</h3>
+          <p className="mt-1 text-gray-500">
+            {quotes.length === 0 
+              ? "Get started by creating a new quote" 
+              : "Try adjusting your filters"}
           </p>
-          {searchTerm ? (
-            <Button variant="outline" onClick={() => setSearchTerm("")}>
-              Clear Search
+          {quotes.length === 0 && (
+            <Button 
+              onClick={() => navigate('/dashboard/quotes/new')}
+              className="mt-4"
+            >
+              <Plus className="mr-2 h-4 w-4" /> Create Quote
             </Button>
-          ) : (
-            <Link to="/dashboard/quotes/new">
-              <Button className="bg-green-600 hover:bg-green-700 text-white">
-                <Plus className="mr-2 h-4 w-4" /> Create Your First Quote
-              </Button>
-            </Link>
           )}
         </div>
       ) : (
-        <ErrorBoundary>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Quote #</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>Project</TableHead>
-                <TableHead>Issue Date</TableHead>
-                <TableHead>Expiry Date</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredQuotes.map((quote) => (
-                <TableRow key={quote.id}>
-                  <TableCell className="font-medium">
-                    <Link
-                      to={`/dashboard/quotes/${quote.id}`}
-                      className="text-blue-600 hover:underline"
-                    >
-                      {quote.quote_number}
-                    </Link>
-                  </TableCell>
-                  <TableCell>{getClientName(quote.client_id)}</TableCell>
-                  <TableCell>
-                    {quote.project_id ? getProjectName(quote.project_id) : "-"}
-                  </TableCell>
-                  <TableCell>
-                    {new Date(quote.issue_date).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    {new Date(quote.expiry_date).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    {formatCurrency(quote.total_amount, quote.currency)}
-                  </TableCell>
-                  <TableCell>
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeClass(
-                        quote.status
-                      )}`}
-                    >
-                      {quote.status.charAt(0).toUpperCase() +
-                        quote.status.slice(1)}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex space-x-1">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <span className="sr-only">Actions</span>
-                            <span className="h-4 w-4">⋯</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <Link to={`/dashboard/quotes/${quote.id}`}>
-                              <Eye className="mr-2 h-4 w-4" />
-                              View Details
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <Link to={`/dashboard/quotes/preview/${quote.id}`}>
-                              <FileText className="mr-2 h-4 w-4" />
-                              Preview Quote
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <Link to={`/dashboard/quotes/${quote.id}/edit`}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Edit Quote
-                            </Link>
-                          </DropdownMenuItem>
-                          {renderStatusActions(quote)}
-                          <DropdownMenuItem
-                            onClick={() => handleDeleteClick(quote)}
-                            className="text-red-600"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete Quote
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+        <div className="space-y-4">
+          {filteredQuotes.map((quote) => (
+            <Card key={quote.id} className="overflow-hidden">
+              <CardHeader className="pb-2">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="text-lg">
+                      <Link to={`/dashboard/quotes/${quote.id}`} className="hover:underline">
+                        {quote.quote_number}
+                      </Link>
+                    </CardTitle>
+                    <CardDescription>
+                      {getClientName(quote.client_id)}
+                      {quote.reference && ` • Ref: ${quote.reference}`}
+                    </CardDescription>
+                  </div>
+                  {getStatusBadge(quote.status)}
+                </div>
+              </CardHeader>
+              <CardContent className="pb-2">
+                <div className="flex justify-between items-center text-sm">
+                  <div className="space-y-1">
+                    <div className="text-gray-500">Issued: {formatDate(quote.issue_date)}</div>
+                    <div className="text-gray-500">Expires: {formatDate(quote.expiry_date)}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-lg font-medium">
+                      {formatCurrency(quote.total_amount, quote.currency)}
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </ErrorBoundary>
+                    {quote.payment_plan === 'part' && (
+                      <div className="text-sm text-gray-500">
+                        Initial payment: {formatCurrency(quote.payment_amount || 0, quote.currency)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-end pt-2 gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => navigate(`/dashboard/quotes/${quote.id}`)}
+                >
+                  <Eye className="h-4 w-4 mr-1" /> View
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={() => navigate(`/dashboard/quotes/${quote.id}/edit`)}>
+                      <Edit className="h-4 w-4 mr-2" /> Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={() => {
+                        setSelectedQuote(quote);
+                        setIsConvertModalOpen(true);
+                      }}
+                    >
+                      <FileUp className="h-4 w-4 mr-2" /> Convert to Invoice
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel>Change Status</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={() => handleStatusChange(quote.id, 'draft')}>
+                      <Clock className="h-4 w-4 mr-2" /> Mark as Draft
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleStatusChange(quote.id, 'sent')}>
+                      <Send className="h-4 w-4 mr-2" /> Mark as Sent
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleStatusChange(quote.id, 'viewed')}>
+                      <Eye className="h-4 w-4 mr-2" /> Mark as Viewed
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleStatusChange(quote.id, 'accepted')}>
+                      <CheckCircle className="h-4 w-4 mr-2" /> Mark as Accepted
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleStatusChange(quote.id, 'rejected')}>
+                      <XCircle className="h-4 w-4 mr-2" /> Mark as Rejected
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      className="text-red-600"
+                      onClick={() => {
+                        setSelectedQuote(quote);
+                        setIsDeleteModalOpen(true);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" /> Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
       )}
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Quote</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete quote {selectedQuote?.quote_number}? This action cannot be undone.
+            </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <p>
-              Are you sure you want to delete quote{" "}
-              <span className="font-semibold">
-                {selectedQuote?.quote_number}
-              </span>
-              ?
-            </p>
-            <p className="text-sm text-gray-500 mt-2">
-              This action cannot be undone.
-            </p>
-          </div>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsDeleteDialogOpen(false);
-                setSelectedQuote(null);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={confirmDelete}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Delete
-            </Button>
+            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteQuote}>Delete</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Convert to Invoice Dialog */}
-      <Dialog open={isConvertDialogOpen} onOpenChange={setIsConvertDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+      <Dialog open={isConvertModalOpen} onOpenChange={setIsConvertModalOpen}>
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Convert to Invoice</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to convert quote {selectedQuote?.quote_number} to an invoice? 
+              This will create a new invoice with the same details.
+            </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <p>
-              Are you sure you want to convert quote{" "}
-              <span className="font-semibold">
-                {selectedQuote?.quote_number}
-              </span>{" "}
-              to an invoice?
-            </p>
-            <p className="text-sm text-gray-500 mt-2">
-              This will create a new invoice with the same details as this
-              quote.
-            </p>
-          </div>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsConvertDialogOpen(false);
-                setSelectedQuote(null);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={confirmConvert}
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              Convert
-            </Button>
+            <Button variant="outline" onClick={() => setIsConvertModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleConvertToInvoice}>Convert</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -1,4 +1,3 @@
-
 export interface UserProfile {
   id?: string;
   user_id?: string;
@@ -60,6 +59,18 @@ export interface PaymentMethod {
   last_four?: string;
   expiry_date?: string;
   is_default?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface BillingSettings {
+  id?: string;
+  user_id?: string;
+  billing_name?: string;
+  billing_email?: string;
+  subscription_plan?: string;
+  subscription_status?: string;
+  subscription_renewal_date?: string;
   created_at?: string;
   updated_at?: string;
 }

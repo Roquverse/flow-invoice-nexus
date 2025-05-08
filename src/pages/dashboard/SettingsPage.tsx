@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,35 +19,37 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import currencies from "@/data/currencies";
 import countryList from "@/data/countries";
 import { format } from "date-fns";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useSettings } from '@/hooks/useSettings';
 
 // Define type for tabs
 type TabType = "profile" | "company" | "billing" | "notifications" | "security";
 
-const SettingsPage = () => {
+const SettingsPage: React.FC = () => {
   // State for active tab
   const [activeTab, setActiveTab] = useState<TabType>("profile");
   
   // Hooks for settings
-  const { profile, updateProfile, loading: profileLoading, error: profileError } = useProfileSettings();
-  const { companySettings, updateCompanySettings, loading: companyLoading, error: companyError } = useCompanySettings();
-  const { 
-    billingSettings, 
-    paymentMethods, 
-    loading: billingLoading, 
-    error: billingError,
+  const {
+    userProfile,
+    securitySettings,
+    notificationPreferences,
+    sessionHistory,
+    paymentMethods,
+    updateUserProfile,
+    updateNotificationPreferences,
+    updateSecuritySettings,
+    changePassword,
     addPaymentMethod,
     deletePaymentMethod,
-    updateBillingSettings
-  } = useBillingSettings();
-  const { notificationPreferences, loading: notifLoading, error: notifError, updatePreferences } = useNotificationPreferences();
+    error: settingsError
+  } = useSettings();
+  
   const { 
-    securitySettings, 
-    sessionHistory,
-    loading: securityLoading, 
-    error: securityError,
-    fetchSessionHistory,
-    changePassword
-  } = useSecuritySettings();
+    billingSettings, 
+    loading: billingLoading,
+    updateBillingSettings 
+  } = useBillingSettings();
 
   // Form state
   const [profileFormData, setProfileFormData] = useState({
@@ -114,16 +115,16 @@ const SettingsPage = () => {
 
   // Initialize form data when settings are loaded
   useEffect(() => {
-    if (profile) {
+    if (userProfile) {
       setProfileFormData({
-        first_name: profile.first_name || "",
-        last_name: profile.last_name || "",
-        email: profile.email || "",
-        phone: profile.phone || "",
-        avatar_url: profile.avatar_url || ""
+        first_name: userProfile.first_name || "",
+        last_name: userProfile.last_name || "",
+        email: userProfile.email || "",
+        phone: userProfile.phone || "",
+        avatar_url: userProfile.avatar_url || ""
       });
     }
-  }, [profile]);
+  }, [userProfile]);
 
   useEffect(() => {
     if (companySettings) {
@@ -178,7 +179,7 @@ const SettingsPage = () => {
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await updateProfile(profileFormData);
+      await updateUserProfile(profileFormData);
       toast.success("Profile updated successfully");
     } catch (error) {
       toast.error("Failed to update profile");
@@ -202,7 +203,7 @@ const SettingsPage = () => {
   const handleNotificationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const result = await updatePreferences({
+      const result = await updateNotificationPreferences({
         invoice_notifications: invoiceNotifs,
         client_activity: clientActivity,
         project_updates: projectUpdates,
@@ -303,7 +304,7 @@ const SettingsPage = () => {
   };
 
   return (
-    <div className="container mx-auto py-8">
+    <div className="settings-container">
       <h1 className="text-3xl font-bold mb-6">Settings</h1>
       
       <Tabs defaultValue="profile" value={activeTab} onValueChange={handleTabChange}>
@@ -1029,28 +1030,23 @@ const SettingsPage = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Date</TableHead>
-                      <TableHead>Device / Browser</TableHead>
-                      <TableHead>IP Address</TableHead>
-                      <TableHead>Location</TableHead>
+                      <TableHead>Browser</TableHead>
+                      <TableHead>Device</TableHead>
+                      <TableHead>IP</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {sessionHistory && sessionHistory.length > 0 ? (
-                      sessionHistory.map((session) => (
-                        <TableRow key={session.id}>
-                          <TableCell>
-                            {new Date(session.login_at).toLocaleDateString()} {new Date(session.login_at).toLocaleTimeString()}
-                          </TableCell>
-                          <TableCell>
-                            {session.device} / {session.browser} / {session.os}
-                          </TableCell>
-                          <TableCell>{session.ip_address}</TableCell>
-                          <TableCell>{session.location || "Unknown"}</TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
+                    {sessionHistory?.map((session) => (
+                      <TableRow key={session.id}>
+                        <TableCell>{new Date(session.login_at).toLocaleString()}</TableCell>
+                        <TableCell>{session.browser || 'Unknown'}</TableCell>
+                        <TableCell>{session.device || 'Unknown'}</TableCell>
+                        <TableCell>{session.ip_address || 'Unknown'}</TableCell>
+                      </TableRow>
+                    ))}
+                    {sessionHistory?.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={4} className="text-center">No session history available</TableCell>
+                        <TableCell colSpan={4}>No session history found</TableCell>
                       </TableRow>
                     )}
                   </TableBody>

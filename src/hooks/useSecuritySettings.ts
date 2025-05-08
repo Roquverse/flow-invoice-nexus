@@ -1,74 +1,59 @@
 
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useSettings } from "@/hooks/useSettings";
-import { SecuritySettings, SessionHistory } from "@/types/settings";
+import { useState, useEffect } from 'react';
+import { useSettings } from './useSettings';
+import { SecuritySettings } from '@/types/settings';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useSecuritySettings = () => {
-  const { securitySettings, updateSecuritySettings, loading: settingsLoading, error: settingsError } = useSettings();
-  const [sessionHistory, setSessionHistory] = useState<SessionHistory[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [securitySettings, setSecuritySettings] = useState<SecuritySettings | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const settings = useSettings();
 
-  const fetchSessionHistory = async () => {
+  // Update security settings
+  const updateSecuritySettings = async (updatedSettings: Partial<SecuritySettings>) => {
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
       
-      if (!user) {
-        setSessionHistory([]);
-        return;
+      // Get current user
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        setLoading(false);
+        return false;
       }
-
-      const { data, error } = await supabase
-        .from('session_history')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('login_at', { ascending: false });
-
-      if (error) {
-        throw error;
-      }
-
-      setSessionHistory(data || []);
+      
+      const { data, error: updateError } = await supabase
+        .from('security_settings')
+        .update(updatedSettings)
+        .eq('user_id', session.user.id);
+        
+      if (updateError) throw updateError;
+      
+      setSecuritySettings(prev => prev ? { ...prev, ...updatedSettings } : null);
+      await settings.refresh(); // Refresh the main settings context
+      return data;
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to load session history'));
-      console.error("Error fetching session history:", err);
+      console.error("Error updating security settings:", err);
+      setError(err as Error);
+      return false;
     } finally {
       setLoading(false);
     }
   };
 
-  const changePassword = async (currentPassword: string, newPassword: string): Promise<boolean> => {
-    try {
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      // Update last password change timestamp
-      await updateSecuritySettings({
-        last_password_change: new Date().toISOString()
-      });
-
-      return true;
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to change password'));
-      console.error("Error changing password:", err);
-      return false;
+  useEffect(() => {
+    if (settings.securitySettings) {
+      setSecuritySettings(settings.securitySettings);
+      setLoading(false);
     }
-  };
+  }, [settings.securitySettings]);
 
   return {
     securitySettings,
-    sessionHistory,
-    loading: loading || settingsLoading,
-    error: error || settingsError,
-    fetchSessionHistory,
-    updateSecuritySettings,
-    changePassword
+    loading,
+    error,
+    updateSecuritySettings
   };
 };
+
+export default useSecuritySettings;
