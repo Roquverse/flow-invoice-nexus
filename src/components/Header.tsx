@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { toast } from "sonner";
 import { Menu, X } from "lucide-react";
+import "@/styles/header.css";
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -43,69 +44,159 @@ const Header: React.FC = () => {
 
   return (
     <header
-      className="h-16 flex items-center fixed top-0 left-0 w-full z-50"
-      style={{ backgroundColor: "transparent", boxShadow: "none" }}
+      className={`header-section ${isScrolled ? "header-sticky" : ""}`}
+      style={{ padding: "0 30px" }}
     >
-      <div className="max-w-6xl mx-auto w-full flex justify-between items-center px-4">
-        {/* Logo */}
-        <div className="logo flex items-center h-12">
+      <div className="header-navbar-container">
+        {/* Logo - always visible */}
+        <div className="header-logo">
           <Link to="/">
-            <img src="/logo.png" alt="Risitify" className="h-10 w-auto" />
+            <img src="/logo.png" alt="Risitify" />
           </Link>
         </div>
-        {/* Navigation for desktop */}
-        <nav className="hidden md:block">
-          <ul className="flex space-x-6 text-lg font-medium">
+        {/* Mobile menu button - always visible on mobile */}
+        <div className="nav-expander bar" onClick={toggleMenu}>
+          {isMenuOpen ? (
+            <X size={24} color="#004e25" />
+          ) : (
+            <Menu size={24} color="#004e25" />
+          )}
+        </div>
+        <div className="header-navbar-content">
+          {/* Navigation for desktop */}
+          <nav className="navbar-nav">
+            <ul className="nav-menu">
+              <li>
+                <Link to="/" className="nav-link">
+                  Home
+                </Link>
+              </li>
+              <li>
+                <Link to="/features" className="nav-link">
+                  Features
+                </Link>
+              </li>
+              <li>
+                <Link to="/pricing" className="nav-link">
+                  Pricing
+                </Link>
+              </li>
+              <li>
+                <Link to="/contact" className="nav-link">
+                  Contact
+                </Link>
+              </li>
+            </ul>
+          </nav>
+
+          {/* Auth buttons */}
+          <div className="header-buttons">
+            {currentUser ? (
+              <>
+                <Link to="/dashboard" className="dashboard-link">
+                  Dashboard
+                </Link>
+                <button onClick={handleLogout} className="sign-in-link">
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to="/sign-in" className="sign-in-link">
+                  Sign In
+                </Link>
+                <Link to="/sign-up" className="bg-pink-btn">
+                  <span className="btn-inner">
+                    <span className="btn-normal-text">Sign Up</span>
+                    <span className="btn-hover-text">Get Started</span>
+                  </span>
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile menu */}
+      <div className={`mobile-navbar-menu ${isMenuOpen ? "canvas-open" : ""}`}>
+        {/* Close button for mobile menu */}
+        <button
+          className="mobile-menu-close"
+          onClick={toggleMenu}
+          aria-label="Close menu"
+          style={{
+            position: "absolute",
+            top: 20,
+            right: 20,
+            background: "none",
+            border: "none",
+            zIndex: 10001,
+          }}
+        >
+          <X size={28} color="#004e25" />
+        </button>
+        <nav className="nav-menu">
+          <ul>
             <li>
-              <Link
-                to="/"
-                className="nav-link text-gray-700 hover:text-[#4CAF50]"
-                style={{ fontSize: "14px" }}
-              >
+              <Link to="/" onClick={toggleMenu}>
                 Home
               </Link>
             </li>
             <li>
-              <Link
-                to="/features"
-                className="nav-link text-gray-700 hover:text-[#4CAF50]"
-                style={{ fontSize: "14px" }}
-              >
+              <Link to="/features" onClick={toggleMenu}>
                 Features
               </Link>
             </li>
             <li>
-              <Link
-                to="/pricing"
-                className="nav-link text-gray-700 hover:text-[#4CAF50]"
-                style={{ fontSize: "14px" }}
-              >
+              <Link to="/pricing" onClick={toggleMenu}>
                 Pricing
               </Link>
             </li>
             <li>
-              <Link
-                to="/contact"
-                className="nav-link text-gray-700 hover:text-[#4CAF50]"
-                style={{ fontSize: "14px" }}
-              >
+              <Link to="/contact" onClick={toggleMenu}>
                 Contact
               </Link>
             </li>
           </ul>
         </nav>
-        {/* Auth buttons for desktop */}
-        <div className="flex items-center space-x-4">
-          <Link to="/sign-in">
-            <button className="text-gray-700 hover:text-[#4CAF50] text-lg font-medium">
-              Sign In
-            </button>
-          </Link>
-          <Link to="/sign-up">
-            <button className="bg-[#4CAF50] hover:bg-[#388e3c] text-white rounded px-5 py-2 text-lg font-medium transition">
-              Sign Up
-            </button>
-          </Link>
+        <div className="nav-buttons">
+          {currentUser ? (
+            <>
+              <Link
+                to="/dashboard"
+                onClick={toggleMenu}
+                className="mobile-nav-link"
+              >
+                Dashboard
+              </Link>
+              <button
+                onClick={() => {
+                  handleLogout();
+                  toggleMenu();
+                }}
+                className="mobile-nav-link"
+              >
+                Sign Out
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                to="/sign-in"
+                onClick={toggleMenu}
+                className="mobile-nav-link"
+              >
+                Sign In
+              </Link>
+              <Link
+                to="/sign-up"
+                onClick={toggleMenu}
+                className="mobile-nav-link sign-up"
+              >
+                Sign Up
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </header>
