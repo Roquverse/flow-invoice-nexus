@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -22,7 +21,7 @@ import { Client } from "@/types/clients";
 import { Invoice } from "@/types/invoices";
 import { Quote } from "@/types/quotes";
 import { Search, Eye, PlusCircle, File, Printer } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/use-toast";
 import { getClients } from "@/services/clientService";
 import { useInvoices } from "@/hooks/useInvoices";
 import { useQuotes } from "@/hooks/useQuotes";
@@ -42,7 +41,6 @@ const ReceiptsPage = () => {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
-  const { toast } = useToast();
   
   // Use hooks to get data
   const { invoices: allInvoices } = useInvoices();
@@ -71,7 +69,6 @@ const ReceiptsPage = () => {
       toast({
         title: "Error",
         description: "Failed to load data. Please try again.",
-        variant: "destructive",
       });
     }
   };
