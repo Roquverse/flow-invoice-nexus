@@ -29,6 +29,7 @@ import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
 import AdminLogin from "./components/admin/AdminLogin";
 import AdminProtectedRoute from "./components/admin/AdminProtectedRoute";
 import { AdminAuthProvider } from "./contexts/AdminAuthContext";
+import QuoteForm from "./components/quote/QuoteForm";
 
 import "./App.css";
 import { Toaster } from "sonner";
@@ -57,7 +58,12 @@ function App() {
               element={<ModernInvoicePreviewPage />}
             />
             <Route path="quotes" element={<QuotesPage />} />
+            <Route path="quotes/new" element={<QuoteForm />} />
             <Route path="quotes/:id" element={<QuotePreviewPage />} />
+            <Route
+              path="quotes/:id/edit"
+              element={<QuoteForm isEditing={true} />}
+            />
             <Route path="receipts" element={<ReceiptsPage />} />
             <Route path="receipts/:id" element={<ReceiptPreviewPage />} />
             <Route path="modern-receipt" element={<ModernReceiptPage />} />

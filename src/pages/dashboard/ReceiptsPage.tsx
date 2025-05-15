@@ -20,7 +20,7 @@ import { Receipt } from "@/types/receipts";
 import { Client } from "@/types/clients";
 import { Invoice } from "@/types/invoices";
 import { Quote } from "@/types/quotes";
-import { Search, Eye, PlusCircle, File, Printer } from "lucide-react";
+import { Search, Eye, PlusCircle, Printer } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { getClients } from "@/services/clientService";
 import { useInvoices } from "@/hooks/useInvoices";
@@ -33,33 +33,28 @@ import html2canvas from "html2canvas";
 const ReceiptsPage = () => {
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [quotes, setQuotes] = useState<Quote[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [previewOpen, setPreviewOpen] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
-  
+
   // Use hooks to get data
-  const { invoices: allInvoices } = useInvoices();
-  const { quotes: allQuotes } = useQuotes();
+  const { invoices } = useInvoices();
+  const { quotes } = useQuotes();
   const { receipts: allReceipts } = useReceipts();
 
-  // Fix the ref handling
   const receiptPreviewRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchData();
-  }, [allInvoices, allQuotes, allReceipts]);
+  }, [allReceipts]);
 
   const fetchData = async () => {
     try {
-      // Use data from hooks when available
+      // Use data from hooks
       setReceipts(allReceipts || []);
-      setInvoices(allInvoices || []);
-      setQuotes(allQuotes || []);
 
       // Only call the API for clients
       const clientsData = await getClients();
@@ -77,18 +72,14 @@ const ReceiptsPage = () => {
     const searchTerm = searchQuery.toLowerCase();
     return (
       receipt.receipt_number.toLowerCase().includes(searchTerm) ||
-      (receipt.client_id && getClientName(receipt.client_id).toLowerCase().includes(searchTerm))
+      (receipt.client_id &&
+        getClientName(receipt.client_id).toLowerCase().includes(searchTerm))
     );
   });
 
   const getClientName = (clientId: string): string => {
     const client = clients.find((c) => c.id === clientId);
     return client ? client.business_name : "Unknown Client";
-  };
-
-  const getClientEmail = (clientId: string): string => {
-    const client = clients.find((c) => c.id === clientId);
-    return client?.email || "No Email";
   };
 
   const handlePreview = (receipt: Receipt) => {
@@ -98,27 +89,57 @@ const ReceiptsPage = () => {
     const client = clients.find((c) => c.id === receipt.client_id) || null;
     setSelectedClient(client);
 
-    const invoice = invoices.find((i) => i.id === receipt.invoice_id) || null;
+    const invoice = invoices?.find((i) => i.id === receipt.invoice_id) || null;
     setSelectedInvoice(invoice);
 
-    const quote = quotes.find((q) => q.id === receipt.quote_id) || null;
+    const quote = quotes?.find((q) => q.id === receipt.quote_id) || null;
     setSelectedQuote(quote);
 
     setPreviewOpen(true);
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     if (receiptPreviewRef.current) {
-      html2canvas(receiptPreviewRef.current).then((canvas) => {
-        const imgData = canvas.toDataURL("image/png");
+      try {
+        const canvas = await html2canvas(receiptPreviewRef.current, {
+          scale: 2, // Increase quality
+          logging: false,
+          useCORS: true,
+          backgroundColor: "#ffffff",
+        });
+
+        // A4 dimensions in mm
+        const a4Width = 210;
+        const a4Height = 297;
+
+        // Create PDF with A4 dimensions
         const pdf = new jsPDF({
           orientation: "portrait",
-          unit: "px",
-          format: [canvas.width, canvas.height],
+          unit: "mm",
+          format: "a4",
         });
-        pdf.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
+
+        // Calculate scaling to fit the A4 page while maintaining aspect ratio
+        const imgWidth = a4Width;
+        const imgHeight = (canvas.height * a4Width) / canvas.width;
+
+        // Add the image centered on the page
+        pdf.addImage(
+          canvas.toDataURL("image/jpeg", 1.0),
+          "JPEG",
+          0,
+          0,
+          imgWidth,
+          imgHeight,
+          undefined,
+          "FAST"
+        );
+
+        // Save the PDF
         pdf.save(`receipt-${selectedReceipt?.receipt_number || "preview"}.pdf`);
-      });
+      } catch (error) {
+        console.error("Error generating PDF:", error);
+      }
     }
   };
 
@@ -152,7 +173,8 @@ const ReceiptsPage = () => {
             <TableRow>
               <TableHead>Receipt Number</TableHead>
               <TableHead>Client Name</TableHead>
-              <TableHead>Client Email</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Amount</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -161,7 +183,10 @@ const ReceiptsPage = () => {
               <TableRow key={receipt.id}>
                 <TableCell>{receipt.receipt_number}</TableCell>
                 <TableCell>{getClientName(receipt.client_id)}</TableCell>
-                <TableCell>{getClientEmail(receipt.client_id)}</TableCell>
+                <TableCell>
+                  {new Date(receipt.date).toLocaleDateString()}
+                </TableCell>
+                <TableCell>{receipt.amount}</TableCell>
                 <TableCell className="text-right">
                   <Button
                     variant="ghost"
@@ -178,7 +203,6 @@ const ReceiptsPage = () => {
         </Table>
       </div>
 
-      {/* Fix the ref passing in the preview dialog */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="max-w-4xl overflow-y-auto max-h-[90vh]">
           <DialogHeader>
@@ -190,8 +214,8 @@ const ReceiptsPage = () => {
                 <ReceiptPreview
                   receipt={selectedReceipt}
                   client={selectedClient || undefined}
-                  invoice={selectedInvoice || undefined}
-                  quote={selectedQuote || undefined}
+                  invoice_id={selectedInvoice?.id}
+                  quote_id={selectedQuote?.id}
                 />
               </div>
               <div className="mt-4 flex justify-end">

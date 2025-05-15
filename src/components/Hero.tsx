@@ -62,7 +62,11 @@ const Hero: React.FC = () => {
   };
 
   return (
-    <section className="hero-section-index5" id="hero">
+    <section
+      className="hero-section-index5"
+      id="hero"
+      style={{ marginTop: "-60px" }}
+    >
       <div className="container">
         <div className="index5-hero-content">
           <div className="v5welocme-section">

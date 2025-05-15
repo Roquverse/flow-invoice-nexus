@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,8 +8,8 @@ import { Quote } from "@/types/quotes";
 import ReceiptPreview from "@/components/receipt/ReceiptPreview";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download } from "lucide-react";
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 const ReceiptPreviewPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -22,9 +21,8 @@ const ReceiptPreviewPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fix the ref handling
   const receiptRef = useRef<HTMLDivElement>(null);
-  
+
   useEffect(() => {
     const fetchReceipt = async () => {
       if (!id) {
@@ -57,17 +55,19 @@ const ReceiptPreviewPage = () => {
         setReceipt(receiptData as Receipt);
 
         // Fetch client data
-        const { data: clientData, error: clientError } = await supabase
-          .from("clients")
-          .select("*")
-          .eq("id", receiptData.client_id)
-          .single();
+        if (receiptData.client_id) {
+          const { data: clientData, error: clientError } = await supabase
+            .from("clients")
+            .select("*")
+            .eq("id", receiptData.client_id)
+            .single();
 
-        if (clientError) {
-          throw new Error(`Failed to fetch client: ${clientError.message}`);
+          if (clientError) {
+            console.error("Failed to fetch client:", clientError);
+          } else {
+            setClient(clientData as Client);
+          }
         }
-
-        setClient(clientData as Client);
 
         // Fetch invoice data if invoice_id exists
         if (receiptData.invoice_id) {
@@ -108,30 +108,81 @@ const ReceiptPreviewPage = () => {
     fetchReceipt();
   }, [id]);
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     if (receiptRef.current) {
-      html2canvas(receiptRef.current).then((canvas) => {
-        const imgData = canvas.toDataURL("image/png");
+      try {
+        const canvas = await html2canvas(receiptRef.current, {
+          scale: 2, // Increase quality
+          logging: false,
+          useCORS: true,
+          backgroundColor: "#ffffff",
+        });
+
+        // A4 dimensions in mm
+        const a4Width = 210;
+        const a4Height = 297;
+
+        // Create PDF with A4 dimensions
         const pdf = new jsPDF({
           orientation: "portrait",
-          unit: "px",
-          format: [canvas.width, canvas.height],
+          unit: "mm",
+          format: "a4",
         });
-        pdf.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
+
+        // Calculate scaling to fit the A4 page while maintaining aspect ratio
+        const imgWidth = a4Width;
+        const imgHeight = (canvas.height * a4Width) / canvas.width;
+
+        // Add the image centered on the page
+        pdf.addImage(
+          canvas.toDataURL("image/jpeg", 1.0),
+          "JPEG",
+          0,
+          0,
+          imgWidth,
+          imgHeight,
+          undefined,
+          "FAST"
+        );
+
+        // Save the PDF
         pdf.save(`receipt-${receipt?.receipt_number || "preview"}.pdf`);
-      });
+      } catch (error) {
+        console.error("Error generating PDF:", error);
+      }
     }
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading receipt...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Loading receipt...
+      </div>
+    );
   }
 
   if (error) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center">
         <p className="text-red-500 mb-4">{error}</p>
-        <Link to="/dashboard/receipts" className="text-blue-500 hover:underline">
+        <Link
+          to="/dashboard/receipts"
+          className="text-blue-500 hover:underline"
+        >
+          Go back to receipts
+        </Link>
+      </div>
+    );
+  }
+
+  if (!receipt) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center">
+        <p className="text-red-500 mb-4">Receipt not found</p>
+        <Link
+          to="/dashboard/receipts"
+          className="text-blue-500 hover:underline"
+        >
           Go back to receipts
         </Link>
       </div>
@@ -154,19 +205,17 @@ const ReceiptPreviewPage = () => {
           </Button>
         </div>
       </div>
-      
-      {receipt && client && (
-        <div className="bg-white p-8 rounded-lg shadow-lg max-w-4xl mx-auto">
-          <div ref={receiptRef}>
-            <ReceiptPreview
-              receipt={receipt}
-              client={client}
-              invoice={invoice || undefined}
-              quote={quote || undefined}
-            />
-          </div>
+
+      <div className="bg-white rounded-lg shadow-lg max-w-4xl mx-auto">
+        <div ref={receiptRef}>
+          <ReceiptPreview
+            receipt={receipt}
+            client={client || undefined}
+            invoice_id={invoice?.id}
+            quote_id={quote?.id}
+          />
         </div>
-      )}
+      </div>
     </div>
   );
 };

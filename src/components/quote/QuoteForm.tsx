@@ -19,6 +19,7 @@ import { getQuoteById } from "@/services/quoteService";
 import QuotePreview from "./QuotePreview";
 import { downloadPDF } from "@/utils/pdf";
 import "@/styles/invoice-form.css";
+import { toast } from "react-hot-toast";
 
 interface QuoteFormProps {
   quote?: Quote;
@@ -320,7 +321,15 @@ const QuoteForm: React.FC<QuoteFormProps> = ({
 
   // Show preview
   const handlePreview = () => {
+    if (!clientId) {
+      toast.error("Please select a client first");
+      return;
+    }
     setShowPreview(true);
+  };
+
+  const handleBackToEdit = () => {
+    setShowPreview(false);
   };
 
   // Download PDF
@@ -504,7 +513,7 @@ const QuoteForm: React.FC<QuoteFormProps> = ({
             <button
               type="button"
               className="button button-secondary"
-              onClick={() => setShowPreview(false)}
+              onClick={handleBackToEdit}
             >
               <ArrowLeft size={16} className="mr-2" /> Back to Edit
             </button>
@@ -655,13 +664,15 @@ const QuoteForm: React.FC<QuoteFormProps> = ({
                     className="form-select"
                     name="payment_plan"
                     value={paymentPlan}
-                    onChange={handleInputChange}
+                    onChange={(e) => {
+                      setPaymentPlan(e.target.value as "full" | "part");
+                      if (e.target.value === "full") {
+                        setPaymentPercentage(100);
+                      }
+                    }}
                   >
-                    {PAYMENT_PLANS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
+                    <option value="full">Full Payment</option>
+                    <option value="part">Partial Payment</option>
                   </select>
                 </div>
 
@@ -676,12 +687,15 @@ const QuoteForm: React.FC<QuoteFormProps> = ({
                       className="form-input"
                       name="payment_percentage"
                       value={paymentPercentage}
-                      onChange={handleInputChange}
+                      onChange={(e) =>
+                        setPaymentPercentage(Number(e.target.value))
+                      }
                       min="1"
                       max="100"
                       disabled={paymentPlan === "full"}
                       style={{ width: "15%", height: "35px" }}
                     />
+                    <span className="input-icon">%</span>
                   </div>
                 </div>
               </div>
@@ -856,7 +870,10 @@ const QuoteForm: React.FC<QuoteFormProps> = ({
                           Payment Amount ({paymentPercentage}%)
                         </div>
                         <div className="totals-value">
-                          {formatCurrency(paymentAmount, currency)}
+                          {formatCurrency(
+                            (totalAmount * paymentPercentage) / 100,
+                            currency
+                          )}
                         </div>
                       </div>
                     )}

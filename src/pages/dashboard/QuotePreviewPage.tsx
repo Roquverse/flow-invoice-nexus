@@ -41,7 +41,17 @@ const QuotePreviewPage: React.FC = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!id) return;
+      if (!id) {
+        setError("Quote ID is missing");
+        setLoading(false);
+        return;
+      }
+
+      // If the ID is "new", redirect to the new quote form
+      if (id === "new") {
+        navigate("/dashboard/quotes/new");
+        return;
+      }
 
       try {
         setLoading(true);
@@ -64,13 +74,14 @@ const QuotePreviewPage: React.FC = () => {
       } catch (err: any) {
         console.error("Error fetching quote:", err);
         toast.error(err.message || "Failed to load quote data");
+        setError(err.message || "Failed to load quote data");
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [id]);
+  }, [id, navigate]);
 
   // Prepare company address with proper formatting
   const formatCompanyAddress = () => {

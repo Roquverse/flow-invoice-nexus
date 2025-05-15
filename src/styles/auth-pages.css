@@ -70,8 +70,9 @@
 }
 
 .form-group {
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
   width: 100%;
+  text-align: left;
 }
 
 .form-group label {
@@ -80,6 +81,7 @@
   font-weight: 500;
   color: #333;
   font-size: 0.85rem;
+  text-align: left;
 }
 
 .bg-white {
@@ -93,7 +95,6 @@
   position: relative;
   display: flex;
   align-items: center;
-  margin-bottom: 1rem;
   width: 100%;
 }
 
@@ -105,28 +106,17 @@
   color: #9ca3af;
   pointer-events: none;
   z-index: 2;
-  padding-left: 5px;
-  /* padding-right: 5px; */
 }
 
 .input-field {
   width: 100%;
-  padding: 10px 12px;
+  padding: 10px 12px 10px 40px;
   border: 1px solid #e5e7eb;
   border-radius: 6px;
   background-color: white;
   font-size: 15px;
   height: 45px;
   transition: all 0.2s ease;
-  margin-left: 10px;
-}
-
-.input-field.pl-10 {
-  padding-left: 40px !important;
-}
-
-.input-field.pr-10 {
-  padding-right: 40px !important;
 }
 
 .input-field:focus {

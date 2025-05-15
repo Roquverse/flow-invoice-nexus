@@ -359,9 +359,7 @@ const InvoicesPage: React.FC = () => {
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
-                            <Link
-                              to={`/dashboard/invoices/preview/${invoice.id}`}
-                            >
+                            <Link to={`/dashboard/invoices/${invoice.id}`}>
                               <Eye className="mr-2 h-4 w-4" />
                               Preview Invoice
                             </Link>

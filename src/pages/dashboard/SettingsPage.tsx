@@ -431,24 +431,6 @@ const SettingsPage: React.FC = () => {
                       }`}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="ml-4">
-                    <Input
-                      id="avatar_url"
-                      type="text"
-                      placeholder="Avatar URL"
-                      value={profileFormData.avatar_url}
-                      onChange={(e) =>
-                        setProfileFormData({
-                          ...profileFormData,
-                          avatar_url: e.target.value,
-                        })
-                      }
-                      className="mb-2"
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Enter a URL for your profile image
-                    </p>
-                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">

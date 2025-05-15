@@ -59,7 +59,20 @@ export function DashboardSidebar() {
     <aside className="dashboard-sidebar mobile-dashboard-sidebar">
       <div className="sidebar-header mobile-sidebar-header">
         <div className="logo-container mobile-logo-container">
-          <img src="/logo.png" alt="Logo" className="logo mobile-logo" />
+          <Link to="/dashboard">
+            <img
+              src="/logo.png"
+              alt="Risitify"
+              className="logo mobile-logo"
+              style={{
+                height: "40px",
+                width: "auto",
+                display: "block",
+                objectFit: "contain",
+                maxWidth: "100%",
+              }}
+            />
+          </Link>
         </div>
       </div>
 

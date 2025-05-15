@@ -165,7 +165,7 @@ export default function SignupPage() {
                   Full Name
                 </Label>
                 <div className="input-with-icon">
-                  <UserRound className="input-icon" />
+                  {/* <UserRound className="input-icon" /> */}
                   <Input
                     id="fullName"
                     type="text"
@@ -186,7 +186,7 @@ export default function SignupPage() {
                   Email
                 </Label>
                 <div className="input-with-icon">
-                  <Mail className="input-icon" />
+                  {/* <Mail className="input-icon" /> */}
                   <Input
                     id="email"
                     type="email"
@@ -207,7 +207,7 @@ export default function SignupPage() {
                   Password
                 </Label>
                 <div className="input-with-icon">
-                  <Lock className="input-icon" />
+                  {/* <Lock className="input-icon" /> */}
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}

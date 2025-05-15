@@ -140,11 +140,15 @@ export default function LoginPage() {
                 <Label
                   htmlFor="email"
                   className="text-gray-700 text-sm font-medium"
+                  // style={{ marginLeft: "20px" }}
                 >
                   Email
                 </Label>
                 <div className="input-with-icon">
-                  <Mail className="input-icon" />
+                  {/* <Mail
+                    className="input-icon"
+                    style={{ marginRight: "30px" }}
+                  /> */}
                   <Input
                     id="email"
                     type="email"
@@ -176,7 +180,7 @@ export default function LoginPage() {
                   </Link>
                 </div>
                 <div className="input-with-icon">
-                  <Lock className="input-icon" />
+                  {/* <Lock className="input-icon" /> */}
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
