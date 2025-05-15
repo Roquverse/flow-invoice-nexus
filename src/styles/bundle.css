@@ -1,0 +1,68 @@
+
+/* This file combines all the necessary CSS that might be missing */
+
+/* Global reset */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+/* Style overrides for auth pages */
+.auth-container {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  min-height: 100vh;
+  display: flex;
+  overflow: hidden;
+}
+
+/* Essential lightbox styles */
+.lightbox {
+  position: fixed;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.8);
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  display: none;
+}
+
+/* Essential slick styles */
+.slick-slider {
+  position: relative;
+  display: block;
+}
+
+/* Essential headline styles */
+.headline {
+  display: inline-block;
+  position: relative;
+}
+
+/* Fix for potential asPieProgress styles */
+.progress {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 6px;
+  background: #eee;
+  border-radius: 3px;
+}
+
+.progress-bar {
+  position: absolute;
+  height: 100%;
+  background: #4CAF50;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}

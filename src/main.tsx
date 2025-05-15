@@ -1,3 +1,4 @@
+
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.tsx";
@@ -10,6 +11,9 @@ import "bootstrap/dist/css/bootstrap.min.css";
 // Import Bootstrap JS
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 
+// Import bundle CSS with all missing styles
+import "./styles/bundle.css";
+
 // Import other necessary CSS files
 import "./styles/style.css";
 import "./styles/responsive.css";
@@ -20,8 +24,6 @@ import "./styles/hero-animations.css";
 import "./index.css";
 import "./styles/dashboard.css";
 import "./styles/risitify.css";
-// import "./styles/custom.css";
-import "./styles/hero-animations.css";
 
 // Import custom scripts initialization
 import { initCustomScripts } from "./js";

@@ -29,11 +29,34 @@ export default function SignupPage() {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const navigate = useNavigate();
 
+  const validateForm = () => {
+    if (!fullName.trim()) {
+      setError("Full name is required");
+      return false;
+    }
+    if (!email) {
+      setError("Email is required");
+      return false;
+    }
+    if (!email.includes("@")) {
+      setError("Please enter a valid email address");
+      return false;
+    }
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters long");
+      return false;
+    }
+    if (!agreedToTerms) {
+      setError("You must agree to the terms and conditions");
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!agreedToTerms) {
-      setError("You must agree to the terms and conditions");
+    if (!validateForm()) {
       return;
     }
 
@@ -49,11 +72,21 @@ export default function SignupPage() {
           data: {
             full_name: fullName,
           },
+          emailRedirectTo: window.location.origin + "/sign-in", // Add a redirect URL
         },
       });
 
       if (error) {
-        setError(error.message);
+        console.error("Supabase signup error:", error);
+        
+        // More user-friendly error messages
+        if (error.message.includes("User already registered")) {
+          setError("This email is already registered. Please try signing in instead.");
+        } else if (error.message.includes("Password")) {
+          setError("Password issue: " + error.message);
+        } else {
+          setError(error.message);
+        }
         return;
       }
 
@@ -62,10 +95,13 @@ export default function SignupPage() {
           "Account created successfully! Please check your email to verify your account."
         );
         navigate("/sign-in");
+      } else {
+        // This shouldn't happen normally, but just in case
+        setError("Something went wrong during signup. Please try again.");
       }
     } catch (err) {
+      console.error("Unexpected error during signup:", err);
       setError("An unexpected error occurred. Please try again.");
-      console.error(err);
     } finally {
       setIsLoading(false);
     }
